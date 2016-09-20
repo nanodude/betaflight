@@ -119,7 +119,9 @@ static uartDevice_t uart3 =
     .txDMAStream = DMA1_Stream3,
     .dev = USART3,
     .rx = IO_TAG(UART3_RX_PIN),
+#if defined(UART3_TX_PIN)
     .tx = IO_TAG(UART3_TX_PIN),
+#endif
     .af = GPIO_AF_USART3,
 #ifdef UART3_AHB1_PERIPHERALS
     .rcc_ahb1 = UART3_AHB1_PERIPHERALS,
