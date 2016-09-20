@@ -37,7 +37,11 @@ uint32_t gyroSetSampleRate(uint8_t lpf, uint8_t gyroSyncDenominator)
     int gyroSamplePeriod;
 
     if (lpf == GYRO_LPF_256HZ || lpf == GYRO_LPF_NONE) {
+#if defined(BRAINRE1)
+        gyroSamplePeriod = 312;
+#else
         gyroSamplePeriod = 125;
+#endif /* defined(BRAINRE1) */
     } else {
         gyroSamplePeriod = 1000;
         gyroSyncDenominator = 1; // Always full Sampling 1khz
