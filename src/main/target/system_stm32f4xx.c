@@ -387,18 +387,30 @@ uint32_t hse_value = HSE_VALUE;
 #else
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F401xx || STM32F469_479xx */
 
-/* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
-#define PLL_Q      7
 
 #if defined(STM32F446xx)
 /* PLL division factor for I2S, SAI, SYSTEM and SPDIF: Clock =  PLL_VCO / PLLR */
+#if defined(BRAINRE1)
+#define PLL_R      2
+#define PLL_Q      2
+#else
 #define PLL_R      7
+#endif
+#else
+/* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
+#define PLL_Q      7
 #endif /* STM32F446xx */
 
 #if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx)
+#if defined(BRAINRE1)
+#define PLL_N      180
+/* SYSCLK = PLL_VCO / PLL_P */
+#define PLL_P      2
+#else
 #define PLL_N      360
 /* SYSCLK = PLL_VCO / PLL_P */
 #define PLL_P      2
+#endif
 #endif /* STM32F427_437x || STM32F429_439xx || STM32F446xx || STM32F469_479xx */
 
 #if defined (STM32F40_41xxx)
@@ -419,6 +431,12 @@ uint32_t hse_value = HSE_VALUE;
 #define PLL_P      4
 #endif /* STM32F410xx || STM32F411xE */
 
+#if defined(BRAINRE1)
+#define PLLSAI_M      8
+#define PLLSAI_N      192
+#define PLLSAI_P      8
+#define PLLSAI_Q      2
+#endif
 /******************************************************************************/
 
 /**
@@ -871,6 +889,23 @@ void SetSysClock(void)
   }
 #endif /* USE_HSE_BYPASS */
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F401xx || STM32F469_479xx */
+
+#if defined(STM32F446xx)
+  /* Configure 48MHz clock for USB */
+  // Set 48MHz clock source
+  RCC_48MHzClockSourceConfig(RCC_48MHZCLKSource_PLLSAI);
+  // Enable PLLSAI
+  RCC_PLLSAICmd(DISABLE);
+  #define RCC_PLLSAI_GET_FLAG() ((RCC->CR & (RCC_CR_PLLSAIRDY)) == (RCC_CR_PLLSAIRDY))
+  // wait for PLLSAI to be disabled
+  while (RCC_PLLSAI_GET_FLAG() != 0)
+  {}
+  RCC_PLLSAIConfig(PLLSAI_M, PLLSAI_N, PLLSAI_P, PLLSAI_Q);
+  RCC_PLLSAICmd(ENABLE);
+  // wait for PLLSAI to be enabled
+  while (RCC_PLLSAI_GET_FLAG() == 0)
+  {}
+#endif /* STM32F446xx */
 }
 
 /**

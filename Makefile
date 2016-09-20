@@ -82,7 +82,7 @@ endif
 # silently ignore if the file is not present. Allows for target specific.
 -include $(ROOT)/src/main/target/$(BASE_TARGET)/target.mk
 
-F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS)
+F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS) $(F446_TARGETS)
 
 ifeq ($(filter $(TARGET),$(VALID_TARGETS)),)
 $(error Target '$(TARGET)' is not valid, must be one of $(VALID_TARGETS). Have you prepared a valid target.mk?)
@@ -94,7 +94,7 @@ endif
 
 128K_TARGETS  = $(F1_TARGETS)
 256K_TARGETS  = $(F3_TARGETS)
-512K_TARGETS  = $(F411_TARGETS)
+512K_TARGETS  = $(F411_TARGETS) $(F446_TARGETS)
 1024K_TARGETS = $(F405_TARGETS)
 
 # Configure default flash sizes for the targets (largest size specified gets hit first) if flash not specified already.
@@ -213,6 +213,11 @@ ifeq ($(TARGET),$(filter $(TARGET), $(F411_TARGETS)))
 EXCLUDES += stm32f4xx_fsmc.c
 endif
 
+ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
+EXCLUDES += stm32f4xx_fsmc.c
+EXCLUDES += startup_stm32f40xx.s
+endif
+
 STDPERIPH_SRC := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
 
 #USB
@@ -267,6 +272,9 @@ LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f411.ld
 else ifeq ($(TARGET),$(filter $(TARGET),$(F405_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F40_41xxx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
+else ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F446xx
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_drbl.ld
 else
 $(error Unknown MCU for F4 target)
 endif
@@ -488,6 +496,22 @@ STM32F30x_COMMON_SRC = \
             drivers/system_stm32f30x.c \
             drivers/timer_stm32f30x.c
 
+ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
+STM32F4xx_COMMON_SRC = \
+            startup_stm32f446xx.s \
+            target/system_stm32f4xx.c \
+            drivers/accgyro_mpu.c \
+            drivers/adc_stm32f4xx.c \
+            drivers/adc_stm32f4xx.c \
+            drivers/bus_i2c_stm32f10x.c \
+            drivers/gpio_stm32f4xx.c \
+            drivers/inverter.c \
+            drivers/serial_softserial.c \
+            drivers/serial_uart_stm32f4xx.c \
+            drivers/system_stm32f4xx.c \
+            drivers/timer_stm32f4xx.c \
+            drivers/dma_stm32f4xx.c
+else
 STM32F4xx_COMMON_SRC = \
             startup_stm32f40xx.s \
             target/system_stm32f4xx.c \
@@ -502,7 +526,9 @@ STM32F4xx_COMMON_SRC = \
             drivers/system_stm32f4xx.c \
             drivers/timer_stm32f4xx.c \
             drivers/dma_stm32f4xx.c
+endif
 
+            
 # check if target.mk supplied
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 TARGET_SRC := $(STM32F4xx_COMMON_SRC) $(TARGET_SRC)
