@@ -33,8 +33,8 @@
  */
 
 
-#ifndef PIOS_BMI160_H
-#define PIOS_BMI160_H
+#ifndef BMI160_H
+#define BMI160_H
 
 enum pios_bmi160_orientation { // clockwise rotation from board forward
 	PIOS_BMI160_TOP_0DEG,
@@ -47,37 +47,28 @@ enum pios_bmi160_orientation { // clockwise rotation from board forward
 	PIOS_BMI160_BOTTOM_270DEG,
 };
 
-enum pios_bmi160_odr {
-	PIOS_BMI160_ODR_800_Hz = 0x0B,
-	PIOS_BMI160_ODR_1600_Hz = 0x0C,
+enum bmi160_odr {
+	BMI160_ODR_800_Hz = 0x0B,
+	BMI160_ODR_1600_Hz = 0x0C,
+	BMI160_ODR_3200_Hz = 0x0D,
 };
 
-enum pios_bmi160_acc_range {
-	PIOS_BMI160_RANGE_2G = 0x03,
-	PIOS_BMI160_RANGE_4G = 0x05,
-	PIOS_BMI160_RANGE_8G = 0x08,
-	PIOS_BMI160_RANGE_16G = 0x0C,
+enum bmi160_acc_range {
+	BMI160_RANGE_2G = 0x03,
+	BMI160_RANGE_4G = 0x05,
+	BMI160_RANGE_8G = 0x08,
+	BMI160_RANGE_16G = 0x0C,
 };
 
-enum pios_bmi160_gyro_range {
-	PIOS_BMI160_RANGE_125DPS = 0x04,
-	PIOS_BMI160_RANGE_250DPS = 0x03,
-	PIOS_BMI160_RANGE_500DPS = 0x02,
-	PIOS_BMI160_RANGE_1000DPS = 0x01,
-	PIOS_BMI160_RANGE_2000DPS = 0x00,
+enum bmi160_gyro_range {
+	BMI160_RANGE_125DPS = 0x04,
+	BMI160_RANGE_250DPS = 0x03,
+	BMI160_RANGE_500DPS = 0x02,
+	BMI160_RANGE_1000DPS = 0x01,
+	BMI160_RANGE_2000DPS = 0x00,
 };
 
-struct pios_bmi160_cfg {
-	const struct pios_exti_cfg *exti_cfg; /* Pointer to the EXTI configuration */
-	enum pios_bmi160_orientation orientation;
-	enum pios_bmi160_odr odr;
-	enum pios_bmi160_acc_range acc_range;
-	enum pios_bmi160_gyro_range gyro_range;
-	uint8_t temperature_interleaving;
-};
+bool bmi160SpiAccDetect(acc_t *acc);
+bool bmi160SpiGyroDetect(gyro_t *gyro);
 
-/* Public Functions */
-extern int32_t PIOS_BMI160_Init(uint32_t spi_id, uint32_t slave_num, const struct pios_bmi160_cfg *cfg, bool do_foc);
-extern bool PIOS_BMI160_IRQHandler(void);
-
-#endif /* PIOS_BMI160_H */
+#endif /* BMI160_H */
