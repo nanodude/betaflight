@@ -110,6 +110,10 @@
 #include "hardware_revision.h"
 #endif
 
+#ifdef USE_RE1_FPGA
+#include "target/BRAINRE1/fpga_drv.h"
+#endif
+
 #include "build_config.h"
 #include "debug.h"
 
@@ -376,6 +380,10 @@ void init(void)
     spiInit(SPIDEV_3);
 #endif
 #endif
+#endif
+
+#ifdef USE_RE1_FPGA
+    RE1FPGA_Init(false);
 #endif
 
 #ifdef VTX
@@ -765,7 +773,7 @@ int main(void)
 }
 #endif
 
-
+#define DEBUG_HARDFAULTS
 #ifdef DEBUG_HARDFAULTS
 //from: https://mcuoneclipse.com/2012/11/24/debugging-hard-faults-on-arm-cortex-m/
 /**
