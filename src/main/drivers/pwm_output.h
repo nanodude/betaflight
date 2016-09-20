@@ -31,10 +31,17 @@ typedef enum {
 #define MULTISHOT_TIMER_MHZ   84
 #define PWM_BRUSHED_TIMER_MHZ 21
 #else
+#if defined(STM32F446xx)
+#define ONESHOT125_TIMER_MHZ  15
+#define ONESHOT42_TIMER_MHZ   30
+#define MULTISHOT_TIMER_MHZ   90
+#define PWM_BRUSHED_TIMER_MHZ 30
+#else
 #define ONESHOT125_TIMER_MHZ  8
 #define ONESHOT42_TIMER_MHZ   24
 #define MULTISHOT_TIMER_MHZ   72
 #define PWM_BRUSHED_TIMER_MHZ 24
+#endif
 #endif
 
 struct timerHardware_s;
