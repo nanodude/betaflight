@@ -30,9 +30,6 @@
 //#define BEEPER                  PA8
 //#define BEEPER_INVERTED
 
-#define INVERTER RE1FPGA
-#define INVERTER_USART USART3
-
 #define USE_RE1_FPGA
 #define RE1FPGA_SPI_INSTANCE SPI3
 #define RE1FPGA_SPI_DIVISOR  8

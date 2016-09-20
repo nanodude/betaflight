@@ -35,8 +35,12 @@
 #include "serial_uart.h"
 #include "serial_uart_impl.h"
 
+#ifdef USE_RE1_FPGA
+#include "target/BRAINRE1/fpga_drv.h"
+#endif
+
 static void usartConfigurePinInversion(uartPort_t *uartPort) {
-#if !defined(INVERTER) && !defined(STM32F303xC)
+#if !defined(INVERTER) && !defined(STM32F303xC) && !defined(USE_RE1_FPGA)
     UNUSED(uartPort);
 #else
     bool inverted = uartPort->port.options & SERIAL_INVERTED;
@@ -44,7 +48,25 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
 #ifdef INVERTER
     if (inverted && uartPort->USARTx == INVERTER_USART) {
         // Enable hardware inverter if available.
+
         INVERTER_ON;
+    }
+#endif
+
+#ifdef USE_RE1_FPGA
+    if (inverted) {
+        if (uartPort->USARTx == USART3) {
+            RE1FPGA_SerialRxInvert(true);
+        }
+        if (uartPort->USARTx == USART6) {
+            if (uartPort->port.options & SERIAL_BIDIR) {
+                RE1FPGA_MPTxPinMode(true, true);
+                RE1FPGA_MPTxPinPullUpDown(true, false);
+            }
+            else {
+                RE1FPGA_MPTxPinMode(false, true);
+            }
+        }
     }
 #endif
 
