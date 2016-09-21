@@ -128,10 +128,13 @@
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
 
+#define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
 #define VBAT_ADC_PIN            PC0
 #define RSSI_ADC_GPIO_PIN       PC3
 #define CURRENT_METER_ADC_PIN   PC1
+#define VBAT_SCALE_DEFAULT      152
+#define CURRENT_SCALE_DEFAULT   250
 
 #define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_BLACKBOX)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
