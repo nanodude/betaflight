@@ -26,6 +26,9 @@
 
 #define LED0                    PB13
 #define LED1                    PC8
+#define LED0_INVERTED
+#define LED1_INVERTED
+
 
 //#define BEEPER                  PA8
 //#define BEEPER_INVERTED
