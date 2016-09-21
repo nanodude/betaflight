@@ -773,7 +773,6 @@ int main(void)
 }
 #endif
 
-#define DEBUG_HARDFAULTS
 #ifdef DEBUG_HARDFAULTS
 //from: https://mcuoneclipse.com/2012/11/24/debugging-hard-faults-on-arm-cortex-m/
 /**
