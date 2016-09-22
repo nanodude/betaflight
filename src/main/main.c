@@ -117,6 +117,8 @@
 #include "build_config.h"
 #include "debug.h"
 
+void hard_fault_handler_c(unsigned long *hardfault_args);
+
 extern uint8_t motorControlEnable;
 
 #ifdef SOFTSERIAL_LOOPBACK
@@ -764,14 +766,66 @@ void main_step(void)
 }
 
 #ifndef NOMAIN
+#if !defined(USE_CHIBIOS)
 int main(void)
 {
+
     main_init();
     while(1) {
         main_step();
     }
 }
 #endif
+
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+#include "hal.h"
+#include "nvic.h"
+
+static THD_WORKING_AREA(waBetaFlightThread, 32 * 1024);
+static THD_FUNCTION(BetaFlightThread, arg)
+{
+    (void)arg;
+
+    while(1) {
+        main_step();
+    }
+}
+
+volatile uint32_t county = 0;
+static THD_WORKING_AREA(waBlinkyThread, 1024);
+static THD_FUNCTION(BlinkyThread, arg)
+{
+    (void)arg;
+    while(1) {
+        LED1_TOGGLE;
+        chThdSleepMilliseconds(500);
+        county++;
+    }
+}
+
+int main()
+{
+  halInit();
+  chSysInit();
+
+  main_init();
+
+  /* re-init timer irq to make sure it works */
+  extern void *isr_vector_table_base;
+  NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
+  st_lld_init();
+
+  chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
+
+  chThdCreateStatic(waBlinkyThread, sizeof(waBlinkyThread), NORMALPRIO, BlinkyThread, NULL);
+
+  // sleep forever
+  chThdSleep(TIME_INFINITE);
+}
+
+#endif /* defined(USE_CHIBIOS) */
+#endif /* NOMAIN */
 
 #ifdef DEBUG_HARDFAULTS
 //from: https://mcuoneclipse.com/2012/11/24/debugging-hard-faults-on-arm-cortex-m/
@@ -784,6 +838,29 @@ int main(void)
  * cause of the fault.
  * The function ends with a BKPT instruction to force control back into the debugger
  */
+
+// Use the 'naked' attribute so that C stacking is not used.
+__attribute__((naked))
+void HardFault_Handler(void){
+        /*
+         * Get the appropriate stack pointer, depending on our mode,
+         * and use it as the parameter to the C handler. This function
+         * will never return
+         */
+
+        __asm(  ".syntax unified\n"
+                        "MOVS   R0, #4  \n"
+                        "MOV    R1, LR  \n"
+                        "TST    R0, R1  \n"
+                        "BEQ    _MSP    \n"
+                        "MRS    R0, PSP \n"
+                        "B      hard_fault_handler_c      \n"
+                "_MSP:  \n"
+                        "MRS    R0, MSP \n"
+                        "B      hard_fault_handler_c      \n"
+                ".syntax divided\n") ;
+}
+
 void hard_fault_handler_c(unsigned long *hardfault_args)
 {
   volatile unsigned long stacked_r0 ;
@@ -832,6 +909,7 @@ void hard_fault_handler_c(unsigned long *hardfault_args)
 
   __asm("BKPT #0\n") ; // Break into the debugger
 }
+
 
 #else
 void HardFault_Handler(void)

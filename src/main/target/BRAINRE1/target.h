@@ -164,5 +164,5 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(5) | TIM_N(12) )
 

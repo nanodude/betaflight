@@ -274,7 +274,11 @@ DEVICE_FLAGS    = -DSTM32F40_41xxx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
 else ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F446xx
+ifneq ($(filter CHIBIOS,$(FEATURES)),)
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_chibios_drbl.ld
+else
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_drbl.ld
+endif
 else
 $(error Unknown MCU for F4 target)
 endif
@@ -497,6 +501,21 @@ STM32F30x_COMMON_SRC = \
             drivers/timer_stm32f30x.c
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
+ifneq ($(filter CHIBIOS,$(FEATURES)),)
+STM32F4xx_COMMON_SRC = \
+            startup_chibios_stm32F4xx.s \
+            drivers/accgyro_mpu.c \
+            drivers/adc_stm32f4xx.c \
+            drivers/adc_stm32f4xx.c \
+            drivers/bus_i2c_stm32f10x.c \
+            drivers/gpio_stm32f4xx.c \
+            drivers/inverter.c \
+            drivers/serial_softserial.c \
+            drivers/serial_uart_stm32f4xx.c \
+            drivers/system_stm32f4xx.c \
+            drivers/timer_stm32f4xx.c \
+            drivers/dma_stm32f4xx.c
+else
 STM32F4xx_COMMON_SRC = \
             startup_stm32f446xx.s \
             target/system_stm32f4xx.c \
@@ -511,6 +530,7 @@ STM32F4xx_COMMON_SRC = \
             drivers/system_stm32f4xx.c \
             drivers/timer_stm32f4xx.c \
             drivers/dma_stm32f4xx.c
+endif
 else
 STM32F4xx_COMMON_SRC = \
             startup_stm32f40xx.s \
@@ -536,6 +556,40 @@ else ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
 TARGET_SRC := $(STM32F30x_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F1_TARGETS)))
 TARGET_SRC := $(STM32F10x_COMMON_SRC) $(TARGET_SRC)
+endif
+
+ifneq ($(filter CHIBIOS,$(FEATURES)),)
+CHIBIOS := $(ROOT)/lib/main/ChibiOS
+
+#include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
+include $(CHIBIOS)/os/hal/hal.mk
+include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
+include $(CHIBIOS)/os/hal/osal/rt/osal.mk
+include $(CHIBIOS)/os/rt/rt.mk
+include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
+
+DEVICE_FLAGS += -DUSE_CHIBIOS -DCORTEX_USE_FPU=TRUE -DCORTEX_SIMPLIFIED_PRIORITY=TRUE $(DDEFS)
+
+
+TARGET_SRC += $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/crt1.c
+TARGET_SRC += $(STARTUPSRC)
+TARGET_SRC += $(PLATFORMSRC)
+TARGET_SRC += $(HALSRC)
+TARGET_SRC += $(PORTSRC)
+TARGET_SRC += $(KERNSRC)
+TARGET_SRC += $(STARTUPASM)
+TARGET_SRC += $(PORTASM)
+TARGET_SRC += $(OSALASM)
+
+
+INCLUDE_DIRS += $(CHIBIOS)/os/ext/CMSIS/ST/STM32F4xx/
+INCLUDE_DIRS += $(CHIBIOS)/os/common/ports/ARMCMx/devices/STM32F4xx
+INCLUDE_DIRS += $(STARTUPINC)
+INCLUDE_DIRS += $(KERNINC)
+INCLUDE_DIRS += $(PORTINC)
+INCLUDE_DIRS += $(OSALINC)
+INCLUDE_DIRS += $(HALINC)
+INCLUDE_DIRS += $(PLATFORMINC)
 endif
 
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
@@ -622,6 +676,7 @@ CFLAGS      += $(ARCH_FLAGS) \
 ASFLAGS     = $(ARCH_FLAGS) \
               -x assembler-with-cpp \
               $(addprefix -I,$(INCLUDE_DIRS)) \
+              $(DEVICE_FLAGS) \
               -MMD -MP
 
 LDFLAGS     = -lm \

@@ -54,6 +54,12 @@
 
 #if defined(USE_ACCGYRO_BMI160)
 
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+
+binary_semaphore_t gyroSem;
+#endif
+
 /* BMI160 Registers */
 #define BMI160_REG_CHIPID 0x00
 #define BMI160_REG_PMU_STAT 0x03
@@ -139,6 +145,9 @@ static void BMI160_Init()
     if (BMI160_Config() != 0){
         return;
     }
+#if defined(USE_CHIBIOS)
+    chBSemObjectInit(&gyroSem, FALSE);
+#endif
 
     BMI160InitDone = true;
 }
@@ -259,12 +268,25 @@ static int32_t BMI160_WriteReg(uint8_t reg, uint8_t data)
 
 extiCallbackRec_t bmi160IntCallbackRec;
 
+#if defined(USE_CHIBIOS)
+void bmi160ExtiHandler(extiCallbackRec_t *cb)
+{
+    UNUSED(cb);
+    CH_IRQ_PROLOGUE();
+
+    bmi160DataReady = true;
+
+    chSysLockFromISR();
+    chBSemSignalI(&gyroSem);
+    chSysUnlockFromISR();
+    CH_IRQ_EPILOGUE();
+}
+#else
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
 {
     UNUSED(cb);
     bmi160DataReady = true;
-}
-
+#endif
 
 static void bmi160IntExtiInit(void)
 {

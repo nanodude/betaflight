@@ -33,6 +33,12 @@
 
 #include "drivers/system.h"
 
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+
+extern binary_semaphore_t gyroSem;
+#endif
+
 static cfTask_t *currentTask = NULL;
 
 static uint32_t totalWaitingTasks;
@@ -260,4 +266,10 @@ void scheduler(void)
         debug[3] = (micros() - currentTime);
 #endif
     }
+#if defined(USE_CHIBIOS)
+    else {
+        // wait for gyro
+        chBSemWaitTimeout(&gyroSem, MS2ST(2));
+    }
+#endif
 }

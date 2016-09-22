@@ -1,5 +1,5 @@
 F446_TARGETS    += $(TARGET)
-FEATURES        += VCP
+FEATURES        += VCP CHIBIOS
 
 HSE_VALUE       = 16000000
 

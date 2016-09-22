@@ -163,7 +163,11 @@ void systemInit(void)
 {
     checkForBootLoaderRequest();
 
+#if !defined(USE_CHIBIOS)
     SetSysClock();
+#else
+    //stm32_clock_init();
+#endif
 
     // Configure NVIC preempt/priority groups
     NVIC_PriorityGroupConfig(NVIC_PRIORITY_GROUPING);
