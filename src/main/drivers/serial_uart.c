@@ -123,7 +123,6 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
 #ifdef USE_UART1
     } else if (USARTx == USART1) {
         s = serialUART1(baudRate, mode, options);
-
 #endif
 #ifdef USE_UART2
     } else if (USARTx == USART2) {

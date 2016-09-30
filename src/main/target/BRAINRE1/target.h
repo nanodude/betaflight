@@ -42,6 +42,18 @@
 #define RE1FPGA_CLOCK_PIN    PA8
 #define RE1FPGA_RESET_PIN    PB10
 
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (16564455)
+
+#define OSD
+#define USE_BRAINFPV_OSD
+#define VIDEO_BITS_PER_PIXEL 2
+#define INCLUDE_VIDEO_QUADSPI
+#define VIDEO_QSPI_CLOCK_PIN PB2
+#define VIDEO_QSPI_IO0_PIN   PC9
+#define VIDEO_QSPI_IO1_PIN   PC10
+#define VIDEO_VSYNC          PB5
+#define VIDEO_HSYNC          PC2
+
 #define USE_EXTI
 #define GYRO
 #define ACC
@@ -99,7 +111,7 @@
 #define VBUS_SENSING_PIN        PA9
 #define VBUS_SENSING_ENABLED
 
-#define USE_UART1
+//#define USE_UART1
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
 
@@ -164,5 +176,5 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(5) | TIM_N(12) )
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
 

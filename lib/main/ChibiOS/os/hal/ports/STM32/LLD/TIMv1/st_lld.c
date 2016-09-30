@@ -28,7 +28,7 @@
 
 
 #define NVIC_PRIORITY_GROUPING NVIC_PriorityGroup_2
-#define NVIC_PRIO_MAX                      NVIC_BUILD_PRIORITY(0, 1)
+#define NVIC_PRIO_CHIBIOS      NVIC_BUILD_PRIORITY(3, 0)
 #define NVIC_BUILD_PRIORITY(base,sub) (((((base)<<(4-(7-(NVIC_PRIORITY_GROUPING>>8))))|((sub)&(0x0f>>(7-(NVIC_PRIORITY_GROUPING>>8)))))<<4)&0xf0)
 #define NVIC_PRIORITY_BASE(prio) (((prio)>>(4-(7-(NVIC_PRIORITY_GROUPING>>8))))>>4)
 #define NVIC_PRIORITY_SUB(prio) (((prio)&(0x0f>>(7-(NVIC_PRIORITY_GROUPING>>8))))>>4)
@@ -296,8 +296,8 @@ void st_lld_init(void) {
   //nvicEnableVector(ST_NUMBER, STM32_ST_IRQ_PRIORITY);
   NVIC_InitTypeDef NVIC_InitStructure;
   NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_MAX);
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_MAX);
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_CHIBIOS);
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_CHIBIOS);
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 #endif /* OSAL_ST_MODE == OSAL_ST_MODE_FREERUNNING */

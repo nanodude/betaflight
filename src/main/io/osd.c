@@ -1181,11 +1181,15 @@ void updateOsd(void)
         return;
 #endif // MAX7456_DMA_CHANNEL_TX
 
+#if !defined(USE_BRAINFPV_OSD)
     // redraw values in buffer
     if (counter++ % 5 == 0)
         osdUpdate(0);
     else // rest of time redraw screen 10 chars per idle to don't lock the main idle
         max7456DrawScreen();
+#else
+    osdUpdate(0);
+#endif
 
     // do not allow ARM if we are in menu
     if (inMenu)
@@ -1221,6 +1225,7 @@ void osdUpdate(uint8_t guiKey)
         lastSec = sec;
     }
 
+#if !defined(USE_BRRAINFPV_OSD)
     if (refreshTimeout) {
         if (IS_HI(THROTTLE) || IS_HI(PITCH)) // hide statistics
             refreshTimeout = 1;
@@ -1229,6 +1234,9 @@ void osdUpdate(uint8_t guiKey)
             max7456ClearScreen();
         return;
     }
+#else
+    refreshTimeout = 0;
+#endif
 
     blinkState = (millis() / 200) % 2;
 

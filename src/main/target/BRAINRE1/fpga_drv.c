@@ -192,7 +192,7 @@ int32_t RE1FPGA_Init(bool load_config)
     RE1FPGA_WriteRegDirect(RE1FPGA_REG_CFG, 0x00);
     RE1FPGA_WriteRegDirect(RE1FPGA_REG_CTL, 0x00);
     RE1FPGA_WriteRegDirect(RE1FPGA_REG_BLACK, 35);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_BLACK, 110);
+    RE1FPGA_WriteRegDirect(RE1FPGA_REG_WHITE, 110);
     RE1FPGA_WriteRegDirect(RE1FPGA_REG_THR, 120);
     RE1FPGA_WriteRegDirect(RE1FPGA_REG_XCFG, 0x08);
     RE1FPGA_WriteRegDirect(RE1FPGA_REG_XCFG2, 0x10);

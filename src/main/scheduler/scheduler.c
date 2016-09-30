@@ -34,9 +34,13 @@
 #include "drivers/system.h"
 
 #if defined(USE_CHIBIOS)
+#include <math.h>
 #include "ch.h"
 
+uint32_t last_check = 0;
 extern binary_semaphore_t gyroSem;
+extern bool idleCounterClear;
+extern uint32_t idleCounter;
 #endif
 
 static cfTask_t *currentTask = NULL;
@@ -118,12 +122,28 @@ cfTask_t *queueNext(void)
 
 void taskSystem(void)
 {
+#if defined(USE_CHIBIOS)
+    uint32_t now = millis();
+    if ((idleCounterClear == 0) && (now - last_check > 1e3)) {
+        float dT = (now - last_check) / 1e3;
+        float idle = ((float)idleCounter / dT) / (float)IDLE_COUNTS_PER_SEC_AT_NO_LOAD;
+        if (idle > 1)
+            averageSystemLoadPercent = 0;
+        else
+            averageSystemLoadPercent = 100 - roundf(100.0f * idle);
+        totalWaitingTasksSamples = 0;
+        totalWaitingTasks = 0;
+        last_check = now;
+        idleCounterClear = 1;
+    }
+#else
     /* Calculate system load */
     if (totalWaitingTasksSamples > 0) {
         averageSystemLoadPercent = 100 * totalWaitingTasks / totalWaitingTasksSamples;
         totalWaitingTasksSamples = 0;
         totalWaitingTasks = 0;
     }
+#endif
 }
 
 #ifndef SKIP_TASK_STATISTICS

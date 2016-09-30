@@ -196,7 +196,6 @@ EXCLUDES        = stm32f4xx_crc.c \
                   stm32f4xx_flash_ramfunc.c \
                   stm32f4xx_fmpi2c.c \
                   stm32f4xx_lptim.c \
-                  stm32f4xx_qspi.c \
                   stm32f4xx_spdifrx.c \
                   stm32f4xx_cryp.c \
                   stm32f4xx_cryp_aes.c \

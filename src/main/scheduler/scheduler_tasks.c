@@ -148,12 +148,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 #ifdef OSD
+#ifndef USE_BRAINFPV_OSD
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,
         .desiredPeriod = 1000000 / 60,          // 60 Hz
         .staticPriority = TASK_PRIORITY_LOW,
     },
+#endif
 #endif
 #ifdef TELEMETRY
     [TASK_TELEMETRY] = {

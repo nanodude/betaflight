@@ -473,9 +473,11 @@ void init(void)
 #endif
 
 #ifdef OSD
+#ifndef USE_BRAINFPV_OSD
     if (feature(FEATURE_OSD)) {
         osdInit();
     }
+#endif
 #endif
 
     if (!sensorsAutodetect(&masterConfig.sensorAlignmentConfig,
@@ -782,27 +784,50 @@ int main(void)
 #include "hal.h"
 #include "nvic.h"
 
-static THD_WORKING_AREA(waBetaFlightThread, 32 * 1024);
+volatile bool idleCounterClear = 0;
+volatile uint32_t idleCounter = 0;
+
+void appIdleHook(void)
+{
+    // Called when the scheduler has no tasks to run
+    if (idleCounterClear) {
+        idleCounter = 0;
+        idleCounterClear = 0;
+    } else {
+        ++idleCounter;
+    }
+}
+
+static THD_WORKING_AREA(waBetaFlightThread, 16 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
-
     while(1) {
         main_step();
     }
 }
 
-volatile uint32_t county = 0;
-static THD_WORKING_AREA(waBlinkyThread, 1024);
-static THD_FUNCTION(BlinkyThread, arg)
+#if defined(USE_BRAINFPV_OSD)
+#include "brainfpv_osd.h"
+
+extern binary_semaphore_t onScreenDisplaySemaphore;
+
+static THD_WORKING_AREA(waOSDThread, 8 * 1024);
+static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
-    while(1) {
-        LED1_TOGGLE;
-        chThdSleepMilliseconds(500);
-        county++;
+    while (1) {
+        // wait for VSYNC
+        chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(100));
+        if (millis() < 5000) {
+            osdInit();
+        }
+        else {
+            osdMain();
+        }
     }
 }
+#endif
 
 int main()
 {
@@ -811,6 +836,10 @@ int main()
 
   main_init();
 
+#if defined(USE_BRAINFPV_OSD)
+  Video_Init();
+#endif /* USE_BRAINFPV_OSD */
+
   /* re-init timer irq to make sure it works */
   extern void *isr_vector_table_base;
   NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
@@ -818,7 +847,10 @@ int main()
 
   chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
 
-  chThdCreateStatic(waBlinkyThread, sizeof(waBlinkyThread), NORMALPRIO, BlinkyThread, NULL);
+#if defined(USE_BRAINFPV_OSD)
+  chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
+#endif /* USE_BRAINFPV_OSD */
+
 
   // sleep forever
   chThdSleep(TIME_INFINITE);

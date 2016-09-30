@@ -407,12 +407,12 @@
  */
 /*===========================================================================*/
 
+
 /**
  * @brief   Threads descriptor structure extension.
  * @details User fields added to the end of the @p thread_t structure.
  */
 #define CH_CFG_THREAD_EXTRA_FIELDS                                          \
-  /* Add threads custom fields here.*/
 
 /**
  * @brief   Threads initialization hook.
@@ -438,7 +438,6 @@
  * @details This hook is invoked just before switching between threads.
  */
 #define CH_CFG_CONTEXT_SWITCH_HOOK(ntp, otp) {                              \
-  /* Context switch code here.*/                                            \
 }
 
 /**
@@ -480,7 +479,8 @@
  * @details This hook is continuously invoked by the idle thread loop.
  */
 #define CH_CFG_IDLE_LOOP_HOOK() {                                           \
-  /* Idle loop code here.*/                                                 \
+    extern void appIdleHook(void);                                         \
+    appIdleHook();                                                         \
 }
 
 /**
