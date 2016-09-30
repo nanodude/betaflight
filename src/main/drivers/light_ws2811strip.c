@@ -39,11 +39,16 @@
 #include "drivers/dma.h"
 #include "drivers/light_ws2811strip.h"
 
+#ifndef USE_RE1_FPGA
 #if defined(STM32F4)
 uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #else
 uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #endif
+#else
+#include "target/BRAINRE1/fpga_drv.h"
+#endif
+
 volatile uint8_t ws2811LedDataTransferInProgress = 0;
 
 static hsvColor_t ledColorBuffer[WS2811_LED_STRIP_LENGTH];
@@ -86,8 +91,10 @@ void setStripColors(const hsvColor_t *colors)
 
 void ws2811LedStripInit(void)
 {
+#ifndef USE_RE1_FPGA
     memset(&ledStripDMABuffer, 0, WS2811_DMA_BUFFER_SIZE);
     ws2811LedStripHardwareInit();
+#endif
     ws2811UpdateStrip();
 }
 
@@ -96,6 +103,7 @@ bool isWS2811LedStripReady(void)
     return !ws2811LedDataTransferInProgress;
 }
 
+#ifndef USE_RE1_FPGA
 STATIC_UNIT_TESTED uint16_t dmaBufferOffset;
 static int16_t ledIndex;
 
@@ -166,5 +174,29 @@ void ws2811UpdateStrip(void)
     ws2811LedDataTransferInProgress = 1;
     ws2811LedStripDMAEnable();
 }
+#else
+static uint8_t last_active_led = 0;
+static uint8_t led_data[WS2811_LED_STRIP_LENGTH * 3];
+
+void ws2811UpdateStrip(void)
+{
+    static rgbColor24bpp_t *rgb24;
+    uint8_t pos = 0;
+
+    for (int i=0; i<WS2811_LED_STRIP_LENGTH; i++) {
+        rgb24 = hsvToRgb24(&ledColorBuffer[i]);
+        led_data[pos++] = rgb24->rgb.g;
+        led_data[pos++] = rgb24->rgb.r;
+        led_data[pos++] = rgb24->rgb.b;
+        if ((rgb24->rgb.g != 0) || (rgb24->rgb.r != 0) || (rgb24->rgb.b != 0)) {
+            if (i > last_active_led) {
+                last_active_led = i;
+            }
+        }
+    }
+
+    RE1FPGA_SetLEDs(led_data, last_active_led + 1);
+}
+#endif /* USE_RE1_FPGA */
 
 #endif

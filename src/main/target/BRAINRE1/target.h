@@ -35,6 +35,8 @@
 //#define BEEPER                  PA8
 //#define BEEPER_INVERTED
 
+#define LED_STRIP
+
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_FIRST_SECTOR     5
