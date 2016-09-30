@@ -47,9 +47,17 @@
 #define JEDEC_ID_MACRONIX_MX25L6406E   0xC22017
 #define JEDEC_ID_MICRON_N25Q128        0x20ba18
 #define JEDEC_ID_WINBOND_W25Q128       0xEF4018
+#define JEDEC_ID_SPANSION_S25FL127     0x012018
 
 #define DISABLE_M25P16       IOHi(m25p16CsPin)
 #define ENABLE_M25P16        IOLo(m25p16CsPin)
+
+// Option to skip some sectors
+#ifdef M25P16_FIRST_SECTOR
+#define TRANSLATE_ADDR(addr) (addr + M25P16_FIRST_SECTOR * geometry.sectorSize)
+#else
+#define TRANSLATE_ADDR(addr) (addr)
+#endif
 
 // The timeout we expect between being able to issue page program instructions
 #define DEFAULT_TIMEOUT_MILLIS       6
@@ -174,6 +182,7 @@ static bool m25p16_readIdentification()
         break;
         case JEDEC_ID_MICRON_N25Q128:
         case JEDEC_ID_WINBOND_W25Q128:
+        case JEDEC_ID_SPANSION_S25FL127:
             geometry.sectors = 256;
             geometry.pagesPerSector = 256;
         break;
@@ -186,6 +195,10 @@ static bool m25p16_readIdentification()
             geometry.totalSize = 0;
             return false;
     }
+
+#ifdef M25P16_FIRST_SECTOR
+    geometry.sectors = geometry.sectors - M25P16_FIRST_SECTOR;
+#endif
 
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
@@ -240,6 +253,7 @@ bool m25p16_init(ioTag_t csTag)
  */
 void m25p16_eraseSector(uint32_t address)
 {
+    address = TRANSLATE_ADDR(address);
     uint8_t out[] = { M25P16_INSTRUCTION_SECTOR_ERASE, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
 
     m25p16_waitForReady(SECTOR_ERASE_TIMEOUT_MILLIS);
@@ -255,15 +269,24 @@ void m25p16_eraseSector(uint32_t address)
 
 void m25p16_eraseCompletely()
 {
+#ifndef M25P16_FIRST_SECTOR
     m25p16_waitForReady(BULK_ERASE_TIMEOUT_MILLIS);
 
     m25p16_writeEnable();
 
     m25p16_performOneByteCommand(M25P16_INSTRUCTION_BULK_ERASE);
+#else
+    uint32_t addr = 0;
+    for (int i=0; i<geometry.sectors; i++){
+        m25p16_eraseSector(addr);
+        addr += geometry.sectorSize;
+    }
+#endif
 }
 
 void m25p16_pageProgramBegin(uint32_t address)
 {
+    address = TRANSLATE_ADDR(address);
     uint8_t command[] = { M25P16_INSTRUCTION_PAGE_PROGRAM, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
 
     m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS);
@@ -302,6 +325,7 @@ void m25p16_pageProgramFinish()
  */
 void m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 {
+    address = TRANSLATE_ADDR(address);
     m25p16_pageProgramBegin(address);
 
     m25p16_pageProgramContinue(data, length);
@@ -319,6 +343,7 @@ void m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
  */
 int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 {
+    address = TRANSLATE_ADDR(address);
     uint8_t command[] = { M25P16_INSTRUCTION_READ_BYTES, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
 
     if (!m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS)) {
