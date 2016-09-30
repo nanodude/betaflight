@@ -78,6 +78,11 @@
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
+#ifdef USE_BRAINFPV_OSD
+#include "target/BRAINRE1/brainfpv_osd.h"
+#endif
+
+
 #ifndef DEFAULT_RX_FEATURE
 #define DEFAULT_RX_FEATURE FEATURE_RX_PARALLEL_PWM
 #endif
@@ -468,6 +473,10 @@ void createDefaultConfig(master_t *config)
 #ifdef OSD
     intFeatureSet(FEATURE_OSD, config);
     resetOsdConfig(&config->osdProfile);
+#endif
+
+#ifdef USE_BRAINFPV_OSD
+    resetBfOsdConfig(&config->bfOsdConfig);
 #endif
 
 #ifdef BOARD_HAS_VOLTAGE_DIVIDER

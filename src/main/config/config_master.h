@@ -17,6 +17,10 @@
 
 #pragma once
 
+#ifdef USE_BRAINFPV_OSD
+#include "target/BRAINRE1/brainfpv_osd.h"
+#endif
+
 // System-wide
 typedef struct master_t {
     uint8_t version;
@@ -139,6 +143,10 @@ typedef struct master_t {
 
 #ifdef OSD
     osd_profile_t osdProfile;
+#endif
+
+#ifdef USE_BRAINFPV_OSD
+    bfOsdConfig_t bfOsdConfig;
 #endif
 
     profile_t profile[MAX_PROFILE_COUNT];

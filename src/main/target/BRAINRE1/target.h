@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #define TARGET_BOARD_IDENTIFIER "BRAINRE1"
 #define TARGET_CONFIG
 
@@ -178,3 +180,5 @@
 
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
 
+bool brainre1_settings_updated;
+void brainRE1UpdateSettings(void);

@@ -288,6 +288,13 @@ void scheduler(void)
     }
 #if defined(USE_CHIBIOS)
     else {
+#ifdef BRAINRE1
+        extern bool brainre1_settings_updated;
+        if (brainre1_settings_updated) {
+            brainRE1UpdateSettings();
+            brainre1_settings_updated = false;
+        }
+#endif
         // wait for gyro
         chBSemWaitTimeout(&gyroSem, MS2ST(2));
     }

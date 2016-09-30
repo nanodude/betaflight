@@ -264,9 +264,16 @@ OSD_Entry menuRc[];
 OSD_Entry menuRateExpo[];
 OSD_Entry menuMisc[];
 
+#ifdef BRAINRE1
+OSD_Entry menuBrainRE1[];
+#endif
+
 OSD_Entry menuMain[] =
 {
     {"----MAIN MENU----", OME_Label, NULL, NULL},
+#ifdef BRAINRE1
+    {"BRAINFPV RE1", OME_Submenu, osdChangeScreen, &menuBrainRE1[0]},
+#endif
     {"SCREEN LAYOUT", OME_Submenu, osdChangeScreen, &menuOsdLayout[0]},
     {"ALARMS", OME_Submenu, osdChangeScreen, &menuAlarms[0]},
     {"CFG. IMU", OME_Submenu, osdChangeScreen, &menuImu[0]},
@@ -275,6 +282,32 @@ OSD_Entry menuMain[] =
     {"EXIT", OME_OSD_Exit, osdExitMenu, (void*)0},
     {NULL,OME_END, NULL, NULL}
 };
+
+#ifdef BRAINRE1
+#include "target/BRAINRE1/brainfpv_osd.h"
+
+OSD_UINT8_t entryWhiteLevel =  {&masterConfig.bfOsdConfig.white_level, 100, 120, 1};
+OSD_UINT8_t entryBlackLevel =  {&masterConfig.bfOsdConfig.black_level, 15, 40, 1};
+OSD_UINT8_t entrySyncTh =  {&masterConfig.bfOsdConfig.sync_threshold, 110, 130, 1};
+OSD_INT8_t entryXoff =  {&masterConfig.bfOsdConfig.x_offset, -8, 7, 1};
+OSD_UINT8_t entryXScale =  {&masterConfig.bfOsdConfig.x_scale, 0, 15, 1};
+OSD_UINT8_t entry3DShift =  {&masterConfig.bfOsdConfig.sbs_3d_right_eye_offset, 10, 40, 1};
+
+
+OSD_Entry menuBrainRE1[] =
+{
+    {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel},
+    {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel},
+    {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh},
+    {"OSD X OFF", OME_INT8, NULL, &entryXoff},
+    {"OSD X SC", OME_UINT8, NULL, &entryXScale},
+    {"3D MODE", OME_Bool, NULL, &masterConfig.bfOsdConfig.sbs_3d_enabled},
+    {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift},
+
+    {"BACK", OME_Back, NULL, NULL},
+    {NULL, OME_END, NULL, NULL}
+};
+#endif
 
 OSD_Entry menuFeatures[] =
 {
@@ -895,6 +928,14 @@ uint8_t osdHandleKey(uint8_t key)
         case OME_END:
             break;
     }
+
+#ifdef BRAINRE1
+    if (currentMenu == &menuBrainRE1[0]) {
+        if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
+            brainre1_settings_updated = true;
+        }
+    }
+#endif
     return res;
 }
 

@@ -1,10 +1,13 @@
 
 #include <string.h>
+
+#include "brainfpv_osd.h"
 #include "ch.h"
 #include "video.h"
 #include "osd_utils.h"
 #include "drivers/light_led.h"
 #include "drivers/max7456.h"
+
 
 #include "scheduler/scheduler_tasks.h"
 
@@ -38,8 +41,10 @@ void  max7456WriteNvm(uint8_t char_address, uint8_t *font_data)
 
 uint8_t max7456GetRowsCount(void)
 {
-    // XXX
-    return VIDEO_LINES_NTSC;
+    if (Video_GetType() == VIDEO_TYPE_NTSC)
+        return VIDEO_LINES_NTSC;
+    else
+        return VIDEO_LINES_PAL;
 }
 
 void max7456Write(uint8_t x, uint8_t y, char *buff)
@@ -75,4 +80,17 @@ void osdMain(void) {
     clearGraphics();
     updateOsd();
 }
+
+
+void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
+{
+    bfOsdConfig->sync_threshold = 120;
+    bfOsdConfig->white_level    = 110;
+    bfOsdConfig->black_level    = 20;
+    bfOsdConfig->x_offset       = 0;
+    bfOsdConfig->x_scale        = 8;
+    bfOsdConfig->sbs_3d_enabled = 0;
+    bfOsdConfig->sbs_3d_right_eye_offset = 30;
+}
+
 #endif /* USE_BRAINFPV_OSD */

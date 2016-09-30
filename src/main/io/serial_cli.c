@@ -944,6 +944,10 @@ const clivalue_t valueTable[] = {
     { "osd_gps_sats_pos",           VAR_UINT16  | MASTER_VALUE, &masterConfig.osdProfile.item_pos[OSD_GPS_SATS], .config.minmax = { 0, 65536 } },
     { "osd_altitude_pos",           VAR_UINT16  | MASTER_VALUE, &masterConfig.osdProfile.item_pos[OSD_ALTITUDE], .config.minmax = { 0, 65536 } },
 #endif
+
+#ifdef USE_BRAINFPV_OSD
+    { "osd_sync_thresh",           VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sync_threshold, .config.minmax = { 110, 130 } },
+#endif
 };
 
 #define VALUE_COUNT (sizeof(valueTable) / sizeof(clivalue_t))
@@ -2337,6 +2341,7 @@ static void cliVtx(char *cmdline)
     }
 }
 #endif
+
 
 static void printName(uint8_t dumpMask)
 {
