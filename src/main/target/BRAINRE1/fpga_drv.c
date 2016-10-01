@@ -503,6 +503,15 @@ int32_t RE1FPGA_Buzzer(bool enable)
 }
 
 /**
+ * @brief Toggle buzzer
+ */
+int32_t RE1FPGA_BuzzerToggle()
+{
+    uint8_t data = shadow_reg.reg_ctl ^ 0x01;
+    return RE1FPGA_WriteReg(RE1FPGA_REG_CTL, data, 0x01);
+}
+
+/**
  * @brief Set the notification LED colors
  */
 int32_t RE1FPGA_SetNotificationLedColor(enum re1fpga_led_colors led_colors)

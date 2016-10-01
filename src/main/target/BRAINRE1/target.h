@@ -31,10 +31,7 @@
 #define LED0_INVERTED
 #define LED1_INVERTED
 
-
-//#define BEEPER                  PA8
-//#define BEEPER_INVERTED
-
+#define BEEPER
 #define LED_STRIP
 
 #define USE_FLASHFS

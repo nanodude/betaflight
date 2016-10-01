@@ -25,11 +25,16 @@
 
 #include "sound_beeper.h"
 
+#ifdef BRAINRE1
+#include "target/BRAINRE1/fpga_drv.h"
+#endif
 
 #ifdef BEEPER
 
+#ifndef BRAINRE1
 static IO_t beeperIO = DEFIO_IO(NONE);
 static bool beeperInverted = false;
+#endif
 
 #endif
 
@@ -38,14 +43,22 @@ void systemBeep(bool onoff)
 #ifndef BEEPER
     UNUSED(onoff);
 #else
+#ifndef BRAINRE1
     IOWrite(beeperIO, beeperInverted ? onoff : !onoff);
+#else
+    RE1FPGA_Buzzer(onoff);
+#endif
 #endif
 }
 
 void systemBeepToggle(void)
 {
 #ifdef BEEPER
+#ifndef BRAINRE1
     IOToggle(beeperIO);
+#else
+     RE1FPGA_BuzzerToggle();
+#endif
 #endif
 }
 
@@ -54,6 +67,7 @@ void beeperInit(const beeperConfig_t *config)
 #ifndef BEEPER
     UNUSED(config);
 #else
+#ifndef BRAINRE1
     beeperIO = IOGetByTag(config->ioTag);
     beeperInverted = config->isInverted;
 
@@ -61,6 +75,9 @@ void beeperInit(const beeperConfig_t *config)
         IOInit(beeperIO, OWNER_BEEPER, RESOURCE_OUTPUT, 0);
         IOConfigGPIO(beeperIO, config->isOD ? IOCFG_OUT_OD : IOCFG_OUT_PP);
     }
+#else
+    UNUSED(config);
+#endif
     systemBeep(false);
 #endif
 }

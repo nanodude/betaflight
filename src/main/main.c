@@ -326,7 +326,7 @@ void init(void)
 
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
-#ifdef BEEPER
+#if defined(BEEPER) & !defined(BRAINRE1)
     beeperConfig_t beeperConfig = {
         .ioTag = IO_TAG(BEEPER),
 #ifdef BEEPER_INVERTED

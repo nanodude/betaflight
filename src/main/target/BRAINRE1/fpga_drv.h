@@ -61,6 +61,7 @@ int32_t RE1FPGA_MPTxPinMode(bool bidrectional, bool invert);
 int32_t RE1FPGA_MPTxPinPullUpDown(bool enable, bool pullup);
 int32_t RE1FPGA_SetBuzzerType(enum re1fpga_buzzer_types type);
 int32_t RE1FPGA_Buzzer(bool enable);
+int32_t RE1FPGA_BuzzerToggle();
 int32_t RE1FPGA_SetNotificationLedColor(enum re1fpga_led_colors led_colors);
 void RE1FPGA_SetBwLevels(uint8_t black, uint8_t white);
 int32_t RE1FPGA_SetSyncThreshold(uint8_t threshold);
