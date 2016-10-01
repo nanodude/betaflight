@@ -86,6 +86,10 @@
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
+#ifdef USE_CHIBIOS
+#include "ch.h"
+#endif
+
 #define IS_HI(X)  (rcData[X] > 1750)
 #define IS_LO(X)  (rcData[X] < 1250)
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
@@ -1399,10 +1403,20 @@ void osdEraseFlash(void *ptr)
     max7456Write(5, 3, "ERASING FLASH...");
     max7456RefreshAll();
 
+#ifdef USE_CHIBIOS
+    // makes sure we have exclusive access to SPI
+    chSysLock();
+#endif
+
     flashfsEraseCompletely();
     while (!flashfsIsReady()) {
         delay(100);
     }
+
+#ifdef USE_CHIBIOS
+    chSysUnlock();
+#endif
+
     max7456ClearScreen();
     max7456RefreshAll();
 }
