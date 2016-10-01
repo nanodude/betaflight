@@ -153,7 +153,7 @@ const uint16_t airPWM[] = {
 };
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-    { TIM12, IO_TAG(PB8), TIM_Channel_1, TIM8_BRK_TIM12_IRQn,       0, IOCFG_AF_PP, GPIO_AF_TIM12 },       // PPM_IN
+    { TIM12, IO_TAG(PB14), TIM_Channel_1, TIM8_BRK_TIM12_IRQn,       0, IOCFG_AF_PP, GPIO_AF_TIM12 },    // PPM_IN
 
     { TIM5,  IO_TAG(PA2),  TIM_Channel_3, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 3
     { TIM5,  IO_TAG(PA1),  TIM_Channel_2, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 2
