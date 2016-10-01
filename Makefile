@@ -705,6 +705,7 @@ CPPCHECK        = cppcheck $(CSOURCES) --enable=all --platform=unix64 \
 #
 # Things we will build
 #
+TARGET_TLFW     = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).tlfw
 TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).bin
 TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).hex
 TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf
@@ -719,6 +720,10 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
+
+## tlfw file for testing
+$(TARGET_TLFW): $(TARGET_BIN)
+	cat $(TARGET_BIN) $(TARGET_DIR)/dummy.firmwareinfo.bin > $(TARGET_TLFW)
 
 $(TARGET_HEX): $(TARGET_ELF)
 	$(OBJCOPY) -O ihex --set-start 0x8000000 $< $@
@@ -755,7 +760,7 @@ all: $(VALID_TARGETS)
 $(VALID_TARGETS):
 		echo "" && \
 		echo "Building $@" && \
-		$(MAKE) binary hex TARGET=$@ && \
+		$(MAKE) binary hex tlfw TARGET=$@ && \
 		echo "Building $@ succeeded."
 
 
@@ -809,6 +814,9 @@ binary:
 hex:
 	$(MAKE) -j $(TARGET_HEX)
 
+tlfw:
+	$(MAKE) -j $(TARGET_TLFW)
+
 unbrick_$(TARGET): $(TARGET_HEX)
 	stty -F $(SERIAL_DEVICE) raw speed 115200 -crtscts cs8 -parenb -cstopb -ixon
 	stm32flash -w $(TARGET_HEX) -v -g 0x0 -b 115200 $(SERIAL_DEVICE)
@@ -822,6 +830,8 @@ cppcheck: $(CSOURCES)
 
 cppcheck-result.xml: $(CSOURCES)
 	$(CPPCHECK) --xml-version=2 2> cppcheck-result.xml
+
+
 
 ## help              : print this help message and exit
 help: Makefile
