@@ -67,7 +67,9 @@ typedef struct uartDevice_s {
 static uartDevice_t uart1 =
 {
     .DMAChannel = DMA_Channel_4,
+#ifndef USE_UART1_TX_NODMA
     .txDMAStream = DMA2_Stream7,
+#endif
 #ifdef USE_UART1_RX_DMA
     .rxDMAStream = DMA2_Stream5,
 #endif
@@ -317,12 +319,14 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
     if (uart->rxDMAStream) {
         s->rxDMAChannel = uart->DMAChannel;
         s->rxDMAStream = uart->rxDMAStream;
+        s->rxDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
     }
-    s->txDMAChannel = uart->DMAChannel;
-    s->txDMAStream = uart->txDMAStream;
 
-    s->txDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
-    s->rxDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
+    if (uart->txDMAStream) {
+        s->txDMAChannel = uart->DMAChannel;
+        s->txDMAStream = uart->txDMAStream;
+        s->txDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
+    }
 
     IO_t tx = IOGetByTag(uart->tx);
     IO_t rx = IOGetByTag(uart->rx);
@@ -362,7 +366,9 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
     }
 
     // DMA TX Interrupt
-    dmaSetHandler(uart->txIrq, dmaIRQHandler, uart->txPriority, (uint32_t)uart);
+    if (s->txDMAStream) {
+        dmaSetHandler(uart->txIrq, dmaIRQHandler, uart->txPriority, (uint32_t)uart);
+    }
 
     if (!(s->rxDMAChannel)) {
         NVIC_InitStructure.NVIC_IRQChannel = uart->rxIrq;
@@ -387,7 +393,6 @@ void USART1_IRQHandler(void)
     uartPort_t *s = &(uartHardwareMap[UARTDEV_1]->port);
     uartIrqHandler(s);
 }
-
 #endif
 
 #ifdef USE_UART2
