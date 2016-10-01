@@ -119,7 +119,8 @@
 #define VBUS_SENSING_PIN        PA9
 #define VBUS_SENSING_ENABLED
 
-//#define USE_UART1
+#define USE_UART1
+#define USE_UART1_TX_NODMA
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
 
