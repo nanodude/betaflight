@@ -157,7 +157,7 @@
 #define VBAT_ADC_PIN            PC0
 #define RSSI_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC1
-#define VBAT_SCALE_DEFAULT      152
+#define VBAT_SCALE_DEFAULT      66
 #define CURRENT_SCALE_DEFAULT   250
 
 #define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_BLACKBOX)
