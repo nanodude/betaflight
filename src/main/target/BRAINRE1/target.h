@@ -154,7 +154,7 @@
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
 #define VBAT_ADC_PIN            PC0
-#define RSSI_ADC_GPIO_PIN       PC3
+#define RSSI_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC1
 #define VBAT_SCALE_DEFAULT      152
 #define CURRENT_SCALE_DEFAULT   250
