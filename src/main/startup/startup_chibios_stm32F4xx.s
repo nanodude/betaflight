@@ -169,6 +169,14 @@
                 .thumb_func
                 .global ResetHandler
 ResetHandler:
+                /* Jump to STM32 bootloader */
+                ldr r0, =0x2001FFFC         // mj666
+                ldr r1, =0xDEADBEEF         // mj666
+                ldr r2, [r0, #0]            // mj666
+                str r0, [r0, #0]            // mj666
+                cmp r2, r1                  // mj666
+                beq Reboot_Loader           // mj666
+
                 /* Interrupts are globally masked initially.*/
                 cpsid   i
 
@@ -315,6 +323,13 @@ endfiniloop:
                 /* Branching to the defined exit handler.*/
                 b       __default_exit
 
+
+Reboot_Loader:    // mj666
+                  // Reboot to ROM            // mj666
+                  ldr     r0, =0x1FFF0000     // mj666
+                  ldr     sp,[r0, #0]         // mj666
+                  ldr     r0,[r0, #4]         // mj666
+                  bx      r0                  // mj666
 #endif /* !defined(__DOXYGEN__) */
 
 /**

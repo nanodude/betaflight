@@ -137,11 +137,18 @@ typedef enum {
 
 static uint8_t systemState = SYSTEM_STATE_INITIALISING;
 
+static uint8_t safe_boot = 0;
+
 void init(void)
 {
     printfSupportInit();
 
+
     initEEPROM();
+
+    if (safe_boot) {
+        resetEEPROM();
+    }
 
     ensureEEPROMContainsValidData();
     readEEPROM();
@@ -831,6 +838,18 @@ static THD_FUNCTION(OSDThread, arg)
 
 int main()
 {
+  // Check safe-boot request
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_BKPSRAM, ENABLE);
+  PWR_BackupAccessCmd(ENABLE);
+  RTC_ClearFlag(RTC_FLAG_TAMP1F);
+  uint16_t rcc = RTC_ReadBackupRegister(RTC_BKP_DR3);
+  if (rcc == 0xFFFF) {
+    safe_boot = 1;
+    RTC_WriteBackupRegister (RTC_BKP_DR3, 0);
+  }
+
   halInit();
   chSysInit();
 
