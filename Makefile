@@ -201,7 +201,6 @@ EXCLUDES        = stm32f4xx_crc.c \
                   stm32f4xx_cryp_aes.c \
                   stm32f4xx_hash_md5.c \
                   stm32f4xx_cryp_des.c \
-                  stm32f4xx_rtc.c \
                   stm32f4xx_hash.c \
                   stm32f4xx_dbgmcu.c \
                   stm32f4xx_cryp_tdes.c \
@@ -722,8 +721,24 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 # It would be nice to compute these lists, but that seems to be just beyond make.
 
 ## tlfw file for testing
-$(TARGET_TLFW): $(TARGET_BIN)
-	cat $(TARGET_BIN) $(TARGET_DIR)/dummy.firmwareinfo.bin > $(TARGET_TLFW)
+$(TARGET_TLFW): $(TARGET_BIN) $(OBJECT_DIR)/$(TARGET)_firmwareinfo.bin
+	cat $(TARGET_BIN) $(OBJECT_DIR)/$(TARGET)_firmwareinfo.bin > $(TARGET_TLFW)
+
+
+$(OBJECT_DIR)/$(TARGET)_firmwareinfo.bin: $(OBJECT_DIR)/$(TARGET)_firmwareinfo.o
+	$(OBJCOPY) -O binary $< $@
+
+$(OBJECT_DIR)/$(TARGET)_firmwareinfo.o: $(OBJECT_DIR)/$(TARGET)_firmwareinfo.c
+	@mkdir -p $(dir $@)
+	@echo %% $(notdir $<)
+	@$(CC) -c -o  $@  $< $(addprefix -I,$(INCLUDE_DIRS))
+
+$(OBJECT_DIR)/$(TARGET)_firmwareinfo.c: $(TARGET_DIR)/firmwareinfotemplate.ct
+	python $(TARGET_DIR)/version-info.py \
+		--path=$(ROOT) \
+		--template=$^ \
+		--outfile=$@ 
+
 
 $(TARGET_HEX): $(TARGET_ELF)
 	$(OBJCOPY) -O ihex --set-start 0x8000000 $< $@
