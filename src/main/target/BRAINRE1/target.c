@@ -106,6 +106,8 @@
 #include "config/config_master.h"
 
 #include "target/BRAINRE1/fpga_drv.h"
+#include "target/BRAINRE1/ir_transponder.h"
+
 
 
 const uint16_t multiPPM[] = {
@@ -172,4 +174,18 @@ void brainRE1UpdateSettings(void) {
     RE1FPGA_SetXOffset(masterConfig.bfOsdConfig.x_offset);
     RE1FPGA_SetXScale(masterConfig.bfOsdConfig.x_scale);
     RE1FPGA_Set3DConfig(masterConfig.bfOsdConfig.sbs_3d_enabled, masterConfig.bfOsdConfig.sbs_3d_right_eye_offset);
+
+    if (masterConfig.bfOsdConfig.ir_system == 1) {
+        uint8_t ir_data[6];
+        ir_generate_ilap_packet(masterConfig.bfOsdConfig.ir_ilap_id, ir_data, 6);
+        RE1FPGA_SetIRData(ir_data, 6);
+        RE1FPGA_SetIRProtocol(RE1FPGA_IR_PROTOCOL_ILAP);
+    }
+
+    if (masterConfig.bfOsdConfig.ir_system == 2) {
+        uint8_t ir_data[4];
+        ir_generate_trackmate_packet(masterConfig.bfOsdConfig.ir_trackmate_id, ir_data, 6);
+        RE1FPGA_SetIRData(ir_data, 4);
+        RE1FPGA_SetIRProtocol(RE1FPGA_IR_PROTOCOL_TRACKMATE);
+    }
 }

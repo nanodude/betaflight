@@ -13,6 +13,9 @@ typedef struct {
     uint8_t x_scale;
     uint8_t sbs_3d_enabled;
     uint8_t sbs_3d_right_eye_offset;
+    uint8_t ir_system;
+    uint16_t ir_trackmate_id;
+    uint32_t ir_ilap_id;
 } bfOsdConfig_t;
 
 

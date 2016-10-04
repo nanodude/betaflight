@@ -87,8 +87,8 @@ void brainFpvOsdInit(void)
 
 #define GY (GRAPHICS_BOTTOM / 2 - 30)
 
-    draw_image(GRAPHICS_X_MIDDLE - image_betaflight.width - 10, GY - image_brainfpv.height / 2, &image_brainfpv);
-    draw_image(GRAPHICS_X_MIDDLE + 10, GY - image_betaflight.height / 2, &image_betaflight);
+    draw_image(GRAPHICS_X_MIDDLE - image_betaflight.width - 5, GY - image_brainfpv.height / 2, &image_brainfpv);
+    draw_image(GRAPHICS_X_MIDDLE + 5, GY - image_betaflight.height / 2, &image_betaflight);
 
     sprintf(string_buffer, "BF VERSION: %s", FC_VERSION_STRING);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, 0, BETAFLIGHT_DEFAULT);
@@ -118,6 +118,9 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
     bfOsdConfig->x_scale        = 8;
     bfOsdConfig->sbs_3d_enabled = 0;
     bfOsdConfig->sbs_3d_right_eye_offset = 30;
+    bfOsdConfig->ir_system = 0;
+    bfOsdConfig->ir_trackmate_id = 0;
+    bfOsdConfig->ir_ilap_id = 0;
 }
 
 #endif /* USE_BRAINFPV_OSD */

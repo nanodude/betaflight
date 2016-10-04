@@ -93,6 +93,7 @@
 #ifdef BRAINRE1
 #include "target/BRAINRE1/video.h"
 #include "target/BRAINRE1/osd_utils.h"
+#include "target/BRAINRE1/ir_transponder.h"
 #endif
 
 #define IS_HI(X)  (rcData[X] > 1750)
@@ -153,6 +154,7 @@ typedef enum
     OME_UINT8,
     OME_UINT16,
     OME_INT16,
+    OME_UINT32,
     OME_FLOAT, //only up to 255 value and cant be 2.55 or 25.5, just for PID's
     //wlasciwosci elementow
     OME_VISIBLE,
@@ -230,6 +232,14 @@ typedef struct
 
 typedef struct
 {
+    uint32_t *val;
+    uint32_t min;
+    uint32_t max;
+    uint32_t step;
+} OSD_UINT32_t;
+
+typedef struct
+{
     uint8_t *val;
     uint8_t min;
     uint8_t max;
@@ -303,8 +313,9 @@ OSD_UINT8_t entryXScale =  {&masterConfig.bfOsdConfig.x_scale, 0, 15, 1};
 OSD_UINT8_t entry3DShift =  {&masterConfig.bfOsdConfig.sbs_3d_right_eye_offset, 10, 40, 1};
 
 
-OSD_Entry menuBrainRE1[] =
+OSD_Entry menuBrainRE1Osd[] =
 {
+    {"------- OSD --------", OME_Label, NULL, NULL},
     {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel},
     {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel},
     {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh},
@@ -316,6 +327,33 @@ OSD_Entry menuBrainRE1[] =
     {"BACK", OME_Back, NULL, NULL},
     {NULL, OME_END, NULL, NULL}
 };
+
+const char * IR_NAMES[] = {"OFF", "I-LAP", "TRACKMATE"};
+OSD_TAB_t entryIRSys = {&masterConfig.bfOsdConfig.ir_system, 2, &IR_NAMES[0]};
+OSD_UINT32_t entryIRIlap =  {&masterConfig.bfOsdConfig.ir_ilap_id, 0, 9999999, 1};
+OSD_UINT16_t entryIRTrackmate =  {&masterConfig.bfOsdConfig.ir_trackmate_id, 0, 4095, 1};
+
+OSD_Entry menuBrainRE1Ir[] =
+{
+    {"-- IR TRANSPONDER --", OME_Label, NULL, NULL},
+    {"IR SYS", OME_TAB, NULL, &entryIRSys},
+    {"I LAP ID", OME_UINT32, NULL, &entryIRIlap},
+    {"TRACKMATE ID", OME_UINT16, NULL, &entryIRTrackmate},
+
+    {"BACK", OME_Back, NULL, NULL},
+    {NULL, OME_END, NULL, NULL}
+};
+
+OSD_Entry menuBrainRE1[] =
+{
+    {"--- BRAINFPV RE1 ---", OME_Label, NULL, NULL},
+    {"OSD", OME_Submenu, osdChangeScreen, &menuBrainRE1Osd[0]},
+    {"IR TRANSPONDER", OME_Submenu, osdChangeScreen, &menuBrainRE1Ir[0]},
+
+    {"BACK", OME_Back, NULL, NULL},
+    {NULL, OME_END, NULL, NULL}
+};
+
 #endif
 
 OSD_Entry menuFeatures[] =
@@ -933,13 +971,35 @@ uint8_t osdHandleKey(uint8_t key)
                 }
             }
             break;
+        case OME_UINT32:
+            if (p->data) {
+                OSD_UINT32_t *ptr = p->data;
+                if (key == KEY_RIGHT) {
+                    if (*ptr->val < ptr->max)
+                        *ptr->val += ptr->step;
+                }
+                else {
+                    if (*ptr->val > ptr->min)
+                        *ptr->val -= ptr->step;
+                }
+            }
+            break;
         case OME_Label:
         case OME_END:
             break;
     }
 
 #ifdef BRAINRE1
-    if (currentMenu == &menuBrainRE1[0]) {
+    OSD_UINT16_t *ptr = p->data;
+    if (ptr == &entryIRTrackmate){
+        if (key == KEY_RIGHT) {
+            *ptr->val = ir_next_valid_trackmateid(*ptr->val - 1, 1);
+        }
+        if (key == KEY_LEFT) {
+            *ptr->val = ir_next_valid_trackmateid(*ptr->val + 1, -1);
+        }
+    }
+    if (currentMenu == &menuBrainRE1Osd[0]) {
         if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
             brainre1_settings_updated = true;
         }
@@ -1112,6 +1172,14 @@ void osdDrawMenu(void)
                     max7456Write(RIGHT_MENU_COLUMN, i + top, buff);
                 }
                 break;
+            case OME_UINT32:
+                if (p->data) {
+                    OSD_UINT32_t *ptr = p->data;
+                    itoa(*ptr->val, buff, 10);
+                    max7456Write(RIGHT_MENU_COLUMN, i + top, "     ");
+                    max7456Write(RIGHT_MENU_COLUMN, i + top, buff);
+                }
+                break;
             case OME_FLOAT:
                 if (p->data) {
                     OSD_FLOAT_t *ptr = p->data;
@@ -1137,7 +1205,7 @@ void osdDrawMenu(void)
         }
     }
 #ifdef BRAINRE1
-    if (currentMenu == &menuBrainRE1[0]) {
+    if (currentMenu == &menuBrainRE1Osd[0]) {
         write_rectangle_outlined(0, 0, GRAPHICS_RIGHT, GRAPHICS_BOTTOM, 1, 1);
     }
 #endif

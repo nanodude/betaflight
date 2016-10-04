@@ -946,7 +946,9 @@ const clivalue_t valueTable[] = {
 #endif
 
 #ifdef USE_BRAINFPV_OSD
-    { "osd_sync_thresh",           VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sync_threshold, .config.minmax = { 110, 130 } },
+    { "osd_sync_thresh",            VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sync_threshold, .config.minmax = { 110, 130 } },
+    { "irid_ilap",                 VAR_UINT32  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_ilap_id, .config.minmax = { 0, 9999999 } },
+    { "irid_trackmate",            VAR_UINT16  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_trackmate_id, .config.minmax = { 0, 4095 } },
 #endif
 };
 
