@@ -36,7 +36,7 @@
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-#define M25P16_FIRST_SECTOR     5
+#define M25P16_FIRST_SECTOR     4
 #define M25P16_SPI_SHARED
 #define M25P16_CS_PIN           PB15
 #define M25P16_SPI_INSTANCE     SPI3
