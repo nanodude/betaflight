@@ -16,6 +16,7 @@ typedef struct {
 } bfOsdConfig_t;
 
 
+void brainFpvOsdInit(void);
 void osdMain(void);
 void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig);
 

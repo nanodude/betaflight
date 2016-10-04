@@ -90,6 +90,11 @@
 #include "ch.h"
 #endif
 
+#ifdef BRAINRE1
+#include "target/BRAINRE1/video.h"
+#include "target/BRAINRE1/osd_utils.h"
+#endif
+
 #define IS_HI(X)  (rcData[X] > 1750)
 #define IS_LO(X)  (rcData[X] < 1250)
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
@@ -1131,6 +1136,11 @@ void osdDrawMenu(void)
             break;
         }
     }
+#ifdef BRAINRE1
+    if (currentMenu == &menuBrainRE1[0]) {
+        write_rectangle_outlined(0, 0, GRAPHICS_RIGHT, GRAPHICS_BOTTOM, 1, 1);
+    }
+#endif
 }
 
 void osdResetStats(void)

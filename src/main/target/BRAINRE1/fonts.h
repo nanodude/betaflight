@@ -49,9 +49,11 @@ struct FontEntry {
 	const uint16_t* data;
 };
 
-#define NUM_FONTS  1
+#define NUM_FONTS  3
 
 #define BETAFLIGHT_DEFAULT 0
+#define FONT8X10 1
+#define FONT_OUTLINED8X8 2
 
 
 #endif /* FONTS_H */

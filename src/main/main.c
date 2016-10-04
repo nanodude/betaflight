@@ -826,12 +826,7 @@ static THD_FUNCTION(OSDThread, arg)
     while (1) {
         // wait for VSYNC
         chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(100));
-        if (millis() < 5000) {
-            osdInit();
-        }
-        else {
-            osdMain();
-        }
+        osdMain();
     }
 }
 #endif
