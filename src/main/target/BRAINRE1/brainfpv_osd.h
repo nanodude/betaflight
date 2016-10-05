@@ -16,6 +16,7 @@ typedef struct {
     uint8_t ir_system;
     uint16_t ir_trackmate_id;
     uint32_t ir_ilap_id;
+    uint8_t ahi_steps;
 } bfOsdConfig_t;
 
 
@@ -23,4 +24,6 @@ void brainFpvOsdInit(void);
 void osdMain(void);
 void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig);
 
+void brainFpvOsdArtificialHorizon(void);
+void brainFpvOsdCenterMark(void);
 #endif /* BRAINFPV_OSD */

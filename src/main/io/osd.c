@@ -305,6 +305,7 @@ OSD_Entry menuMain[] =
 #ifdef BRAINRE1
 #include "target/BRAINRE1/brainfpv_osd.h"
 
+OSD_UINT8_t entryAhiSteps =  {&masterConfig.bfOsdConfig.ahi_steps, 0, 4, 1};
 OSD_UINT8_t entryWhiteLevel =  {&masterConfig.bfOsdConfig.white_level, 100, 120, 1};
 OSD_UINT8_t entryBlackLevel =  {&masterConfig.bfOsdConfig.black_level, 15, 40, 1};
 OSD_UINT8_t entrySyncTh =  {&masterConfig.bfOsdConfig.sync_threshold, 110, 130, 1};
@@ -316,6 +317,7 @@ OSD_UINT8_t entry3DShift =  {&masterConfig.bfOsdConfig.sbs_3d_right_eye_offset, 
 OSD_Entry menuBrainRE1Osd[] =
 {
     {"------- OSD --------", OME_Label, NULL, NULL},
+    {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps},
     {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel},
     {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel},
     {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh},
@@ -1772,6 +1774,7 @@ void osdDrawSingleElement(uint8_t item)
 
         case OSD_CROSSHAIRS:
         {
+#if !defined(USE_BRAINFPV_OSD)
             uint8_t *screenBuffer = max7456GetScreenBuffer();
             uint16_t position = 194;
 
@@ -1781,12 +1784,15 @@ void osdDrawSingleElement(uint8_t item)
             screenBuffer[position - 1] = (SYM_AH_CENTER_LINE);
             screenBuffer[position + 1] = (SYM_AH_CENTER_LINE_RIGHT);
             screenBuffer[position] = (SYM_AH_CENTER);
-
+#else
+            brainFpvOsdCenterMark();
+#endif
             return;
         }
 
         case OSD_ARTIFICIAL_HORIZON:
         {
+#if !defined(USE_BRAINFPV_OSD)
             uint8_t *screenBuffer = max7456GetScreenBuffer();
             uint16_t position = 194;
 
@@ -1816,7 +1822,9 @@ void osdDrawSingleElement(uint8_t item)
             }
 
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
-
+#else
+            brainFpvOsdArtificialHorizon();
+#endif
             return;
         }
 
