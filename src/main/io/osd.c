@@ -312,6 +312,8 @@ OSD_Entry menuMain[] =
 #include "target/BRAINRE1/brainfpv_osd.h"
 
 OSD_UINT8_t entryAhiSteps =  {&masterConfig.bfOsdConfig.ahi_steps, 0, 4, 1};
+const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "BOLD"};
+OSD_TAB_t entryOSDFont = {&masterConfig.bfOsdConfig.font, 2, &FONT_NAMES[0]};
 OSD_UINT8_t entryWhiteLevel =  {&masterConfig.bfOsdConfig.white_level, 100, 120, 1};
 OSD_UINT8_t entryBlackLevel =  {&masterConfig.bfOsdConfig.black_level, 15, 40, 1};
 OSD_UINT8_t entrySyncTh =  {&masterConfig.bfOsdConfig.sync_threshold, 110, 130, 1};
@@ -324,6 +326,7 @@ OSD_Entry menuBrainRE1Osd[] =
 {
     {"------- OSD --------", OME_Label, NULL, NULL},
     {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps},
+    {"FONT", OME_TAB, NULL, &entryOSDFont},
     {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel},
     {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel},
     {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh},

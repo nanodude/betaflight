@@ -142,13 +142,13 @@ uint8_t max7456GetRowsCount(void)
 
 void max7456Write(uint8_t x, uint8_t y, char *buff)
 {
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, BETAFLIGHT_DEFAULT);
+    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, masterConfig.bfOsdConfig.font);
 }
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 {
     char buff[2] = {c, 0};
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, BETAFLIGHT_DEFAULT);
+    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, masterConfig.bfOsdConfig.font);
 }
 
 void max7456ClearScreen(void)
@@ -207,6 +207,7 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
     bfOsdConfig->x_scale        = 8;
     bfOsdConfig->sbs_3d_enabled = 0;
     bfOsdConfig->sbs_3d_right_eye_offset = 30;
+    bfOsdConfig->font = 0;
     bfOsdConfig->ir_system = 0;
     bfOsdConfig->ir_trackmate_id = 0;
     bfOsdConfig->ir_ilap_id = 0;
