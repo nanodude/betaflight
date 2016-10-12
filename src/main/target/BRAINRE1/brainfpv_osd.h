@@ -3,6 +3,7 @@
 #define BRAINFPV_OSD_H
 
 #include <stdint.h>
+#include "target/BRAINRE1/video.h"
 
 
 typedef struct {

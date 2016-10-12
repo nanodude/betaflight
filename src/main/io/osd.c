@@ -132,9 +132,15 @@ uint8_t statRssi;
 
 statistic_t stats;
 
+#ifndef BRAINRE1
 #define BUTTON_TIME   2
 #define BUTTON_PAUSE  5
 #define REFRESH_1S    12
+#else
+#define BUTTON_TIME   4
+#define BUTTON_PAUSE  10
+#define REFRESH_1S    30
+#endif
 
 #define LEFT_MENU_COLUMN  1
 #define RIGHT_MENU_COLUMN 23
@@ -1325,6 +1331,9 @@ void osdUpdate(uint8_t guiKey)
 {
     static uint8_t rcDelay = BUTTON_TIME;
     static uint8_t lastSec = 0;
+    static uint32_t armTime = 0;
+    static uint32_t disarmTime = 0;
+
     uint8_t key = 0, sec;
 
     // detect enter to menu
@@ -1333,10 +1342,14 @@ void osdUpdate(uint8_t guiKey)
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
-        if (ARMING_FLAG(ARMED))
-            osdArmMotors(); // reset statistic etc
-        else
+        if (ARMING_FLAG(ARMED)) {
+                osdArmMotors(); // reset statistic etc
+                armTime = millis();
+            }
+        else {
             osdShowStats(); // show statistic
+            disarmTime = millis();
+        }
 
         armState = ARMING_FLAG(ARMED);
     }
@@ -1350,7 +1363,7 @@ void osdUpdate(uint8_t guiKey)
         lastSec = sec;
     }
 
-#if !defined(USE_BRRAINFPV_OSD)
+#if !defined(USE_BRAINFPV_OSD)
     if (refreshTimeout) {
         if (IS_HI(THROTTLE) || IS_HI(PITCH)) // hide statistics
             refreshTimeout = 1;
@@ -1361,6 +1374,19 @@ void osdUpdate(uint8_t guiKey)
     }
 #else
     refreshTimeout = 0;
+    uint32_t now = millis();
+    if (ARMING_FLAG(ARMED)) {
+        if (now - armTime < 500) {
+            osdArmMotors();
+            return;
+        }
+    }
+    else {
+        if ((disarmTime > 0) && (now - disarmTime < 10000)) {
+            osdShowStats();
+            return;
+        }
+    }
 #endif
 
     blinkState = (millis() / 200) % 2;

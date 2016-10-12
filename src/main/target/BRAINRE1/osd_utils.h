@@ -187,7 +187,7 @@ void write_line_outlined_dashed(int x0, int y0, int x1, int y1,
 								int mode, int mmode, int dots);
 const struct FontEntry* get_font_info(int font);
 void calc_text_dimensions(char *str, const struct FontEntry *font, int xs, int ys, struct FontDimensions *dim);
-void write_string(char *str, int x, int y, int xs, int ys, int va, int ha, int flags, int font);
+void write_string(char *str, int x, int y, int xs, int ys, int va, int ha, int font);
 void draw_polygon(int16_t x, int16_t y, float angle, const point_t * points, uint8_t n_points, int mode, int mmode);
 #endif /* OSDUTILS_H */
 

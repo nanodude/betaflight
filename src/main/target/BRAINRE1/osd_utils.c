@@ -1338,10 +1338,9 @@ void calc_text_dimensions(char *str, const struct FontEntry *font, int xs, int y
  * @param       ys              horizontal spacing
  * @param       va              vertical align
  * @param       ha              horizontal align
- * @param       flags   flags (passed to write_char)
  * @param       font    font
  */
-void write_string(char *str, int x, int y, int xs, int ys, int va, int ha, int flags, int font)
+void write_string(char *str, int x, int y, int xs, int ys, int va, int ha, int font)
 {
 	int xx = 0, yy = 0, xx_original = 0;
 	const struct FontEntry *font_info;
