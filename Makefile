@@ -734,7 +734,7 @@ $(OBJECT_DIR)/$(TARGET)_firmwareinfo.o: $(OBJECT_DIR)/$(TARGET)_firmwareinfo.c
 	@$(CC) -c -o  $@  $< $(addprefix -I,$(INCLUDE_DIRS))
 
 $(OBJECT_DIR)/$(TARGET)_firmwareinfo.c: $(TARGET_DIR)/firmwareinfotemplate.ct
-	python $(TARGET_DIR)/version-info.py \
+	python2 $(TARGET_DIR)/version-info.py \
 		--path=$(ROOT) \
 		--template=$^ \
 		--outfile=$@ 
