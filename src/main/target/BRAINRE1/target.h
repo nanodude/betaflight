@@ -62,6 +62,8 @@
 #define VIDEO_VSYNC          PB5
 #define VIDEO_HSYNC          PC2
 
+#define USE_BRAINRE1_SPECTROGRAPH
+
 #define USE_EXTI
 #define GYRO
 #define ACC

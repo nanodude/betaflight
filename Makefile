@@ -590,6 +590,16 @@ INCLUDE_DIRS += $(HALINC)
 INCLUDE_DIRS += $(PLATFORMINC)
 endif
 
+ifneq ($(filter SPECTROGRAPH,$(FEATURES)),)
+DSPLIB := $(ROOT)/lib/main/DSP_Lib
+DEVICE_FLAGS += -DARM_MATH_CM4 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -D__FPU_PRESENT=1 -DUNALIGNED_SUPPORT_DISABLE
+
+INCLUDE_DIRS += $(DSPLIB)/Include
+TARGET_SRC += $(wildcard $(DSPLIB)/Source/*/*.c)
+TARGET_SRC += $(wildcard $(DSPLIB)/Source/*/*.S)
+endif
+
+
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
 TARGET_SRC += \
             drivers/flash_m25p16.c \

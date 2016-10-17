@@ -831,6 +831,23 @@ static THD_FUNCTION(OSDThread, arg)
 }
 #endif
 
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#include "spectrograph.h"
+extern binary_semaphore_t spectrographDataReadySemaphore;
+
+static THD_WORKING_AREA(waSpecThread, 1024);
+static THD_FUNCTION(SpecThread, arg)
+{
+    (void)arg;
+    while (1) {
+        // wait for data ready
+        chBSemWait(&spectrographDataReadySemaphore);
+        spectrographMain();
+    }
+}
+#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+
+
 int main()
 {
   // Check safe-boot request
@@ -865,6 +882,10 @@ int main()
   chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
 #endif /* USE_BRAINFPV_OSD */
 
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+  spectrographInit();
+  chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
+#endif /* USE_BRAINRE1_SPECTROGRAPH */
 
   // sleep forever
   chThdSleep(TIME_INFINITE);

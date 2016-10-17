@@ -41,6 +41,7 @@
 #include "video.h"
 #include "images.h"
 #include "osd_utils.h"
+#include "spectrograph.h"
 
 #include "debug.h"
 #include "version.h"
@@ -182,18 +183,21 @@ void brainFpvOsdInit(void)
     sprintf(string_buffer, "BF VERSION: %s", FC_VERSION_STRING);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, BETAFLIGHT_DEFAULT);
     write_string("MENU: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    write_string("MENU: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+#endif
 }
 
 
 void osdMain(void) {
-    LED1_TOGGLE;
     clearGraphics();
 
     if (millis() < 5000) {
         brainFpvOsdInit();
     }
     else {
-        updateOsd();
+        //updateOsd();
+        spectrographDraw(GRAPHICS_LEFT + 20, GRAPHICS_BOTTOM - 30, GRAPHICS_RIGHT - GRAPHICS_LEFT - 40, 150, 800);
     }
 }
 

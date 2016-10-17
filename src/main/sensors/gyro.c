@@ -37,6 +37,18 @@
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#include "ch.h"
+#include "target/BRAINRE1/spectrograph.h"
+static uint16_t spec_idx = 0;
+extern binary_semaphore_t spectrographDataReadySemaphore;
+extern bool spec_data_processed;
+
+extern float spec_gyro_data_roll[];
+extern float spec_gyro_data_pitch[];
+extern float spec_gyro_data_yaw[];
+#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+
 gyro_t gyro;                      // gyro access functions
 sensor_align_e gyroAlign = 0;
 
@@ -92,6 +104,9 @@ void gyroInit(void)
             biquadFilterInit(&gyroFilterNotch_2[axis], gyroSoftNotchHz2, gyro.targetLooptime, gyroSoftNotchQ2, FILTER_NOTCH);
         }
     }
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    chBSemObjectInit(&spectrographDataReadySemaphore, FALSE);
+#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
 }
 
 bool isGyroCalibrationComplete(void)
@@ -214,4 +229,23 @@ void gyroUpdate(void)
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++)
             gyroADCf[axis] = gyroADC[axis];
     }
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    if (spec_data_processed) {
+        if ((debugMode == DEBUG_GYRO) || (debugMode == DEBUG_NOTCH)) {
+            spec_gyro_data_roll[spec_idx] = debug[0];
+            spec_gyro_data_pitch[spec_idx] = debug[1];
+            spec_gyro_data_yaw[spec_idx] = debug[2];
+        } else {
+            spec_gyro_data_roll[spec_idx] = gyroADCf[0];
+            spec_gyro_data_pitch[spec_idx] = gyroADCf[1];
+            spec_gyro_data_yaw[spec_idx] = gyroADCf[2];
+        }
+        spec_idx++;
+        if (spec_idx == SPEC_FFT_LENGTH) {
+            spec_data_processed = false;
+            spec_idx = 0;
+            chBSemSignal(&spectrographDataReadySemaphore);
+        }
+    }
+#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
 }
