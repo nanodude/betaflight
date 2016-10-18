@@ -595,7 +595,17 @@ DSPLIB := $(ROOT)/lib/main/DSP_Lib
 DEVICE_FLAGS += -DARM_MATH_CM4 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -D__FPU_PRESENT=1 -DUNALIGNED_SUPPORT_DISABLE
 
 INCLUDE_DIRS += $(DSPLIB)/Include
-TARGET_SRC += $(wildcard $(DSPLIB)/Source/*/*.c)
+#TARGET_SRC += $(wildcard $(DSPLIB)/Source/*/*.c)
+
+TARGET_SRC += $(DSPLIB)/Source/TransformFunctions/arm_rfft_fast_f32.c
+TARGET_SRC += $(DSPLIB)/Source/TransformFunctions/arm_cfft_f32.c
+TARGET_SRC += $(DSPLIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
+TARGET_SRC += $(DSPLIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
+TARGET_SRC += $(DSPLIB)/Source/CommonTables/arm_common_tables.c
+
+TARGET_SRC += $(DSPLIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
+TARGET_SRC += $(DSPLIB)/Source/StatisticsFunctions/arm_max_f32.c
+
 TARGET_SRC += $(wildcard $(DSPLIB)/Source/*/*.S)
 endif
 

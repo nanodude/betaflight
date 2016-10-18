@@ -360,7 +360,9 @@ OSD_Entry menuBrainRE1[] =
     {"--- BRAINFPV RE1 ---", OME_Label, NULL, NULL},
     {"OSD", OME_Submenu, osdChangeScreen, &menuBrainRE1Osd[0]},
     {"IR TRANSPONDER", OME_Submenu, osdChangeScreen, &menuBrainRE1Ir[0]},
-
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    {"SPECTROGRAPH", OME_Bool, NULL, &masterConfig.bfOsdConfig.spec_enabled},
+#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
     {"BACK", OME_Back, NULL, NULL},
     {NULL, OME_END, NULL, NULL}
 };

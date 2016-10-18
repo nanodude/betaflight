@@ -883,8 +883,10 @@ int main()
 #endif /* USE_BRAINFPV_OSD */
 
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
-  spectrographInit();
-  chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
+  if (masterConfig.bfOsdConfig.spec_enabled) {
+    spectrographInit();
+    chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
+  }
 #endif /* USE_BRAINRE1_SPECTROGRAPH */
 
   // sleep forever

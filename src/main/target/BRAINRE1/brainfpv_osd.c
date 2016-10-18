@@ -113,6 +113,11 @@ static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, in
         int16_t width, int16_t height, int8_t max_pitch,
         uint8_t n_pitch_steps);
 
+enum BrainFPVOSDMode {
+    MODE_BETAFLIGHT,
+    MODE_SPEC,
+};
+
 /*******************************************************************************/
 // MAX7456 Emulation
 #define MAX_X(x) (x * 12)
@@ -184,20 +189,57 @@ void brainFpvOsdInit(void)
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, BETAFLIGHT_DEFAULT);
     write_string("MENU: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
-    write_string("MENU: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+    if (masterConfig.bfOsdConfig.spec_enabled) {
+        write_string("SPECT: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 25, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+    }
 #endif
 }
 
+#define IS_HI(X)  (rcData[X] > 1750)
+#define IS_LO(X)  (rcData[X] < 1250)
+#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
 
 void osdMain(void) {
+    static uint32_t key_time = 0;
+    enum SpecCommand spec_command = SPEC_COMMAND_NONE;
+    static enum BrainFPVOSDMode mode = MODE_BETAFLIGHT;
     clearGraphics();
+
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    if (masterConfig.bfOsdConfig.spec_enabled) {
+        if (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
+            mode = MODE_SPEC;
+        }
+        else {
+            if ((mode == MODE_SPEC) && !ARMING_FLAG(ARMED)) {
+                if (IS_HI(ROLL) && ((millis() - key_time) > 250)) {
+                    spec_command = SPEC_COMMAND_SWAXIS;
+                    key_time = millis();
+                }
+                if (IS_LO(ROLL)) {
+                    mode = MODE_BETAFLIGHT;
+                }
+            }
+        }
+    }
+#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
 
     if (millis() < 5000) {
         brainFpvOsdInit();
     }
     else {
-        //updateOsd();
-        spectrographDraw(GRAPHICS_LEFT + 20, GRAPHICS_BOTTOM - 30, GRAPHICS_RIGHT - GRAPHICS_LEFT - 40, 150, 800);
+        switch (mode) {
+            case MODE_BETAFLIGHT:
+                updateOsd();
+                break;
+            case MODE_SPEC:
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+                spectrographOSD(spec_command);
+#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -216,6 +258,9 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
     bfOsdConfig->ir_trackmate_id = 0;
     bfOsdConfig->ir_ilap_id = 0;
     bfOsdConfig->ahi_steps = 2;
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    bfOsdConfig->spec_enabled = 0;
+#endif
 }
 
 void brainFpvOsdArtificialHorizon(void)

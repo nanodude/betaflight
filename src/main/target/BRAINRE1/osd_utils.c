@@ -1305,7 +1305,7 @@ const struct FontEntry * get_font_info(int font)
  * @param       ys                      vertical spacing
  * @param       dim                     return result: struct FontDimensions
  */
-void calc_text_dimensions(char *str, const struct FontEntry *font, int xs, int ys, struct FontDimensions *dim)
+void calc_text_dimensions(const char *str, const struct FontEntry *font, int xs, int ys, struct FontDimensions *dim)
 {
 	int max_length = 0, line_length = 0, lines = 1;
 
@@ -1340,7 +1340,7 @@ void calc_text_dimensions(char *str, const struct FontEntry *font, int xs, int y
  * @param       ha              horizontal align
  * @param       font    font
  */
-void write_string(char *str, int x, int y, int xs, int ys, int va, int ha, int font)
+void write_string(const char *str, int x, int y, int xs, int ys, int va, int ha, int font)
 {
 	int xx = 0, yy = 0, xx_original = 0;
 	const struct FontEntry *font_info;

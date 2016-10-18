@@ -2,13 +2,15 @@
 #define SPECTROGRAPH_H
 
 
-#define SPEC_FFT_LENGTH 1024
+#define SPEC_FFT_LENGTH 512
+
+enum SpecCommand {
+    SPEC_COMMAND_NONE,
+    SPEC_COMMAND_SWAXIS,
+};
 
 void spectrographInit();
 void spectrographMain();
-void spectrographDraw(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height, uint16_t max_freq);
-
-
-
+void spectrographOSD(enum SpecCommand command);
 #endif /* SPECTROGRAPH_H */
 
