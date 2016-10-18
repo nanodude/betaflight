@@ -73,7 +73,7 @@ const struct fw_version_info fw_version_blob __attribute__((used)) FW_VERS_SECTI
 	.timestamp = ${UNIXTIME},
 	.board_type = ${BOARD_TYPE},
 	.board_revision = ${BOARD_REVISION},
-	.commit_tag_name = "Betaflight " SX(FC_VERSION_MAJOR) "." SX(FC_VERSION_MINOR) "." SX(FC_VERSION_PATCH_LEVEL),
+	.commit_tag_name = "${FWTAG}",
 	.sha1sum = { ${SHA1} },
 	.uavosha1 = { ${UAVOSHA1} },
 	.next_ancestor_hash = 0x${ANCESTOR16},

@@ -103,6 +103,8 @@
 
 #if defined(USE_BRAINFPV_OSD) | 1
 
+const char * const gitTag = __GIT_TAG__;
+
 extern binary_semaphore_t onScreenDisplaySemaphore;
 
 extern uint8_t *draw_buffer;
@@ -176,7 +178,7 @@ uint8_t* max7456GetScreenBuffer(void)
 extern uint8_t armState;
 void brainFpvOsdInit(void)
 {
-    char string_buffer[40];
+    char string_buffer[100];
 
     armState = ARMING_FLAG(ARMED);
 
@@ -185,8 +187,8 @@ void brainFpvOsdInit(void)
     draw_image(GRAPHICS_X_MIDDLE - image_betaflight.width - 5, GY - image_brainfpv.height / 2, &image_brainfpv);
     draw_image(GRAPHICS_X_MIDDLE + 5, GY - image_betaflight.height / 2, &image_betaflight);
 
-    sprintf(string_buffer, "BF VERSION: %s", FC_VERSION_STRING);
-    write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, BETAFLIGHT_DEFAULT);
+    sprintf(string_buffer, "BF VERSION: %s", gitTag);
+    write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     write_string("MENU: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     if (masterConfig.bfOsdConfig.spec_enabled) {

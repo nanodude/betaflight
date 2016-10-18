@@ -83,7 +83,7 @@ class Repo:
     def _get_tag(self):
         """Get and store git tag for the HEAD commit"""
         self._tag = None
-        self._exec('describe --tags --exact-match HEAD')
+        self._exec('describe --tags HEAD')
         if self._rc == 0:
             self._tag = self._out.strip(' \t\n\r')
 
@@ -313,6 +313,11 @@ string given.
 
     r = Repo(args.path)
  
+    fw_tag = 'BF - %s' % r.tag()
+    if r.dirty():
+        fw_tag += ' D'
+    fw_tag = fw_tag[:25]
+ 
     dictionary = dict(
         TEMPLATE = args.template,
         OUTFILENAME = args.outfile,
@@ -320,7 +325,7 @@ string given.
         HASH8 = r.hash(8),
         ANCESTOR16 = '0',
         ANCESTOR = '0',
-        FWTAG = '',
+        FWTAG = fw_tag,
         UNIXTIME = r.time(),
         BOARD_TYPE = '0x8B',
         BOARD_REVISION = '1',

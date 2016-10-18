@@ -121,6 +121,7 @@ STM32F30x_COMMON_SRC  = startup_stm32f30x_md_gcc.S
 endif
 
 REVISION = $(shell git log -1 --format="%h")
+GIT_TAG =  $(shell git describe --tags)
 
 FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/version.h | awk '{print $$3}' )
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/version.h | awk '{print $$3}' )
@@ -688,6 +689,7 @@ CFLAGS      += $(ARCH_FLAGS) \
               -D'__FORKNAME__="$(FORKNAME)"' \
               -D'__TARGET__="$(TARGET)"' \
               -D'__REVISION__="$(REVISION)"' \
+              -D'__GIT_TAG__="$(GIT_TAG)"' \
               -save-temps=obj \
               -MMD -MP
 
