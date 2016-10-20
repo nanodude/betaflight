@@ -157,22 +157,12 @@ const uint16_t airPWM[] = {
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM12, IO_TAG(PB14), TIM_Channel_1, TIM8_BRK_TIM12_IRQn,       0, IOCFG_AF_PP, GPIO_AF_TIM12 },    // PPM_IN
 
-#if defined(BRAINRE1_DRORDER)
-    { TIM5,  IO_TAG(PA2),  TIM_Channel_3, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 3
-    { TIM5,  IO_TAG(PA1),  TIM_Channel_2, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 2
-    { TIM5,  IO_TAG(PA3),  TIM_Channel_4, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 4
-    { TIM5,  IO_TAG(PA0),  TIM_Channel_1, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 1
-    { TIM1,  IO_TAG(PA10), TIM_Channel_3, TIM1_CC_IRQn,       1, IOCFG_AF_PP, GPIO_AF_TIM1 },          // dRonin: 5
-    { TIM2,  IO_TAG(PA15), TIM_Channel_1, TIM2_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM2 },          // dRonin: 6
-#else
-    { TIM5,  IO_TAG(PA0),  TIM_Channel_1, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 1
-    { TIM5,  IO_TAG(PA1),  TIM_Channel_2, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 2
-    { TIM5,  IO_TAG(PA2),  TIM_Channel_3, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 3
-    { TIM5,  IO_TAG(PA3),  TIM_Channel_4, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },          // dRonin: 4
-    { TIM1,  IO_TAG(PA10), TIM_Channel_3, TIM1_CC_IRQn,       1, IOCFG_AF_PP, GPIO_AF_TIM1 },          // dRonin: 5
-    { TIM2,  IO_TAG(PA15), TIM_Channel_1, TIM2_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM2 },          // dRonin: 6
-#endif /* defined(BRAINRE1_DRORDER) */
-
+    { TIM5,  IO_TAG(PA0),  TIM_Channel_1, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
+    { TIM5,  IO_TAG(PA1),  TIM_Channel_2, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
+    { TIM5,  IO_TAG(PA2),  TIM_Channel_3, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
+    { TIM5,  IO_TAG(PA3),  TIM_Channel_4, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
+    { TIM1,  IO_TAG(PA10), TIM_Channel_3, TIM1_CC_IRQn,       1, IOCFG_AF_PP, GPIO_AF_TIM1 },
+    { TIM2,  IO_TAG(PA15), TIM_Channel_1, TIM2_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM2 },
 };
 
 bool brainre1_settings_updated = true;
