@@ -224,6 +224,7 @@ void spectrographMain()
 {
     float max_val;
     float old_max;
+    float this_val;
     uint32_t max_idx;
 
     chMtxLock(&fftOutputMtx);
@@ -234,14 +235,16 @@ void spectrographMain()
         arm_rfft_fast_f32(&fft_inst, spec_gyro_data_rpy[axis], fft_out, 0);
         arm_cmplx_mag_f32(fft_out, fft_out, SPEC_N_SAMPLES);
 
-        arm_max_f32(&fft_out[1], SPEC_N_SAMPLES, &max_val, &max_idx);
+        #define MAX_START_FREQ 50
+        arm_max_f32(&fft_out[FFT_BIN(MAX_START_FREQ)], SPEC_N_SAMPLES - FFT_BIN(MAX_START_FREQ) - 1, &max_val, &max_idx);
 
         old_max = max_rpy[axis];
         max_rpy[axis] = MAX(max_rpy[axis], max_val);
 
         for (int i=0; i<SPEC_N_SAMPLES; i++){
-            spec_disp_buffer_max_rpy[axis][i] = 255 * MAX(fft_out[i + 1], old_max * (float)spec_disp_buffer_max_rpy[axis][i] / 255) / max_rpy[axis];
-            spec_disp_buffer_rpy[axis][i] = 255 * (fft_out[i + 1] / max_rpy[axis]);
+            this_val = MIN(fft_out[i + 1], max_rpy[axis]); // clamp values
+            spec_disp_buffer_max_rpy[axis][i] = 255 * MAX(this_val, old_max * (float)spec_disp_buffer_max_rpy[axis][i] / 255) / max_rpy[axis];
+            spec_disp_buffer_rpy[axis][i] = 255 * (this_val / max_rpy[axis]);
         }
     }
     chMtxUnlock(&fftOutputMtx);
