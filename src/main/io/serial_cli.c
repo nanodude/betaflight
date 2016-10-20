@@ -946,9 +946,21 @@ const clivalue_t valueTable[] = {
 #endif
 
 #ifdef USE_BRAINFPV_OSD
-    { "osd_sync_thresh",            VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sync_threshold, .config.minmax = { 110, 130 } },
-    { "irid_ilap",                 VAR_UINT32  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_ilap_id, .config.minmax = { 0, 9999999 } },
-    { "irid_trackmate",            VAR_UINT16  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_trackmate_id, .config.minmax = { 0, 4095 } },
+    { "brainfpv_osd_sync_thresh",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sync_threshold, .config.minmax = { 110, 130 } },
+    { "brainfpv_osd_white_level",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.white_level, .config.minmax = { 100, 120 } },
+    { "brainfpv_osd_black_level",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.black_level, .config.minmax = { 15, 40 } },
+    { "brainfpv_osd_x_offset",      VAR_INT8   | MASTER_VALUE, &masterConfig.bfOsdConfig.x_offset, .config.minmax = { -8, 7 } },
+    { "brainfpv_osd_x_scale",       VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.x_scale, .config.minmax = { 0, 15 } },
+    { "brainfpv_osd_sbs3d",         VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sbs_3d_enabled, .config.minmax = { 0, 1 } },
+    { "brainfpv_osd_sbs3d_roff",    VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sbs_3d_right_eye_offset, .config.minmax = { 10, 40 } },
+    { "brainfpv_osd_font",          VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.font, .config.minmax = { 0, 2 } },
+    { "brainfpv_osd_ahi_steps",     VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.ahi_steps, .config.minmax = { 0, 4 } },
+    { "brainfpv_ir_sys",            VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_system, .config.minmax = { 0, 2 } },
+    { "brainfpv_ir_ilapid",         VAR_UINT32  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_ilap_id, .config.minmax = { 0, 9999999 } },
+    { "brainfpv_ir_trackmateid",    VAR_UINT16  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_trackmate_id, .config.minmax = { 0, 4095 } },
+#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.spec_enabled, .config.minmax = { 0, 1 } },
+#endif
 #endif
 };
 
