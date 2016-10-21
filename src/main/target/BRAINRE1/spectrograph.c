@@ -292,12 +292,6 @@ void spectrographDraw(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height,
     write_string(tmp_str, x0, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     chMtxUnlock(&fftOutputMtx);
 
-    if (masterConfig.gyro_soft_lpf_hz) {
-        uint16_t pos = x0 + (masterConfig.gyro_soft_lpf_hz * width) / SPEC_MAX_FREQ;
-        write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
-        write_string("LP", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
-    }
-
     if (masterConfig.gyro_soft_notch_hz_1) {
         uint16_t pos = x0 + (masterConfig.gyro_soft_notch_hz_1 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
