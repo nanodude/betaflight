@@ -127,7 +127,12 @@ FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/version.h | awk '{prin
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/version.h | awk '{print $$3}' )
 FC_VER_PATCH := $(shell grep " FC_VERSION_PATCH" src/main/version.h | awk '{print $$3}' )
 
-FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
+GIT_TAG_EXACT := $(shell git describe --exact-match HEAD 2>&1)
+ifneq (,$(findstring fatal,$(GIT_TAG_EXACT)))
+    FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
+else
+    FC_VER := $(GIT_TAG_EXACT)
+endif
 
 # Search path for sources
 VPATH           := $(SRC_DIR):$(SRC_DIR)/startup
