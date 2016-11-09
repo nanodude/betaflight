@@ -241,8 +241,8 @@ static uartDevice_t* uartHardwareMap[] = {
 void uartIrqHandler(uartPort_t *s)
 {
     if (!s->rxDMAStream && (USART_GetITStatus(s->USARTx, USART_IT_RXNE) == SET)) {
-        if (s->port.callback) {
-            s->port.callback(s->USARTx->DR);
+        if (s->port.rxCallback) {
+            s->port.rxCallback(s->USARTx->DR);
         } else {
             s->port.rxBuffer[s->port.rxBufferHead] = s->USARTx->DR;
             s->port.rxBufferHead = (s->port.rxBufferHead + 1) % s->port.rxBufferSize;
@@ -320,6 +320,12 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
         s->rxDMAChannel = uart->DMAChannel;
         s->rxDMAStream = uart->rxDMAStream;
         s->rxDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
+        dmaInit(dmaGetIdentifier(uart->rxDMAStream), OWNER_SERIAL, RESOURCE_INDEX(device));
+    }
+    if (uart->txDMAStream) {
+        s->txDMAChannel = uart->DMAChannel;
+        s->txDMAStream = uart->txDMAStream;
+        dmaInit(dmaGetIdentifier(uart->txDMAStream), OWNER_SERIAL, RESOURCE_INDEX(device));
     }
 
     if (uart->txDMAStream) {

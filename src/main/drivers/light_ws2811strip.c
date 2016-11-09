@@ -32,15 +32,16 @@
 
 #ifdef LED_STRIP
 
-#include "build_config.h"
+#include "build/build_config.h"
 
 #include "common/color.h"
 #include "common/colorconversion.h"
-#include "drivers/dma.h"
-#include "drivers/light_ws2811strip.h"
+#include "dma.h"
+#include "io.h"
+#include "light_ws2811strip.h"
 
 #ifndef USE_RE1_FPGA
-#if defined(STM32F4)
+#if defined(STM32F4) || defined(STM32F7)
 uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #else
 uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
@@ -89,11 +90,14 @@ void setStripColors(const hsvColor_t *colors)
     }
 }
 
-void ws2811LedStripInit(void)
+void ws2811LedStripInit(ioTag_t ioTag)
 {
 #ifndef USE_RE1_FPGA
-    memset(&ledStripDMABuffer, 0, WS2811_DMA_BUFFER_SIZE);
-    ws2811LedStripHardwareInit();
+    memset(&ledStripDMABuffer, 0, WS2811_DMA_BUFFER_SIZE);    
+    ws2811LedStripHardwareInit(ioTag);
+
+    const hsvColor_t hsv_white = {  0, 255, 255};
+    setStripColor(&hsv_white);
 #endif
     ws2811UpdateStrip();
 }
