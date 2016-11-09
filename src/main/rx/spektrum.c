@@ -223,7 +223,7 @@ void spektrumBind(rxConfig_t *rxConfig)
     IOWrite(BindPin, true);
 
     // Bind window is around 20-140ms after powerup
-    delay(10);
+    delay(1);
     LED1_OFF;
 
     for (i = 0; i < rxConfig->spektrum_sat_bind; i++) {
