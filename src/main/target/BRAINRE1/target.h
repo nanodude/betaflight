@@ -76,44 +76,9 @@
 #define BMI160_CS_PIN        PC14
 #define BMI160_INT_EXTI      PC13
 
-// MPU6000 interrupts
-// #define USE_EXTI
-// #define MPU_INT_EXTI            PC4
-// #define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready (mag disabled)
-// #define USE_MPU_DATA_READY_SIGNAL
-// #define ENSURE_MPU_DATA_READY_IS_LOW
-// 
-// #define MPU6000_CS_PIN          PA4
-// #define MPU6000_SPI_INSTANCE    SPI1
-// 
-// #define MPU6500_CS_PIN          PA4
-// #define MPU6500_SPI_INSTANCE    SPI1
-// 
-// #define GYRO
-// #define USE_GYRO_SPI_MPU6000
-// #define GYRO_MPU6000_ALIGN      CW180_DEG
-// 
-// #define USE_GYRO_MPU6500
-// #define USE_GYRO_SPI_MPU6500
-// #define GYRO_MPU6500_ALIGN      CW180_DEG
-// 
-// #define ACC
-// #define USE_ACC_SPI_MPU6000
-// #define ACC_MPU6000_ALIGN       CW180_DEG
-// 
-// #define USE_ACC_MPU6500
-// #define USE_ACC_SPI_MPU6500
-// #define ACC_MPU6500_ALIGN       CW180_DEG
-// 
-// #define BARO
-// #define USE_BARO_MS5611
-// #define MS5611_I2C_INSTANCE     I2CDEV_1
-
-
-// #define USE_FLASHFS
-// #define USE_FLASH_M25P16
-// #define M25P16_CS_PIN           PB3
-// #define M25P16_SPI_INSTANCE     SPI3
+#define BARO
+#define USE_BARO_BMP280
+#define MS5611_I2C_INSTANCE     I2CDEV_1
 
 #define USABLE_TIMER_CHANNEL_COUNT 7
 
