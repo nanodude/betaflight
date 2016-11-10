@@ -36,6 +36,7 @@ typedef enum
     OME_UINT8,
     OME_UINT16,
     OME_INT16,
+    OME_UINT32,
     OME_String,
     OME_FLOAT, //only up to 255 value and cant be 2.55 or 25.5, just for PID's
     //wlasciwosci elementow
@@ -132,6 +133,14 @@ typedef struct
     uint16_t max;
     uint16_t step;
 } OSD_UINT16_t;
+
+typedef struct
+{
+    uint32_t *val;
+    uint32_t min;
+    uint32_t max;
+    uint32_t step;
+} OSD_UINT32_t;
 
 typedef struct
 {

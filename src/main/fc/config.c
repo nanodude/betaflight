@@ -328,7 +328,9 @@ void resetBeeperConfig(beeperConfig_t *beeperConfig)
     beeperConfig->isOD = true;
     beeperConfig->isInverted = false;
 #endif
+#ifndef BRAINRE1
     beeperConfig->ioTag = IO_TAG(BEEPER);
+#endif
 }
 #endif
 

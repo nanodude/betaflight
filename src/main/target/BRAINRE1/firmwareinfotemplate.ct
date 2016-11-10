@@ -26,7 +26,7 @@
  */
 
 #include <stdint.h>
-#include "version.h"
+#include "build/version.h"
 
 #define S(x) #x
 #define SX(x) S(x)

@@ -30,6 +30,10 @@
 
 #ifdef CMS
 
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+#endif
+
 #include "drivers/system.h"
 
 #include "cms/cms.h"
@@ -51,10 +55,19 @@ static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
     displayWrite(pDisplay, 5, 3, "ERASING FLASH...");
     displayResync(pDisplay); // Was max7456RefreshAll(); Why at this timing?
 
+#ifdef USE_CHIBIOS
+    // makes sure we have exclusive access to SPI
+    chSysLock();
+#endif
+
     flashfsEraseCompletely();
     while (!flashfsIsReady()) {
         delay(100);
     }
+
+#ifdef USE_CHIBIOS
+    chSysUnlock();
+#endif
 
     displayClear(pDisplay);
     displayResync(pDisplay); // Was max7456RefreshAll(); wedges during heavy SPI?

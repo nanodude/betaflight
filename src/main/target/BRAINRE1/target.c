@@ -40,7 +40,6 @@
 #include "drivers/serial_uart.h"
 #include "drivers/accgyro.h"
 #include "drivers/compass.h"
-#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_rx.h"
 #include "drivers/pwm_output.h"
 #include "drivers/adc.h"
@@ -67,14 +66,10 @@
 #include "io/serial.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
-#include "io/escservo.h"
-#include "io/rc_controls.h"
 #include "io/gimbal.h"
 #include "io/ledstrip.h"
-#include "io/display.h"
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/serial_cli.h"
-#include "io/serial_msp.h"
 #include "io/transponder_ir.h"
 #include "io/osd.h"
 #include "io/vtx.h"
@@ -100,8 +95,6 @@
 #include "flight/failsafe.h"
 #include "flight/navigation.h"
 
-#include "config/runtime_config.h"
-#include "config/config.h"
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
@@ -110,59 +103,14 @@
 
 
 
-const uint16_t multiPPM[] = {
-    PWM1  | (MAP_TO_PPM_INPUT << 8),     // PPM input
-    PWM2  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM3  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM4  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM5  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM6  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),
-    0xFFFF
-};
-
-const uint16_t multiPWM[] = {
-    // prevent crashing, but do nothing
-    PWM2  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM3  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM4  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM5  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM6  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),
-    0xFFFF
-};
-
-const uint16_t airPPM[] = {
-    PWM1  | (MAP_TO_PPM_INPUT << 8),     // PPM input
-    PWM2  | (MAP_TO_MOTOR_OUTPUT  << 8),
-    PWM3  | (MAP_TO_MOTOR_OUTPUT  << 8),
-    PWM4  | (MAP_TO_MOTOR_OUTPUT  << 8),
-    PWM5  | (MAP_TO_MOTOR_OUTPUT  << 8),
-    PWM6  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),
-    0xFFFF
-};
-
-const uint16_t airPWM[] = {
-    // prevent crashing, but do nothing
-    PWM2  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM3  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM4  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM5  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM6  | (MAP_TO_MOTOR_OUTPUT << 8),
-    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),
-    0xFFFF
-};
-
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-    { TIM12, IO_TAG(PB14), TIM_Channel_1, TIM8_BRK_TIM12_IRQn,       0, IOCFG_AF_PP, GPIO_AF_TIM12 },    // PPM_IN
-
-    { TIM5,  IO_TAG(PA0),  TIM_Channel_1, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
-    { TIM5,  IO_TAG(PA1),  TIM_Channel_2, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
-    { TIM5,  IO_TAG(PA2),  TIM_Channel_3, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
-    { TIM5,  IO_TAG(PA3),  TIM_Channel_4, TIM5_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM5 },
-    { TIM1,  IO_TAG(PA10), TIM_Channel_3, TIM1_CC_IRQn,       1, IOCFG_AF_PP, GPIO_AF_TIM1 },
-    { TIM2,  IO_TAG(PA15), TIM_Channel_1, TIM2_IRQn,          1, IOCFG_AF_PP, GPIO_AF_TIM2 },
+    { TIM12, IO_TAG(PB14), TIM_Channel_1, TIM_USE_PPM,   0, GPIO_AF_TIM12, NULL,  0, 0, },    // PPM_IN
+    { TIM5,  IO_TAG(PA0),  TIM_Channel_1, TIM_USE_MOTOR, 1, GPIO_AF_TIM5,  DMA1_Stream2, DMA_Channel_6, DMA1_ST2_HANDLER}, // S1_OUT
+    { TIM5,  IO_TAG(PA1),  TIM_Channel_2, TIM_USE_MOTOR, 1, GPIO_AF_TIM5,  DMA1_Stream4, DMA_Channel_6, DMA1_ST4_HANDLER}, // S2_OUT
+    { TIM5,  IO_TAG(PA2),  TIM_Channel_3, TIM_USE_MOTOR, 1, GPIO_AF_TIM5,  DMA1_Stream0, DMA_Channel_6, DMA1_ST0_HANDLER}, // S3_OUT
+    { TIM5,  IO_TAG(PA3),  TIM_Channel_4, TIM_USE_MOTOR, 1, GPIO_AF_TIM5,  DMA1_Stream1, DMA_Channel_6, DMA1_ST1_HANDLER}, // S4_OUT
+    { TIM1,  IO_TAG(PA10), TIM_Channel_3, TIM_USE_MOTOR, 1, GPIO_AF_TIM1,  DMA2_Stream6, DMA_Channel_0, DMA2_ST6_HANDLER}, // S5_OUT
+    { TIM2,  IO_TAG(PA15), TIM_Channel_1, TIM_USE_MOTOR, 1, GPIO_AF_TIM2,  DMA1_Stream5, DMA_Channel_3, DMA1_ST5_HANDLER}, // S6_OUT
 };
 
 bool brainre1_settings_updated = true;

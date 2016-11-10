@@ -60,6 +60,9 @@
         #define FLASH_PAGE_SIZE                 ((uint32_t)0x20000)
     #endif
 
+    #if defined (STM32F446xx)
+        #define FLASH_PAGE_SIZE                 ((uint32_t)0x20000)
+    #endif
 #endif
 
 #if !defined(FLASH_SIZE) && !defined(FLASH_PAGE_COUNT)
@@ -77,6 +80,8 @@
 #define FLASH_PAGE_COUNT 4 // just to make calculations work
 #elif defined (STM32F411xE)
 #define FLASH_PAGE_COUNT 3  // just to make calculations work
+#elif defined (STM32F446xx)
+#define FLASH_PAGE_COUNT 4 // just to make calculations work
 #elif defined (STM32F745xx)
 #define FLASH_PAGE_COUNT 4 // just to make calculations work
 #else
@@ -245,6 +250,8 @@ void writeEEPROM(void)
                 status = FLASH_EraseSector(FLASH_Sector_8, VoltageRange_3); //0x08080000 to 0x080A0000
 #elif defined (STM32F411xE)
                 status = FLASH_EraseSector(FLASH_Sector_7, VoltageRange_3); //0x08060000 to 0x08080000
+#elif defined(BRAINRE1)
+                status = FLASH_EraseSector(FLASH_Sector_4, VoltageRange_3); //0x08010000 to 0x08020000
 #else
                 status = FLASH_ErasePage(CONFIG_START_FLASH_ADDRESS + wordOffset);
 #endif

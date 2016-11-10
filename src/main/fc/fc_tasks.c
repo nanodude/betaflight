@@ -463,7 +463,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
-#ifdef OSD
+#if defined(OSD) && !defined(BRAINRE1)
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,

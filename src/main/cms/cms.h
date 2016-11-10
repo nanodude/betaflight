@@ -8,6 +8,7 @@ bool cmsDisplayPortRegister(displayPort_t *pDisplay);
 // For main.c and scheduler
 void cmsInit(void);
 void cmsHandler(uint32_t currentTime);
+void cmsUpdate(uint32_t currentTimeUs);
 
 long cmsMenuChange(displayPort_t *pPort, const void *ptr);
 long cmsMenuExit(displayPort_t *pPort, const void *ptr);

@@ -43,8 +43,6 @@
 #include "osd_utils.h"
 #include "spectrograph.h"
 
-#include "debug.h"
-#include "version.h"
 #include "common/maths.h"
 #include "common/axis.h"
 #include "common/color.h"
@@ -75,9 +73,6 @@
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
 
-#include "io/display.h"
-#include "io/escservo.h"
-#include "io/rc_controls.h"
 #include "io/flashfs.h"
 #include "io/gimbal.h"
 #include "io/gps.h"
@@ -94,12 +89,11 @@
 #include "flight/imu.h"
 #include "flight/navigation.h"
 
-#include "config/runtime_config.h"
-#include "config/config.h"
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
-#include "scheduler/scheduler_tasks.h"
+#include "fc/runtime_config.h"
+
 
 #if defined(USE_BRAINFPV_OSD) | 1
 
@@ -135,7 +129,7 @@ void max7456Init(uint8_t system)
 void    max7456DrawScreen(void)
 {}
 
-void  max7456WriteNvm(uint8_t char_address, uint8_t *font_data)
+void  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 {
     (void)char_address; (void)font_data;
 }
@@ -148,7 +142,7 @@ uint8_t max7456GetRowsCount(void)
         return VIDEO_LINES_PAL;
 }
 
-void max7456Write(uint8_t x, uint8_t y, char *buff)
+void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
     write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, masterConfig.bfOsdConfig.font);
 }
@@ -175,12 +169,9 @@ uint8_t* max7456GetScreenBuffer(void)
 }
 /*******************************************************************************/
 
-extern uint8_t armState;
-void brainFpvOsdInit(void)
+void brainFpvOsdWelcome(void)
 {
     char string_buffer[100];
-
-    armState = ARMING_FLAG(ARMED);
 
 #define GY (GRAPHICS_BOTTOM / 2 - 30)
 
@@ -189,10 +180,10 @@ void brainFpvOsdInit(void)
 
     sprintf(string_buffer, "BF VERSION: %s", gitTag);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
-    write_string("MENU: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+    write_string("MENU: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     if (masterConfig.bfOsdConfig.spec_enabled) {
-        write_string("SPECT: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 25, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+        write_string("SPECT: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 25, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     }
 #endif
 }
@@ -203,13 +194,14 @@ void brainFpvOsdInit(void)
 
 void osdMain(void) {
     static uint32_t key_time = 0;
+    uint32_t currentTime = micros();
     enum SpecCommand spec_command = SPEC_COMMAND_NONE;
     static enum BrainFPVOSDMode mode = MODE_BETAFLIGHT;
     clearGraphics();
 
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     if (masterConfig.bfOsdConfig.spec_enabled) {
-        if (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
+        if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
             mode = MODE_SPEC;
         }
         else {
@@ -227,12 +219,12 @@ void osdMain(void) {
 #endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
 
     if (millis() < 5000) {
-        brainFpvOsdInit();
+        brainFpvOsdWelcome();
     }
     else {
         switch (mode) {
             case MODE_BETAFLIGHT:
-                updateOsd();
+                osdUpdate(currentTime);
                 break;
             case MODE_SPEC:
 #if defined(USE_BRAINRE1_SPECTROGRAPH)

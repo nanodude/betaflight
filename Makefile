@@ -71,7 +71,7 @@ BIN_DIR         = $(ROOT)/obj
 CMSIS_DIR       = $(ROOT)/lib/main/CMSIS
 INCLUDE_DIRS    = $(SRC_DIR) \
                   $(ROOT)/src/main/target
-LINKER_DIR      = $(ROOT)/src/main/target/link
+LINKER_DIR      = $(ROOT)/src/main/target
 
 # Build tools, so we all share the same versions
 # import macros common to all supported build systems
@@ -581,6 +581,7 @@ HIGHEND_SRC = \
             cms/cms_menu_misc.c \
             cms/cms_menu_osd.c \
             cms/cms_menu_vtx.c \
+            cms/cms_menu_brainre1.c \
             common/colorconversion.c \
             drivers/display_ug2864hsweg01.c \
             drivers/light_ws2811strip.c \
@@ -664,34 +665,18 @@ STM32F4xx_COMMON_SRC = \
             startup_chibios_stm32F4xx.s \
             drivers/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
-            drivers/adc_stm32f4xx.c \
             drivers/bus_i2c_stm32f10x.c \
+            drivers/dma_stm32f4xx.c \
             drivers/gpio_stm32f4xx.c \
             drivers/inverter.c \
-            drivers/serial_softserial.c \
+            drivers/light_ws2811strip_stm32f4xx.c \
+            drivers/pwm_output_stm32f4xx.c \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
-            drivers/timer_stm32f4xx.c \
-            drivers/dma_stm32f4xx.c
+            drivers/timer_stm32f4xx.c
 else
 STM32F4xx_COMMON_SRC = \
             startup_stm32f446xx.s \
-            target/system_stm32f4xx.c \
-            drivers/accgyro_mpu.c \
-            drivers/adc_stm32f4xx.c \
-            drivers/adc_stm32f4xx.c \
-            drivers/bus_i2c_stm32f10x.c \
-            drivers/gpio_stm32f4xx.c \
-            drivers/inverter.c \
-            drivers/serial_softserial.c \
-            drivers/serial_uart_stm32f4xx.c \
-            drivers/system_stm32f4xx.c \
-            drivers/timer_stm32f4xx.c \
-            drivers/dma_stm32f4xx.c
-endif
-else
-STM32F4xx_COMMON_SRC = \
-            startup_stm32f40xx.s \
             target/system_stm32f4xx.c \
             drivers/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
@@ -704,6 +689,8 @@ STM32F4xx_COMMON_SRC = \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
             drivers/timer_stm32f4xx.c
+endif
+endif
 
 STM32F7xx_COMMON_SRC = \
             startup_stm32f745xx.s \

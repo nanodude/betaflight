@@ -328,12 +328,6 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
         dmaInit(dmaGetIdentifier(uart->txDMAStream), OWNER_SERIAL, RESOURCE_INDEX(device));
     }
 
-    if (uart->txDMAStream) {
-        s->txDMAChannel = uart->DMAChannel;
-        s->txDMAStream = uart->txDMAStream;
-        s->txDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
-    }
-
     IO_t tx = IOGetByTag(uart->tx);
     IO_t rx = IOGetByTag(uart->rx);
 

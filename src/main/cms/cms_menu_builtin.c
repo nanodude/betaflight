@@ -45,6 +45,9 @@
 #include "cms/cms_menu_ledstrip.h"
 #include "cms/cms_menu_misc.h"
 
+#ifdef BRAINRE1
+#include "cms/cms_menu_brainre1.h"
+#endif
 
 // Info
 
@@ -114,7 +117,9 @@ static CMS_Menu menuFeatures = {
 static OSD_Entry menuMainEntries[] =
 {
     {"-- MAIN --",  OME_Label, NULL, NULL, 0},
-
+#ifdef BRAINRE1
+    {"BRAINFPV RE1", OME_Submenu, cmsMenuChange, &cmsx_menuBrainRE1, 0},
+#endif
     {"PROFILE",     OME_Submenu,  cmsMenuChange, &cmsx_menuImu, 0},
     {"FEATURES",    OME_Submenu,  cmsMenuChange, &menuFeatures, 0},
 #ifdef OSD

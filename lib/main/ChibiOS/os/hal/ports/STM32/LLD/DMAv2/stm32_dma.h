@@ -661,7 +661,7 @@ extern const stm32_dma_stream_t _stm32_dma_streams[STM32_DMA_STREAMS];
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void dmaInit(void);
+  //void dmaInit(void);
   bool dmaStreamAllocate(const stm32_dma_stream_t *dmastp,
                          uint32_t priority,
                          stm32_dmaisr_t func,

@@ -40,6 +40,13 @@
 #include "cms/cms_menu_builtin.h"
 #include "cms/cms_types.h"
 
+#ifdef BRAINRE1
+#include "target/BRAINRE1/video.h"
+#include "target/BRAINRE1/osd_utils.h"
+#include "target/BRAINRE1/ir_transponder.h"
+#include "cms/cms_menu_brainre1.h"
+#endif
+
 #include "common/typeconversion.h"
 
 #include "drivers/system.h"
@@ -326,6 +333,15 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
             CLR_PRINTVALUE(p);
         }
         break;
+    case OME_UINT32:
+        if (p->data) {
+            OSD_UINT32_t *ptr = p->data;
+            itoa(*ptr->val, buff, 10);
+            cmsPadToSize(buff, 10);
+            cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, buff);
+            CLR_PRINTVALUE(p);
+        }
+        break;
     case OME_FLOAT:
         if (IS_PRINTVALUE(p) && p->data) {
             OSD_FLOAT_t *ptr = p->data;
@@ -380,6 +396,8 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
 
     uint32_t room = displayTxBytesFree(pDisplay);
 
+    pDisplay->cleared = true;
+
     if (pDisplay->cleared) {
         for (p = pageTop, i= 0; p->type != OME_END; p++, i++) {
             SET_PRINTLABEL(p);
@@ -417,6 +435,8 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
         room -= displayWrite(pDisplay, LEFT_MENU_COLUMN, cursorRow + top, " >");
         pDisplay->cursorRow = cursorRow;
     }
+
+    displayWrite(pDisplay, LEFT_MENU_COLUMN, cursorRow + top, " >");
 
     if (room < 30)
         return;
@@ -770,6 +790,19 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
                 }
             }
             break;
+        case OME_UINT32:
+            if (p->data) {
+                OSD_UINT32_t *ptr = p->data;
+                if (key == KEY_RIGHT) {
+                    if (*ptr->val < ptr->max)
+                        *ptr->val += ptr->step;
+                }
+                else {
+                    if (*ptr->val > ptr->min)
+                        *ptr->val -= ptr->step;
+                }
+            }
+            break;
         case OME_String:
             break;
         case OME_Label:
@@ -779,10 +812,26 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             // Shouldn't happen
             break;
     }
+#ifdef BRAINRE1
+    OSD_UINT16_t *ptr = p->data;
+    if (ptr == &entryIRTrackmate){
+        if (key == KEY_RIGHT) {
+            *ptr->val = ir_next_valid_trackmateid(*ptr->val - 1, 1);
+        }
+        if (key == KEY_LEFT) {
+            *ptr->val = ir_next_valid_trackmateid(*ptr->val + 1, -1);
+        }
+    }
+    if (currentMenu == &cmsx_menuBrainRE1Osd) {
+        if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
+            brainre1_settings_updated = true;
+        }
+    }
+#endif
     return res;
 }
 
-static void cmsUpdate(uint32_t currentTimeUs)
+void cmsUpdate(uint32_t currentTimeUs)
 {
     static int16_t rcDelayMs = BUTTON_TIME;
     static uint32_t lastCalledMs = 0;

@@ -20,7 +20,6 @@
 #include <stdbool.h>
 
 #define TARGET_BOARD_IDENTIFIER "BRAINRE1"
-#define TARGET_CONFIG
 
 #define CONFIG_START_FLASH_ADDRESS (0x08010000) // 64kB, flash sector
 
@@ -53,6 +52,8 @@
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (16564455)
 
 #define OSD
+#define CMS
+#define OSD_CALLS_CMS
 #define USE_BRAINFPV_OSD
 #define VIDEO_BITS_PER_PIXEL 2
 #define INCLUDE_VIDEO_QUADSPI
@@ -152,6 +153,7 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
+#define USE_DSHOT
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
 
 bool brainre1_settings_updated;
