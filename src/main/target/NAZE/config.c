@@ -43,10 +43,10 @@ void targetConfiguration(master_t *config)
 
     config->motorConfig.minthrottle = 1049;
 
-    config->gyro_lpf = 1;
-    config->gyro_soft_lpf_hz = 100;
-    config->gyro_soft_notch_hz_1 = 0;
-    config->gyro_soft_notch_hz_2 = 0;
+    config->gyroConfig.gyro_lpf = GYRO_LPF_188HZ;
+    config->gyroConfig.gyro_soft_lpf_hz = 100;
+    config->gyroConfig.gyro_soft_notch_hz_1 = 0;
+    config->gyroConfig.gyro_soft_notch_hz_2 = 0;
 
     /*for (int channel = 0; channel < NON_AUX_CHANNEL_COUNT; channel++) {
         config->rxConfig.channelRanges[channel].min = 1180;
@@ -79,11 +79,18 @@ void targetConfiguration(master_t *config)
         }
     }
 #endif
-        
+
+#if !defined(AFROMINI) && !defined(BEEBRAIN)
     if (hardwareRevision >= NAZE32_REV5) {
         // naze rev4 and below used opendrain to PNP for buzzer. Rev5 and above use PP to NPN.
-        config->beeperConfig.isOD = false;
+        config->beeperConfig.isOpenDrain = false;
         config->beeperConfig.isInverted = true;
+    } else {
+        config->beeperConfig.isOpenDrain = true;
+        config->beeperConfig.isInverted = false;
     }
+#else
+    UNUSED(config);
+#endif
 }
 

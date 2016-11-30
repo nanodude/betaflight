@@ -512,6 +512,7 @@ COMMON_SRC = \
             drivers/gyro_sync.c \
             drivers/io.c \
             drivers/light_led.c \
+            drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
@@ -555,6 +556,7 @@ COMMON_SRC = \
             rx/pwm.c \
             rx/rx.c \
             rx/rx_spi.c \
+            rx/crsf.c \
             rx/sbus.c \
             rx/spektrum.c \
             rx/sumd.c \
@@ -601,11 +603,13 @@ HIGHEND_SRC = \
             sensors/sonar.c \
             sensors/barometer.c \
             telemetry/telemetry.c \
+            telemetry/crsf.c \
             telemetry/frsky.c \
             telemetry/hott.c \
             telemetry/smartport.c \
             telemetry/ltm.c \
-            telemetry/mavlink.c
+            telemetry/mavlink.c \
+            telemetry/esc_telemetry.c \
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 VCP_SRC = \
@@ -829,8 +833,8 @@ CCACHE :=
 endif
 
 # Tool names
-CC          := $(CCACHE) $(ARM_SDK_PREFIX)gcc
-CPP         := $(CCACHE) $(ARM_SDK_PREFIX)g++
+CROSS_CC    := $(CCACHE) $(ARM_SDK_PREFIX)gcc
+CROSS_CXX   := $(CCACHE) $(ARM_SDK_PREFIX)g++
 OBJCOPY     := $(ARM_SDK_PREFIX)objcopy
 SIZE        := $(ARM_SDK_PREFIX)size
 
@@ -946,25 +950,25 @@ $(TARGET_BIN): $(TARGET_ELF)
 
 $(TARGET_ELF):  $(TARGET_OBJS)
 	$(V1) echo Linking $(TARGET)
-	$(V1) $(CC) -o $@ $^ $(LDFLAGS)
+	$(V1) $(CROSS_CC) -o $@ $^ $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
 
 # Compile
 $(OBJECT_DIR)/$(TARGET)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo "%% $(notdir $<)" "$(STDOUT)"
-	$(V1) $(CC) -c -o $@ $(CFLAGS) $<
+	$(V1) $(CROSS_CC) -c -o $@ $(CFLAGS) $<
 
 # Assemble
 $(OBJECT_DIR)/$(TARGET)/%.o: %.s
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo "%% $(notdir $<)" "$(STDOUT)"
-	$(V1) $(CC) -c -o $@ $(ASFLAGS) $<
+	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
 
 $(OBJECT_DIR)/$(TARGET)/%.o: %.S
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo "%% $(notdir $<)" "$(STDOUT)"
-	$(V1) $(CC) -c -o $@ $(ASFLAGS) $<
+	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
 
 ## sample            : Build all sample (travis) targets
 sample: $(SAMPLE_TARGETS)
@@ -1081,7 +1085,7 @@ targets:
 ## test              : run the cleanflight test suite
 ## junittest         : run the cleanflight test suite, producing Junit XML result files.
 test junittest:
-	$(V0) cd src/test && $(MAKE) $@  || true
+	$(V0) cd src/test && $(MAKE) $@
 
 # rebuild everything when makefile changes
 $(TARGET_OBJS) : Makefile

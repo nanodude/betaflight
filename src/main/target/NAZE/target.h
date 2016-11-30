@@ -20,6 +20,8 @@
 #define TARGET_CONFIG
 #define USE_HARDWARE_REVISION_DETECTION
 
+#define CLI_MINIMAL_VERBOSITY
+
 #define BOARD_HAS_VOLTAGE_DIVIDER
 
 #define LED0                    PB3
@@ -37,6 +39,7 @@
 #define DEFAULT_FEATURES FEATURE_MOTOR_STOP
 #else
 #define TARGET_BOARD_IDENTIFIER "AFNA"
+// Beeper configuration is handled in 'config.c', since it is dependent on hardware revision
 #endif
 
 //#define BARO_XCLR_PIN           PC13
@@ -120,7 +123,7 @@
 
 #define USE_UART1
 #define USE_UART2
-/* only 2 uarts available on the NAZE, add ifdef here if present on other boards */ 
+/* only 2 uarts available on the NAZE, add ifdef here if present on other boards */
 //#define USE_UART3
 //#define USE_SOFTSERIAL1
 //#define USE_SOFTSERIAL2

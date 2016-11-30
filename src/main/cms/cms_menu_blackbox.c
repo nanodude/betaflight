@@ -17,7 +17,7 @@
 
 //
 // CMS things for blackbox and flashfs.
-// 
+//
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -51,7 +51,7 @@ static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
 {
     UNUSED(ptr);
 
-    displayClear(pDisplay);
+    displayClearScreen(pDisplay);
     displayWrite(pDisplay, 5, 3, "ERASING FLASH...");
     displayResync(pDisplay); // Was max7456RefreshAll(); Why at this timing?
 
@@ -69,7 +69,7 @@ static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
     chSysUnlock();
 #endif
 
-    displayClear(pDisplay);
+    displayClearScreen(pDisplay);
     displayResync(pDisplay); // Was max7456RefreshAll(); wedges during heavy SPI?
 
     return 0;
@@ -103,7 +103,7 @@ static OSD_Entry cmsx_menuBlackboxEntries[] =
 {
     { "-- BLACKBOX --", OME_Label, NULL, NULL, 0},
     { "ENABLED",     OME_Bool,    NULL,            &cmsx_FeatureBlackbox,                                      0 },
-    { "RATE DENOM",  OME_UINT8,   NULL,            &(OSD_UINT8_t){ &masterConfig.blackbox_rate_denom,1,32,1 }, 0 },
+    { "RATE DENOM",  OME_UINT8,   NULL,            &(OSD_UINT8_t){ &masterConfig.blackboxConfig.rate_denom,1,32,1 }, 0 },
 
 #ifdef USE_FLASHFS
     { "ERASE FLASH", OME_Funcall, cmsx_EraseFlash, NULL,                                                       0 },

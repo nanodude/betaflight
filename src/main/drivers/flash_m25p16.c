@@ -50,6 +50,7 @@
 #define JEDEC_ID_MICRON_N25Q128        0x20ba18
 #define JEDEC_ID_WINBOND_W25Q128       0xEF4018
 #define JEDEC_ID_SPANSION_S25FL127     0x012018
+#define JEDEC_ID_MACRONIX_MX25L25635E  0xC22019
 
 #define DISABLE_M25P16       IOHi(m25p16CsPin)
 #define ENABLE_M25P16        IOLo(m25p16CsPin)
@@ -188,6 +189,10 @@ static bool m25p16_readIdentification()
             geometry.sectors = 256;
             geometry.pagesPerSector = 256;
         break;
+        case JEDEC_ID_MACRONIX_MX25L25635E:
+            geometry.sectors = 512;
+            geometry.pagesPerSector = 256;
+        break;
         default:
             // Unsupported chip or not an SPI NOR flash
             geometry.sectors = 0;
@@ -218,16 +223,16 @@ static bool m25p16_readIdentification()
  */
 bool m25p16_init(ioTag_t csTag)
 {
-    /* 
-        if we have already detected a flash device we can simply exit 
-        
+    /*
+        if we have already detected a flash device we can simply exit
+
         TODO: change the init param in favour of flash CFG when ParamGroups work is done
         then cs pin can be specified in hardware_revision.c or config.c (dependent on revision).
     */
     if (geometry.sectors) {
         return true;
     }
-    
+
     if (csTag) {
         m25p16CsPin = IOGetByTag(csTag);
     } else {
@@ -237,7 +242,7 @@ bool m25p16_init(ioTag_t csTag)
         return false;
 #endif
     }
-    IOInit(m25p16CsPin, OWNER_FLASH, RESOURCE_SPI_CS, 0);
+    IOInit(m25p16CsPin, OWNER_FLASH_CS, 0);
     IOConfigGPIO(m25p16CsPin, SPI_IO_CS_CFG);
 
     DISABLE_M25P16;

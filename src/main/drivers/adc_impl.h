@@ -33,7 +33,8 @@ typedef enum ADCDevice {
     ADCDEV_1   = 0,
 #if defined(STM32F3)
     ADCDEV_2,
-    ADCDEV_MAX = ADCDEV_2,
+    ADCDEV_3,
+    ADCDEV_MAX = ADCDEV_3,
 #elif defined(STM32F4) || defined(STM32F7)
     ADCDEV_2,
     ADCDEV_3,
@@ -61,7 +62,7 @@ typedef struct adcDevice_s {
 
 extern const adcDevice_t adcHardware[];
 extern const adcTagMap_t adcTagMap[ADC_TAG_MAP_COUNT];
-extern adc_config_t adcConfig[ADC_CHANNEL_COUNT];
+extern adcOperatingConfig_t adcOperatingConfig[ADC_CHANNEL_COUNT];
 extern volatile uint16_t adcValues[ADC_CHANNEL_COUNT];
 
 uint8_t adcChannelByTag(ioTag_t ioTag);

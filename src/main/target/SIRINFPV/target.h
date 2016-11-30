@@ -137,19 +137,15 @@
 //#define USE_QUAD_MIXER_ONLY
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-#define USE_DASHBOARD
-
 #define OSD
-
-// Configuratoin Menu System
-#define CMS
-
-// Use external display connected by MSP to run CMS
-#define USE_MSP_DISPLAYPORT
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
 
 #define USE_SERVOS
+
+#define SPEKTRUM_BIND
+// USART3, PB11
+#define BIND_PIN                PB11
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_RX_SERIAL | FEATURE_OSD | FEATURE_VTX)

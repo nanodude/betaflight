@@ -140,7 +140,7 @@ static uartDevice_t uart3 =
 static uartDevice_t uart4 =
 {
     .DMAChannel = DMA_Channel_4,
-#ifdef USE_UART1_RX_DMA
+#ifdef USE_UART4_RX_DMA
     .rxDMAStream = DMA1_Stream2,
 #endif
     .txDMAStream = DMA1_Stream4,
@@ -163,10 +163,10 @@ static uartDevice_t uart4 =
 static uartDevice_t uart5 =
 {
     .DMAChannel = DMA_Channel_4,
-#ifdef USE_UART1_RX_DMA
+#ifdef USE_UART5_RX_DMA
     .rxDMAStream = DMA1_Stream0,
 #endif
-    .txDMAStream = DMA2_Stream7,
+    .txDMAStream = DMA1_Stream7,
     .dev = UART5,
     .rx = IO_TAG(UART5_RX_PIN),
     .tx = IO_TAG(UART5_TX_PIN),
@@ -175,7 +175,7 @@ static uartDevice_t uart5 =
     .rcc_ahb1 = UART5_AHB1_PERIPHERALS,
 #endif
     .rcc_apb1 = RCC_APB1(UART5),
-    .txIrq = DMA2_ST7_HANDLER,
+    .txIrq = DMA1_ST7_HANDLER,
     .rxIrq = UART5_IRQn,
     .txPriority = NVIC_PRIO_SERIALUART5_TXDMA,
     .rxPriority = NVIC_PRIO_SERIALUART5
@@ -319,13 +319,12 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
     if (uart->rxDMAStream) {
         s->rxDMAChannel = uart->DMAChannel;
         s->rxDMAStream = uart->rxDMAStream;
-        s->rxDMAPeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
-        dmaInit(dmaGetIdentifier(uart->rxDMAStream), OWNER_SERIAL, RESOURCE_INDEX(device));
+        dmaInit(dmaGetIdentifier(uart->rxDMAStream), OWNER_SERIAL_RX, RESOURCE_INDEX(device));
     }
     if (uart->txDMAStream) {
         s->txDMAChannel = uart->DMAChannel;
         s->txDMAStream = uart->txDMAStream;
-        dmaInit(dmaGetIdentifier(uart->txDMAStream), OWNER_SERIAL, RESOURCE_INDEX(device));
+        dmaInit(dmaGetIdentifier(uart->txDMAStream), OWNER_SERIAL_TX, RESOURCE_INDEX(device));
     }
 
     IO_t tx = IOGetByTag(uart->tx);
@@ -341,8 +340,8 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
         RCC_AHB1PeriphClockCmd(uart->rcc_ahb1, ENABLE);
 
     if (options & SERIAL_BIDIR) {
-        IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TXRX, RESOURCE_INDEX(device));
 #ifdef USE_RE1_FPGA
+        IOInit(tx, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
         if (options & SERIAL_INVERTED) {
             IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
         }
@@ -350,18 +349,19 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
             IOConfigGPIOAF(tx, IOCFG_AF_OD, uart->af);
         }
 #else
+        IOInit(tx, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
         IOConfigGPIOAF(tx, IOCFG_AF_OD, uart->af);
 #endif
     }
     else {
         if (mode & MODE_TX) {
-            IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TX, RESOURCE_INDEX(device));
-            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
+            IOInit(tx, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
+            IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
         }
 
         if (mode & MODE_RX) {
-            IOInit(rx, OWNER_SERIAL, RESOURCE_UART_RX, RESOURCE_INDEX(device));
-            IOConfigGPIOAF(rx, IOCFG_AF_PP, uart->af);
+            IOInit(rx, OWNER_SERIAL_RX, RESOURCE_INDEX(device));
+            IOConfigGPIOAF(rx, IOCFG_AF_PP_UP, uart->af);
         }
     }
 

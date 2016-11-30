@@ -101,8 +101,6 @@ static bool armingCalibrationWasInitialised;
 float setpointRate[3];
 float rcInput[3];
 
-extern pidControllerFuncPtr pid_controller;
-
 void applyAndSaveAccelerometerTrimsDelta(rollAndPitchTrims_t *rollAndPitchTrimsDelta)
 {
     masterConfig.accelerometerTrims.values.roll += rollAndPitchTrimsDelta->values.roll;
@@ -179,9 +177,7 @@ void calculateSetpointRate(int axis, int16_t rc) {
         angleRate *= rcSuperfactor;
     }
 
-    if (debugMode == DEBUG_ANGLERATE) {
-        debug[axis] = angleRate;
-    }
+    DEBUG_SET(DEBUG_ANGLERATE, axis, angleRate);
 
     setpointRate[axis] = constrainf(angleRate, -1998.0f, 1998.0f); // Rate limit protection (deg/sec)
 }
@@ -300,7 +296,7 @@ void updateRcCommands(void)
             } else {
                 tmp = 0;
             }
-            rcCommand[axis] = tmp * -masterConfig.yaw_control_direction;
+            rcCommand[axis] = tmp * -masterConfig.rcControlsConfig.yaw_control_direction;
         }
         if (rcData[axis] < masterConfig.rxConfig.midrc) {
             rcCommand[axis] = -rcCommand[axis];
@@ -379,7 +375,7 @@ void mwDisarm(void)
 
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_SMARTPORT)
 
-void releaseSharedTelemetryPorts(void) {
+static void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
     while (sharedPort) {
         mspSerialReleasePortIfAllocated(sharedPort);
@@ -391,7 +387,7 @@ void mwArm(void)
 {
     static bool firstArmingCalibrationWasCompleted;
 
-    if (masterConfig.gyro_cal_on_first_arm && !firstArmingCalibrationWasCompleted) {
+    if (masterConfig.armingConfig.gyro_cal_on_first_arm && !firstArmingCalibrationWasCompleted) {
         gyroSetCalibrationCycles();
         armingCalibrationWasInitialised = true;
         firstArmingCalibrationWasCompleted = true;
@@ -420,7 +416,7 @@ void mwArm(void)
                 startBlackbox();
             }
 #endif
-            disarmAt = millis() + masterConfig.auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
+            disarmAt = millis() + masterConfig.armingConfig.auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
             //beep to indicate arming
 #ifdef GPS
@@ -488,7 +484,7 @@ void updateMagHold(void)
             dif += 360;
         if (dif >= +180)
             dif -= 360;
-        dif *= -masterConfig.yaw_control_direction;
+        dif *= -masterConfig.rcControlsConfig.yaw_control_direction;
         if (STATE(SMALL_ANGLE))
             rcCommand[YAW] -= dif * currentProfile->pidProfile.P8[PIDMAG] / 30;    // 18 deg
     } else
@@ -545,12 +541,12 @@ void processRx(uint32_t currentTime)
     if (ARMING_FLAG(ARMED)
         && feature(FEATURE_MOTOR_STOP)
         && !STATE(FIXED_WING)
-		&& !feature(FEATURE_3D)
-		&& !isAirmodeActive()
+        && !feature(FEATURE_3D)
+        && !isAirmodeActive()
     ) {
         if (isUsingSticksForArming()) {
             if (throttleStatus == THROTTLE_LOW) {
-                if (masterConfig.auto_disarm_delay != 0
+                if (masterConfig.armingConfig.auto_disarm_delay != 0
                     && (int32_t)(disarmAt - millis()) < 0
                 ) {
                     // auto-disarm configured and delay is over
@@ -563,9 +559,9 @@ void processRx(uint32_t currentTime)
                 }
             } else {
                 // throttle is not low
-                if (masterConfig.auto_disarm_delay != 0) {
+                if (masterConfig.armingConfig.auto_disarm_delay != 0) {
                     // extend disarm time
-                    disarmAt = millis() + masterConfig.auto_disarm_delay * 1000;
+                    disarmAt = millis() + masterConfig.armingConfig.auto_disarm_delay * 1000;
                 }
 
                 if (armedBeeperOn) {
@@ -585,7 +581,7 @@ void processRx(uint32_t currentTime)
         }
     }
 
-    processRcStickPositions(&masterConfig.rxConfig, throttleStatus, masterConfig.disarm_kill_switch);
+    processRcStickPositions(&masterConfig.rxConfig, throttleStatus, masterConfig.armingConfig.disarm_kill_switch);
 
     if (feature(FEATURE_INFLIGHT_ACC_CAL)) {
         updateInflightCalibrationState();
@@ -663,7 +659,7 @@ void processRx(uint32_t currentTime)
         DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
     }
 
-    if (masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE) {
+    if (masterConfig.mixerConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerConfig.mixerMode == MIXER_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 
@@ -688,15 +684,16 @@ void processRx(uint32_t currentTime)
 
 void subTaskPidController(void)
 {
-    const uint32_t startTime = micros();
+    uint32_t startTime;
+    if (debugMode == DEBUG_PIDLOOP || debugMode == DEBUG_SCHEDULER) {startTime = micros();}
     // PID - note this is function pointer set by setPIDController()
     pidController(
         &currentProfile->pidProfile,
         masterConfig.max_angle_inclination,
         &masterConfig.accelerometerTrims,
-        &masterConfig.rxConfig
+        masterConfig.rxConfig.midrc
     );
-    if (debugMode == DEBUG_PIDLOOP) {debug[2] = micros() - startTime;}
+    if (debugMode == DEBUG_PIDLOOP || debugMode == DEBUG_SCHEDULER) {debug[1] = micros() - startTime;}
 }
 
 void subTaskMainSubprocesses(void)
@@ -736,18 +733,18 @@ void subTaskMainSubprocesses(void)
         if (isUsingSticksForArming() && rcData[THROTTLE] <= masterConfig.rxConfig.mincheck
     #ifndef USE_QUAD_MIXER_ONLY
     #ifdef USE_SERVOS
-                    && !((masterConfig.mixerMode == MIXER_TRI || masterConfig.mixerMode == MIXER_CUSTOM_TRI) && masterConfig.servoMixerConfig.tri_unarmed_servo)
+                    && !((masterConfig.mixerConfig.mixerMode == MIXER_TRI || masterConfig.mixerConfig.mixerMode == MIXER_CUSTOM_TRI) && masterConfig.servoMixerConfig.tri_unarmed_servo)
     #endif
-                    && masterConfig.mixerMode != MIXER_AIRPLANE
-                    && masterConfig.mixerMode != MIXER_FLYING_WING
+                    && masterConfig.mixerConfig.mixerMode != MIXER_AIRPLANE
+                    && masterConfig.mixerConfig.mixerMode != MIXER_FLYING_WING
     #endif
         ) {
             rcCommand[YAW] = 0;
             setpointRate[YAW] = 0;
         }
 
-        if (masterConfig.throttle_correction_value && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            rcCommand[THROTTLE] += calculateThrottleAngleCorrection(masterConfig.throttle_correction_value);
+        if (masterConfig.throttleCorrectionConfig.throttle_correction_value && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+            rcCommand[THROTTLE] += calculateThrottleAngleCorrection(masterConfig.throttleCorrectionConfig.throttle_correction_value);
         }
 
         processRcCommand();
@@ -773,7 +770,7 @@ void subTaskMainSubprocesses(void)
     #ifdef TRANSPONDER
         transponderUpdate(startTime);
     #endif
-    if (debugMode == DEBUG_PIDLOOP) {debug[1] = micros() - startTime;}
+        DEBUG_SET(DEBUG_PIDLOOP, 2, micros() - startTime);
 }
 
 void subTaskMotorUpdate(void)
@@ -799,12 +796,12 @@ void subTaskMotorUpdate(void)
     if (motorControlEnable) {
         writeMotors();
     }
-    if (debugMode == DEBUG_PIDLOOP) {debug[3] = micros() - startTime;}
+    DEBUG_SET(DEBUG_PIDLOOP, 3, micros() - startTime);
 }
 
 uint8_t setPidUpdateCountDown(void)
 {
-    if (masterConfig.gyro_soft_lpf_hz) {
+    if (masterConfig.gyroConfig.gyro_soft_lpf_hz) {
         return masterConfig.pid_process_denom - 1;
     } else {
         return 1;
@@ -812,7 +809,7 @@ uint8_t setPidUpdateCountDown(void)
 }
 
 // Function for loop trigger
-void taskMainPidLoopCheck(uint32_t currentTime)
+void taskMainPidLoop(uint32_t currentTime)
 {
     UNUSED(currentTime);
 
@@ -831,7 +828,15 @@ void taskMainPidLoopCheck(uint32_t currentTime)
         runTaskMainSubprocesses = false;
     }
 
+    // DEBUG_PIDLOOP, timings for:
+    // 0 - gyroUpdate()
+    // 1 - pidController()
+    // 2 - subTaskMainSubprocesses()
+    // 3 - subTaskMotorUpdate()
+    uint32_t startTime;
+    if (debugMode == DEBUG_PIDLOOP || debugMode == DEBUG_SCHEDULER) {startTime = micros();}
     gyroUpdate();
+    if (debugMode == DEBUG_PIDLOOP || debugMode == DEBUG_SCHEDULER) {debug[0] = micros() - startTime;}
 
     if (pidUpdateCountdown) {
         pidUpdateCountdown--;

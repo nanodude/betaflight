@@ -56,7 +56,6 @@
 #include "drivers/sdcard.h"
 #include "drivers/usb_io.h"
 #include "drivers/transponder_ir.h"
-#include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/vtx_soft_spi_rtc6705.h"
 
@@ -76,6 +75,7 @@
 #include "rx/spektrum.h"
 
 #include "io/beeper.h"
+#include "io/displayport_max7456.h"
 #include "io/serial.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -104,6 +104,7 @@
 #include "sensors/initialisation.h"
 
 #include "telemetry/telemetry.h"
+#include "telemetry/esc_telemetry.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -156,6 +157,14 @@ void init(void)
 
     printfSupportInit();
 
+    systemInit();
+
+    // initialize IO (needed for all IO operations)
+    IOInitGlobal();
+
+#ifdef USE_HARDWARE_REVISION_DETECTION
+    detectHardwareRevision();
+#endif
 
     initEEPROM();
 
@@ -168,18 +177,9 @@ void init(void)
 
     systemState |= SYSTEM_STATE_CONFIG_LOADED;
 
-    systemInit();
-
     //i2cSetOverclock(masterConfig.i2c_overclock);
 
-    // initialize IO (needed for all IO operations)
-    IOInitGlobal();
-
     debugMode = masterConfig.debug_mode;
-
-#ifdef USE_HARDWARE_REVISION_DETECTION
-    detectHardwareRevision();
-#endif
 
     // Latch active features to be used for feature() in the remainder of init().
     latchActiveFeatures();
@@ -261,7 +261,7 @@ void init(void)
     serialInit(&masterConfig.serialConfig, feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
 
-    mixerInit(masterConfig.mixerMode, masterConfig.customMotorMixer);
+    mixerInit(masterConfig.mixerConfig.mixerMode, masterConfig.customMotorMixer);
 #ifdef USE_SERVOS
     servoMixerInit(masterConfig.customServoMixer);
 #endif
@@ -276,10 +276,15 @@ void init(void)
         idlePulse = 0; // brushed motors
     }
 
+    mixerConfigureOutput();
+#ifdef USE_SERVOS
+    servoConfigureOutput();
+#endif
+
 #ifdef USE_QUAD_MIXER_ONLY
     motorInit(&masterConfig.motorConfig, idlePulse, QUAD_MOTOR_COUNT);
 #else
-    motorInit(&masterConfig.motorConfig, idlePulse, mixers[masterConfig.mixerMode].motorCount);
+    motorInit(&masterConfig.motorConfig, idlePulse, motorCount);
 #endif
 
 #ifdef USE_SERVOS
@@ -289,19 +294,16 @@ void init(void)
     }
 #endif
 
-#ifndef SKIP_RX_PWM_PPM
+#if defined(USE_PWM) || defined(USE_PPM)
     if (feature(FEATURE_RX_PPM)) {
         ppmRxInit(&masterConfig.ppmConfig, masterConfig.motorConfig.motorPwmProtocol);
     } else if (feature(FEATURE_RX_PARALLEL_PWM)) {
-        pwmRxInit(&masterConfig.pwmConfig);        
+        pwmRxInit(&masterConfig.pwmConfig);
     }
     pwmRxSetInputFilteringMode(masterConfig.inputFilteringMode);
 #endif
 
-    mixerConfigureOutput();
-#ifdef USE_SERVOS
-    servoConfigureOutput();
-#endif
+
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
 #if defined(BEEPER) & !defined(BRAINRE1)
@@ -391,21 +393,11 @@ void init(void)
 #endif
 
 #ifdef USE_ADC
-    drv_adc_config_t adc_params;
-
-    adc_params.enableVBat = feature(FEATURE_VBAT);
-    adc_params.enableRSSI = feature(FEATURE_RSSI_ADC);
-    adc_params.enableCurrentMeter = feature(FEATURE_CURRENT_METER);
-    adc_params.enableExternal1 = false;
-#ifdef OLIMEXINO
-    adc_params.enableExternal1 = true;
-#endif
-#ifdef NAZE
-    // optional ADC5 input on rev.5 hardware
-    adc_params.enableExternal1 = (hardwareRevision >= NAZE32_REV5);
-#endif
-
-    adcInit(&adc_params);
+    /* these can be removed from features! */
+    masterConfig.adcConfig.vbat.enabled = feature(FEATURE_VBAT);
+    masterConfig.adcConfig.currentMeter.enabled = feature(FEATURE_CURRENT_METER);
+    masterConfig.adcConfig.rssi.enabled = feature(FEATURE_RSSI_ADC);
+    adcInit(&masterConfig.adcConfig);
 #endif
 
 
@@ -433,18 +425,27 @@ void init(void)
 #ifdef OSD
 #ifndef USE_BRAINFPV_OSD
     if (feature(FEATURE_OSD)) {
-        osdInit();
+#ifdef USE_MAX7456
+        // if there is a max7456 chip for the OSD then use it, otherwise use MSP
+        displayPort_t *osdDisplayPort = max7456DisplayPortInit(&masterConfig.vcdProfile);
+#else
+        displayPort_t *osdDisplayPort = displayPortMspInit();
+#endif
+        osdInit(osdDisplayPort);
     }
 #endif
 #endif
 
+#ifdef SONAR
+    const sonarConfig_t *sonarConfig = &masterConfig.sonarConfig;
+#else
+    const void *sonarConfig = NULL;
+#endif
     if (!sensorsAutodetect(&masterConfig.sensorAlignmentConfig,
-            masterConfig.acc_hardware,
-            masterConfig.mag_hardware,
-            masterConfig.baro_hardware,
-            masterConfig.mag_declination,
-            masterConfig.gyro_lpf,
-            masterConfig.gyro_sync_denom)) {
+            &masterConfig.sensorSelectionConfig,
+            masterConfig.compassConfig.mag_declination,
+            &masterConfig.gyroConfig,
+            sonarConfig)) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
     }
@@ -466,10 +467,9 @@ void init(void)
     LED0_OFF;
     LED1_OFF;
 
-#ifdef MAG
-    if (sensors(SENSOR_MAG))
-        compassInit();
-#endif
+    // gyro.targetLooptime set in sensorsAutodetect(), so we are ready to call pidSetTargetLooptime()
+    pidSetTargetLooptime((gyro.targetLooptime + LOOPTIME_SUSPEND_TIME) * masterConfig.pid_process_denom); // Initialize pid looptime
+    pidInitFilters(&currentProfile->pidProfile);
 
     imuInit();
 
@@ -501,12 +501,6 @@ void init(void)
     }
 #endif
 
-#ifdef SONAR
-    if (feature(FEATURE_SONAR)) {
-        sonarInit(&masterConfig.sonarConfig);
-    }
-#endif
-
 #ifdef LED_STRIP
     ledStripInit(&masterConfig.ledStripConfig);
 
@@ -518,6 +512,12 @@ void init(void)
 #ifdef TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         telemetryInit();
+    }
+#endif
+
+#ifdef USE_ESC_TELEMETRY
+    if (feature(FEATURE_ESC_TELEMETRY)) {
+        escTelemetryInit();
     }
 #endif
 
@@ -547,42 +547,18 @@ void init(void)
 #endif
 
 #ifdef USE_SDCARD
-    bool sdcardUseDMA = false;
-
-    sdcardInsertionDetectInit();
-
-#ifdef SDCARD_DMA_CHANNEL_TX
-
-#if defined(LED_STRIP) && defined(WS2811_DMA_CHANNEL)
-    // Ensure the SPI Tx DMA doesn't overlap with the led strip
-#if defined(STM32F4) || defined(STM32F7)
-    sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_STREAM;
-#else
-    sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_CHANNEL;
-#endif
-#else
-    sdcardUseDMA = true;
-#endif
-
-#endif
-
-    sdcard_init(sdcardUseDMA);
-
-    afatfs_init();
-#endif
-
-    if (masterConfig.gyro_lpf > 0 && masterConfig.gyro_lpf < 7) {
-        masterConfig.pid_process_denom = 1; // When gyro set to 1khz always set pid speed 1:1 to sampling speed
-        masterConfig.gyro_sync_denom = 1;
+    if (feature(FEATURE_SDCARD)) {
+        sdcardInsertionDetectInit();
+        sdcard_init(masterConfig.sdcardConfig.useDma);
+        afatfs_init();
     }
-
-    setTargetPidLooptime((gyro.targetLooptime + LOOPTIME_SUSPEND_TIME) * masterConfig.pid_process_denom); // Initialize pid looptime
+#endif
 
 #ifdef BLACKBOX
     initBlackbox();
 #endif
 
-    if (masterConfig.mixerMode == MIXER_GIMBAL) {
+    if (masterConfig.mixerConfig.mixerMode == MIXER_GIMBAL) {
         accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
     }
     gyroSetCalibrationCycles();

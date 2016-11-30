@@ -20,18 +20,14 @@
 
 #include "platform.h"
 
-#ifdef USE_RE1_FPGA
-#include "target/BRAINRE1/fpga_drv.h"
-#endif
-
-#ifdef INVERTER 
+#ifdef INVERTER
 
 #include "io.h"
 #include "io_impl.h"
 
 #include "inverter.h"
 
-/* 
+/*
     TODO: move this to support multiple inverters on different UARTs etc
     possibly move to put it in the UART driver itself.
 */
@@ -40,7 +36,7 @@ static IO_t pin = IO_NONE;
 void initInverter(void)
 {
     pin = IOGetByTag(IO_TAG(INVERTER));
-    IOInit(pin, OWNER_INVERTER, RESOURCE_OUTPUT, 1);
+    IOInit(pin, OWNER_INVERTER, 1);
     IOConfigGPIO(pin, IOCFG_OUT_PP);
 
     inverterSet(false);

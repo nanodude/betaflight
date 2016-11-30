@@ -28,7 +28,6 @@
 #include "build/build_config.h"
 
 #include "config/config_eeprom.h"
-#include "config/config_master.h"
 
 #if !defined(FLASH_SIZE)
 #error "Flash size not defined for target. (specify in KB)"
@@ -302,4 +301,3 @@ void readEEPROM(void)
 
     resumeRxSignal();
 }
-
