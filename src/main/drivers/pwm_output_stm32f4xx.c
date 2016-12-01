@@ -33,13 +33,21 @@
 
 #define MAX_DMA_TIMERS 8
 
+#if defined(STM32F446xx)
+#define MOTOR_DSHOT600_MHZ    90
+#define MOTOR_DSHOT300_MHZ    45
+#define MOTOR_DSHOT150_MHZ    22.5
+#define MOTOR_BIT_0     56
+#define MOTOR_BIT_1     112
+#define MOTOR_BITLENGTH 155
+#else
 #define MOTOR_DSHOT600_MHZ    12
 #define MOTOR_DSHOT300_MHZ    6
 #define MOTOR_DSHOT150_MHZ    3
-
 #define MOTOR_BIT_0     7
 #define MOTOR_BIT_1     14
 #define MOTOR_BITLENGTH 19
+#endif
 
 static uint8_t dmaMotorTimerCount = 0;
 static motorDmaTimer_t dmaMotorTimers[MAX_DMA_TIMERS];
