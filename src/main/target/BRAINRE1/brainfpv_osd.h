@@ -19,6 +19,7 @@ typedef struct {
     uint16_t ir_trackmate_id;
     uint32_t ir_ilap_id;
     uint8_t ahi_steps;
+    uint8_t bmi160foc;
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     uint8_t spec_enabled;
 #endif

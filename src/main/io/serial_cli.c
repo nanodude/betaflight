@@ -996,6 +996,7 @@ const clivalue_t valueTable[] = {
     { "brainfpv_ir_sys",            VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_system, .config.minmax = { 0, 2 } },
     { "brainfpv_ir_ilapid",         VAR_UINT32  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_ilap_id, .config.minmax = { 0, 9999999 } },
     { "brainfpv_ir_trackmateid",    VAR_UINT16  | MASTER_VALUE, &masterConfig.bfOsdConfig.ir_trackmate_id, .config.minmax = { 0, 4095 } },
+    { "brainfpv_bmi160foc",         VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.bmi160foc, .config.minmax = { 0, 1 } },
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.spec_enabled, .config.minmax = { 0, 1 } },
 #endif

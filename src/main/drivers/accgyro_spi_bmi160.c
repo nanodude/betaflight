@@ -52,6 +52,11 @@
 #include "accgyro.h"
 #include "accgyro_spi_bmi160.h"
 
+#include "config/config_eeprom.h"
+#include "config/config_profile.h"
+#include "config/config_master.h"
+#include "fc/runtime_config.h"
+
 #if defined(USE_ACCGYRO_BMI160)
 
 #if defined(USE_CHIBIOS)
@@ -99,6 +104,7 @@ static volatile bool bmi160ExtiInitDone = false;
 
 //! Private functions
 static int32_t BMI160_Config();
+static int32_t BMI160_do_foc();
 static uint8_t BMI160_ReadReg(uint8_t reg);
 static int32_t BMI160_WriteReg(uint8_t reg, uint8_t data);
 static void bmi160IntExtiInit(void);
@@ -147,6 +153,23 @@ static void BMI160_Init()
     }
 #if defined(USE_CHIBIOS)
     chBSemObjectInit(&gyroSem, FALSE);
+#endif
+
+    bool do_foc = false;
+#ifdef BRAINRE1
+    do_foc = masterConfig.bfOsdConfig.bmi160foc;
+#endif
+
+    /* Perform fast offset compensation if requested */
+    if (do_foc) {
+        BMI160_do_foc();
+    }
+
+#ifdef BRAINRE1
+    if (do_foc) {
+        masterConfig.bfOsdConfig.bmi160foc = false;
+        writeEEPROM();
+    }
 #endif
 
     /* Set up EXTI line */
@@ -229,6 +252,55 @@ static int32_t BMI160_Config()
     return 0;
 }
 
+static int32_t BMI160_do_foc()
+{
+    // assume sensor is mounted on top
+    uint8_t val = 0x7D;;
+    if (BMI160_WriteReg(BMI160_REG_FOC_CONF, val) != 0) {
+        return -1;
+    }
+
+    // Start FOC
+    if (BMI160_WriteReg(BMI160_REG_CMD, BMI160_CMD_START_FOC) != 0) {
+        return -2;
+    }
+
+    // Wait for FOC to complete
+    for (int i=0; i<50; i++) {
+        val = BMI160_ReadReg(BMI160_REG_STATUS);
+        if (val & BMI160_REG_STATUS_FOC_RDY) {
+            break;
+        }
+        delay(10);
+    }
+    if (!(val & BMI160_REG_STATUS_FOC_RDY)) {
+        return -3;
+    }
+
+    // Program NVM
+    val = BMI160_ReadReg(BMI160_REG_CONF);
+    if (BMI160_WriteReg(BMI160_REG_CONF, val | BMI160_REG_CONF_NVM_PROG_EN) != 0) {
+        return -4;
+    }
+
+    if (BMI160_WriteReg(BMI160_REG_CMD, BMI160_CMD_PROG_NVM) != 0) {
+        return -5;
+    }
+
+    // Wait for NVM programming to complete
+    for (int i=0; i<50; i++) {
+        val = BMI160_ReadReg(BMI160_REG_STATUS);
+        if (val & BMI160_REG_STATUS_NVM_RDY) {
+            break;
+        }
+        delay(10);
+    }
+    if (!(val & BMI160_REG_STATUS_NVM_RDY)) {
+        return -6;
+    }
+
+    return 0;
+}
 
 /**
  * @brief Read a register from BMI160

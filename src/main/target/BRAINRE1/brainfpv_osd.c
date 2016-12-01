@@ -253,6 +253,7 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
     bfOsdConfig->ir_trackmate_id = 0;
     bfOsdConfig->ir_ilap_id = 0;
     bfOsdConfig->ahi_steps = 2;
+    bfOsdConfig->bmi160foc = 0;
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     bfOsdConfig->spec_enabled = 0;
 #endif
