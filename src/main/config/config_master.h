@@ -173,7 +173,8 @@ typedef struct master_s {
 #endif
 
 #ifdef USE_BRAINFPV_OSD
-    osd_profile_t osdProfile;
+    vcdProfile_t vcdProfile;
+    bfOsdConfig_t bfOsdConfig;
 #endif
 
 #ifdef USE_MAX7456

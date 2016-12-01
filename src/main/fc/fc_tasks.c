@@ -279,7 +279,7 @@ void fcTasksInit(void)
 #ifdef USE_ESC_TELEMETRY
     setTaskEnabled(TASK_ESC_TELEMETRY, feature(FEATURE_ESC_TELEMETRY));
 #endif
-#ifdef CMS
+#ifdef CMS && !defined(BRAINRE1)
 #ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
 #else

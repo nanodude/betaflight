@@ -455,11 +455,10 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     displayResync(osdDisplayPort);
 
     refreshTimeout = 4 * REFRESH_1S;
+#else
+    osdDisplayPort = osdDisplayPortToUse;
+    cmsDisplayPortRegister(osdDisplayPortToUse);
 #endif /* BRAINRE1 */
-    osd7456DisplayPort = max7456DisplayPortInit();
-#ifdef CMS
-    cmsDisplayPortRegister(osd7456DisplayPort);
-#endif
 }
 
 void osdUpdateAlarms(void)
@@ -598,6 +597,8 @@ static void osdArmMotors(void)
     osdResetStats();
 }
 
+extern bool cmsInMenu;
+
 static void osdRefresh(uint32_t currentTime)
 {
     static uint8_t lastSec = 0;
@@ -661,13 +662,9 @@ static void osdRefresh(uint32_t currentTime)
 #endif
 
 #ifdef CMS
-    if (!displayIsGrabbed(osdDisplayPort)) {
+    if (!cmsInMenu) {
         osdUpdateAlarms();
         osdDrawElements();
-#ifdef OSD_CALLS_CMS
-    } else {
-        cmsUpdate(currentTime);
-#endif
     }
 #endif
 }

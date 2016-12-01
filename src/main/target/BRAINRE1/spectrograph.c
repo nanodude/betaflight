@@ -25,6 +25,7 @@
 #include "drivers/light_led.h"
 #include "drivers/light_ws2811strip.h"
 #include "drivers/sound_beeper.h"
+#include "drivers/vcd.h"
 #include "drivers/max7456.h"
 #include "drivers/max7456_symbols.h"
 
@@ -285,20 +286,20 @@ void spectrographDraw(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height,
     write_string(tmp_str, x0, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     chMtxUnlock(&fftOutputMtx);
 
-    if (masterConfig.gyro_soft_notch_hz_1) {
-        uint16_t pos = x0 + (masterConfig.gyro_soft_notch_hz_1 * width) / SPEC_MAX_FREQ;
+    if (masterConfig.gyroConfig.gyro_soft_notch_hz_1) {
+        uint16_t pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_hz_1 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
-        pos = x0 + (masterConfig.gyro_soft_notch_cutoff_1 * width) / SPEC_MAX_FREQ;
+        pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_cutoff_1 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }
 
-    if (masterConfig.gyro_soft_notch_hz_2) {
-        uint16_t pos = x0 + (masterConfig.gyro_soft_notch_hz_2 * width) / SPEC_MAX_FREQ;
+    if (masterConfig.gyroConfig.gyro_soft_notch_hz_2) {
+        uint16_t pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_hz_2 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
-        pos = x0 + (masterConfig.gyro_soft_notch_cutoff_2 * width) / SPEC_MAX_FREQ;
+        pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_cutoff_2 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }

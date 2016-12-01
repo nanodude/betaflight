@@ -673,7 +673,7 @@ static THD_FUNCTION(BetaFlightThread, arg)
 #if defined(USE_BRAINFPV_OSD)
 #include "brainfpv_osd.h"
 
-void osdInit(void);
+void osdInit(displayPort_t *osdDisplayPortToUse);
 
 extern binary_semaphore_t onScreenDisplaySemaphore;
 
@@ -681,7 +681,8 @@ static THD_WORKING_AREA(waOSDThread, 8 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
-    osdInit();
+    displayPort_t *osdDisplayPort = max7456DisplayPortInit(&masterConfig.vcdProfile);
+    osdInit(osdDisplayPort);
     while (1) {
         // wait for VSYNC
         chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(100));

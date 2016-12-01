@@ -933,7 +933,7 @@ $(OBJECT_DIR)/$(TARGET)_firmwareinfo.bin: $(OBJECT_DIR)/$(TARGET)_firmwareinfo.o
 $(OBJECT_DIR)/$(TARGET)_firmwareinfo.o: $(OBJECT_DIR)/$(TARGET)_firmwareinfo.c
 	@mkdir -p $(dir $@)
 	@echo %% $(notdir $<)
-	@$(CC) -c -o  $@  $< $(addprefix -I,$(INCLUDE_DIRS))
+	@$(CROSS_CC) -c -o  $@  $< $(addprefix -I,$(INCLUDE_DIRS))
 
 $(OBJECT_DIR)/$(TARGET)_firmwareinfo.c: $(TARGET_DIR)/firmwareinfotemplate.ct
 	python2 $(TARGET_DIR)/version-info.py \

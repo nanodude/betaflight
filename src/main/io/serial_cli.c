@@ -999,6 +999,7 @@ const clivalue_t valueTable[] = {
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.spec_enabled, .config.minmax = { 0, 1 } },
 #endif
+#endif
 
 #ifdef USE_MAX7456
     { "vcd_video_system",           VAR_UINT8   | MASTER_VALUE, &masterConfig.vcdProfile.video_system, .config.minmax = { 0, 2 } },

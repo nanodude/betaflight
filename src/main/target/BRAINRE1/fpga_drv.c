@@ -139,7 +139,7 @@ int32_t RE1FPGA_Init(bool load_config)
 {
 
     re1FPGACsPin = IOGetByTag(IO_TAG(RE1FPGA_CS_PIN));
-    IOInit(re1FPGACsPin, OWNER_OSD, RESOURCE_SPI_CS, 0);
+    IOInit(re1FPGACsPin, OWNER_OSD, 0);
     IOConfigGPIO(re1FPGACsPin, SPI_IO_CS_CFG);
 
     spiSetDivisor(RE1FPGA_SPI_INSTANCE, RE1FPGA_SPI_DIVISOR);
@@ -147,11 +147,11 @@ int32_t RE1FPGA_Init(bool load_config)
     if (load_config) {
         /* Configure the CDONE and CRESETB pins */
         re1FPGACdonePin = IOGetByTag(IO_TAG(RE1FPGA_CDONE_PIN));
-        IOInit(re1FPGACdonePin, OWNER_OSD, RESOURCE_INPUT, 0);
+        IOInit(re1FPGACdonePin, OWNER_OSD, 0);
         IOConfigGPIO(re1FPGACdonePin, IOCFG_IPU_25);
 
         re1FPGACresetPin = IOGetByTag(IO_TAG(RE1FPGA_CRESET_PIN));
-        IOInit(re1FPGACresetPin, OWNER_OSD, RESOURCE_OUTPUT, 0);
+        IOInit(re1FPGACresetPin, OWNER_OSD, 0);
         IOConfigGPIO(re1FPGACresetPin, IOCFG_OUT_PP);
 
         // CRESETB low for 1ms
@@ -176,7 +176,7 @@ int32_t RE1FPGA_Init(bool load_config)
 
     /* Configure reset pin */
     re1FPGAResetPin = IOGetByTag(IO_TAG(RE1FPGA_RESET_PIN));
-    IOInit(re1FPGAResetPin, OWNER_OSD, RESOURCE_OUTPUT, 0);
+    IOInit(re1FPGAResetPin, OWNER_OSD, 0);
     IOConfigGPIO(re1FPGAResetPin, IO_CONFIG(GPIO_Mode_OUT, GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_DOWN));
 
     // Give the PLL some time to stabilize

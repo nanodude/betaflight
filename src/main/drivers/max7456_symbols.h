@@ -21,8 +21,6 @@
 
 #pragma once
 
-#if defined(USE_MAX7456) | defined(USE_BRAINFPV_OSD)
-
 // Character Symbols
 #define SYM_BLANK 0x20
 

@@ -61,6 +61,7 @@
 #include "drivers/light_led.h"
 #include "drivers/light_ws2811strip.h"
 #include "drivers/sound_beeper.h"
+#include "drivers/vcd.h"
 #include "drivers/max7456.h"
 #include "drivers/max7456_symbols.h"
 
@@ -121,9 +122,9 @@ enum BrainFPVOSDMode {
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
-void max7456Init(uint8_t system)
+void max7456Init(const vcdProfile_t *vcdProfile)
 {
-    (void)system;
+    (void)vcdProfile;
 }
 
 void    max7456DrawScreen(void)

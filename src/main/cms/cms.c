@@ -86,10 +86,14 @@ bool cmsDisplayPortRegister(displayPort_t *pDisplay)
     return true;
 }
 
+extern displayPort_t max7456DisplayPort;
+
 static displayPort_t *cmsDisplayPortSelectCurrent(void)
 {
     if (cmsDeviceCount == 0)
         return NULL;
+
+    return &max7456DisplayPort;
 
     if (cmsCurrentDevice < 0)
         cmsCurrentDevice = 0;
@@ -101,6 +105,8 @@ static displayPort_t *cmsDisplayPortSelectNext(void)
 {
     if (cmsDeviceCount == 0)
         return NULL;
+
+    return &max7456DisplayPort;
 
     cmsCurrentDevice = (cmsCurrentDevice + 1) % cmsDeviceCount; // -1 Okay
 
@@ -130,7 +136,7 @@ static displayPort_t *cmsDisplayPortSelectNext(void)
 #define RIGHT_MENU_COLUMN(p) ((p)->cols - 8)
 #define MAX_MENU_ITEMS(p)    ((p)->rows - 2)
 
-static bool cmsInMenu = false;
+bool cmsInMenu = false;
 
 STATIC_UNIT_TESTED const CMS_Menu *currentMenu;    // Points to top entry of the current page
 

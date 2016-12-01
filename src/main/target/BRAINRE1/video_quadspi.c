@@ -239,9 +239,9 @@ void Video_Init()
     RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_QSPI, ENABLE);
 
     /* Map pins to QUADSPI */
-    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_CLOCK_PIN)),  OWNER_OSD, RESOURCE_SPI_SCK,  0);
-    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_IO0_PIN)), OWNER_OSD, RESOURCE_SPI_MOSI, 0);
-    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_IO1_PIN)), OWNER_OSD, RESOURCE_SPI_MOSI, 0);
+    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_CLOCK_PIN)),  OWNER_OSD, 0);
+    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_IO0_PIN)), OWNER_OSD, 0);
+    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_IO1_PIN)), OWNER_OSD, 0);
 
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_CLOCK_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO0_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
@@ -309,24 +309,20 @@ void Video_Init()
 
     // VSYNC interrupt
     IO_t vsync_io = IOGetByTag(IO_TAG(VIDEO_VSYNC));
-    IOInit(vsync_io, OWNER_OSD, RESOURCE_EXTI, 0);
+    IOInit(vsync_io, OWNER_OSD, 0);
     IOConfigGPIO(vsync_io, IOCFG_IN_FLOATING);
     EXTIHandlerInit(&vsyncIntCallbackRec, Vsync_ISR);
     EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Falling);
 
     // HSYNC interrupt
     IO_t hsync_io = IOGetByTag(IO_TAG(VIDEO_HSYNC));
-    IOInit(hsync_io, OWNER_OSD, RESOURCE_EXTI, 0);
+    IOInit(hsync_io, OWNER_OSD, 0);
     IOConfigGPIO(hsync_io, IOCFG_IN_FLOATING);
     EXTIHandlerInit(&hsyncIntCallbackRec, Hsync_ISR);
     EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Falling);
 
     EXTIEnable(vsync_io, true);
     EXTIEnable(hsync_io, true);
-
-    debugPin = IOGetByTag(IO_TAG(PA4));
-    IOInit(debugPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
-    IOConfigGPIO(debugPin, IOCFG_OUT_PP);
 }
 
 /**

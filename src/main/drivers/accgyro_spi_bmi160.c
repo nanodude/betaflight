@@ -113,7 +113,7 @@ bool BMI160_Detect()
     if (BMI160Detected)
         return true;
     bmi160CsPin = IOGetByTag(IO_TAG(BMI160_CS_PIN));
-    IOInit(bmi160CsPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
+    IOInit(bmi160CsPin, OWNER_MPU_CS, 0);
     IOConfigGPIO(bmi160CsPin, SPI_IO_CS_CFG);
 
     spiSetDivisor(BMI160_SPI_INSTANCE, BMI160_SPI_DIVISOR);
@@ -298,7 +298,7 @@ static void bmi160IntExtiInit(void)
 
     IO_t mpuIntIO = IOGetByTag(IO_TAG(BMI160_INT_EXTI));
 
-    IOInit(mpuIntIO, OWNER_MPU, RESOURCE_EXTI, 0);
+    IOInit(mpuIntIO, OWNER_MPU_EXTI, 0);
     IOConfigGPIO(mpuIntIO, IOCFG_IN_FLOATING);   // TODO - maybe pullup / pulldown ?
 
     EXTIHandlerInit(&bmi160IntCallbackRec, bmi160ExtiHandler);
