@@ -149,6 +149,9 @@ static void BMI160_Init()
     chBSemObjectInit(&gyroSem, FALSE);
 #endif
 
+    /* Set up EXTI line */
+    bmi160IntExtiInit();
+
     BMI160InitDone = true;
 }
 
@@ -386,9 +389,6 @@ void bmi160SpiGyroInit(uint8_t lpf)
 void bmi160SpiAccInit(acc_t *acc)
 {
     BMI160_Init();
-
-    /* Set up EXTI line */
-    bmi160IntExtiInit();
 
     acc->acc_1G = 512 * 8;
 }
