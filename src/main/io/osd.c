@@ -285,6 +285,7 @@ static void osdDrawSingleElement(uint8_t item)
             break;
 #else
             brainFpvOsdCenterMark();
+            break;
 #endif
 
         case OSD_ARTIFICIAL_HORIZON:
@@ -324,6 +325,7 @@ static void osdDrawSingleElement(uint8_t item)
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
 #else
             brainFpvOsdArtificialHorizon();
+            break;
 #endif
 
 #if !defined(USE_BRAINFPV_OSD)
@@ -351,6 +353,9 @@ static void osdDrawSingleElement(uint8_t item)
             return;
         }
 #endif
+
+#if 0
+        // this is silly
         case OSD_ROLL_PIDS:
         {
             const pidProfile_t *pidProfile = &currentProfile->pidProfile;
@@ -371,6 +376,7 @@ static void osdDrawSingleElement(uint8_t item)
             sprintf(buff, "YAW %3d %3d %3d", pidProfile->P8[PIDYAW], pidProfile->I8[PIDYAW], pidProfile->D8[PIDYAW]);
             break;
         }
+#endif
 
         case OSD_POWER:
         {
