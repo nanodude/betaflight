@@ -189,7 +189,9 @@ static uartDevice_t uart6 =
 #ifdef USE_UART6_RX_DMA
     .rxDMAStream = DMA2_Stream1,
 #endif
+#ifndef USE_UART6_TX_NODMA
     .txDMAStream = DMA2_Stream6,
+#endif
     .dev = USART6,
     .rx = IO_TAG(UART6_RX_PIN),
     .tx = IO_TAG(UART6_TX_PIN),

@@ -97,6 +97,7 @@
 //#define UART3_TX_PIN            PB10
 
 #define USE_UART6
+#define USE_UART6_TX_NODMA
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
