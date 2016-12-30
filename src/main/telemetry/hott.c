@@ -64,6 +64,7 @@
 #include "build/debug.h"
 
 #include "common/axis.h"
+#include "common/time.h"
 
 #include "drivers/system.h"
 
@@ -73,6 +74,7 @@
 
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
+#include "sensors/barometer.h"
 
 #include "flight/pid.h"
 #include "flight/navigation.h"
@@ -127,7 +129,7 @@ typedef enum {
     GPS_FIX_CHAR_NONE = '-',
     GPS_FIX_CHAR_2D = '2',
     GPS_FIX_CHAR_3D = '3',
-    GPS_FIX_CHAR_DGPS = 'D',
+    GPS_FIX_CHAR_DGPS = 'D'
 } gpsFixChar_e;
 
 static void initialiseGPSMessage(HOTT_GPS_MSG_t *msg, size_t size)
@@ -201,7 +203,12 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
     hottGPSMessage->home_distance_L = GPS_distanceToHome & 0x00FF;
     hottGPSMessage->home_distance_H = GPS_distanceToHome >> 8;
 
-    const uint16_t hottGpsAltitude = (GPS_altitude) + HOTT_GPS_ALTITUDE_OFFSET; // GPS_altitude in m ; offset = 500 -> O m
+    uint16_t altitude = GPS_altitude;
+    if (!STATE(GPS_FIX)) {
+        altitude = baro.BaroAlt / 100;
+    }
+
+    const uint16_t hottGpsAltitude = (altitude) + HOTT_GPS_ALTITUDE_OFFSET; // GPS_altitude in m ; offset = 500 -> O m
 
     hottGPSMessage->altitude_L = hottGpsAltitude & 0x00FF;
     hottGPSMessage->altitude_H = hottGpsAltitude >> 8;
@@ -489,33 +496,33 @@ void checkHoTTTelemetryState(void)
         freeHoTTTelemetryPort();
 }
 
-void handleHoTTTelemetry(uint32_t currentTime)
+void handleHoTTTelemetry(timeUs_t currentTimeUs)
 {
-    static uint32_t serialTimer;
+    static timeUs_t serialTimer;
 
     if (!hottTelemetryEnabled) {
         return;
     }
 
-    if (shouldPrepareHoTTMessages(currentTime)) {
+    if (shouldPrepareHoTTMessages(currentTimeUs)) {
         hottPrepareMessages();
-        lastMessagesPreparedAt = currentTime;
+        lastMessagesPreparedAt = currentTimeUs;
     }
 
     if (shouldCheckForHoTTRequest()) {
-        hottCheckSerialData(currentTime);
+        hottCheckSerialData(currentTimeUs);
     }
 
     if (!hottMsg)
         return;
 
     if (hottIsSending) {
-        if(currentTime - serialTimer < HOTT_TX_DELAY_US) {
+        if(currentTimeUs - serialTimer < HOTT_TX_DELAY_US) {
             return;
         }
     }
     hottSendTelemetryData();
-    serialTimer = currentTime;
+    serialTimer = currentTimeUs;
 }
 
 #endif

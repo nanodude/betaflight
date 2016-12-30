@@ -19,6 +19,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/time.h"
 
 #include "sensors/acceleration.h"
 
@@ -96,10 +97,8 @@ void imuConfigure(
 );
 
 float getCosTiltAngle(void);
-void calculateEstimatedAltitude(uint32_t currentTime);
-union rollAndPitchTrims_u;
-void imuUpdateAccelerometer(union rollAndPitchTrims_u *accelerometerTrims);
-void imuUpdateAttitude(uint32_t currentTime);
+void calculateEstimatedAltitude(timeUs_t currentTimeUs);
+void imuUpdateAttitude(timeUs_t currentTimeUs);
 float calculateThrottleAngleScale(uint16_t throttle_correction_angle);
 int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value);
 float calculateAccZLowPassFilterRCTimeConstant(float accz_lpf_hz);
@@ -108,5 +107,4 @@ union u_fp_vector;
 int16_t imuCalculateHeading(union u_fp_vector *vec);
 
 void imuResetAccelerationSum(void);
-void imuUpdateAcc(union rollAndPitchTrims_u *accelerometerTrims);
 void imuInit(void);

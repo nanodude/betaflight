@@ -34,7 +34,7 @@
 #define MPU_INT_EXTI            PA15
 #define EXTI15_10_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define USE_MPU_DATA_READY_SIGNAL
-//#define ENSURE_MPU_DATA_READY_IS_LOW
+#define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define GYRO
 #define ACC
@@ -55,17 +55,14 @@
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_INSTANCE    SPI2
 
-//#define BARO
-//#define USE_BARO_MS5611
-
-//#define MAG
-//#define USE_MAG_HMC5883
-
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
 #define SERIAL_PORT_COUNT       4
+
+#define USE_ESCSERIAL
+#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
 
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7
@@ -87,7 +84,6 @@
 #define M25P16_CS_PIN           PB12
 #define M25P16_SPI_INSTANCE     SPI2
 
-//#define SENSORS_SET             (SENSOR_ACC | SENSOR_BARO | SENSOR_GPS | SENSOR_MAG)
 #define SENSORS_SET             (SENSOR_ACC)
 
 #undef GPS
@@ -102,8 +98,7 @@
 #define RSSI_ADC_PIN            PB2
 
 #define LED_STRIP
-#define USE_DSHOT
-#define USE_ESC_TELEMETRY
+#define USE_ESC_SENSOR
 
 #define SPEKTRUM_BIND
 // USART2, PB4
@@ -115,9 +110,6 @@
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         (BIT(13)|BIT(14)|BIT(15))
-// #define TARGET_IO_PORTF (BIT(0)|BIT(1))
-// !!TODO - check the following line is correct
-#define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(3)|BIT(4))
 
 #define USABLE_TIMER_CHANNEL_COUNT 10
 #define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(15) | TIM_N(17))

@@ -20,10 +20,12 @@
 
 #include <platform.h>
 
+#include "blackbox/blackbox_io.h"
+
 #include "config/config_master.h"
 #include "config/feature.h"
 
-#include "blackbox/blackbox_io.h"
+#include "drivers/io.h"
 
 #include "hardware_revision.h"
 
@@ -31,15 +33,15 @@
 void targetConfiguration(master_t *config)
 {
     if (hardwareRevision == BJF4_REV1 || hardwareRevision == BJF4_REV2) {
-        config->sensorAlignmentConfig.gyro_align = CW180_DEG;
-        config->sensorAlignmentConfig.acc_align  = CW180_DEG;
+        config->gyroConfig.gyro_align = CW180_DEG;
+        config->accelerometerConfig.acc_align  = CW180_DEG;
         config->beeperConfig.ioTag = IO_TAG(BEEPER_OPT);
     }
 
     if (hardwareRevision == BJF4_MINI_REV3A || hardwareRevision == BJF4_REV1) {
-    	intFeatureClear(FEATURE_SDCARD, &config->enabledFeatures);
+        intFeatureClear(FEATURE_SDCARD, &config->enabledFeatures);
     }
-    
+
     if (hardwareRevision == BJF4_MINI_REV3A) {
         config->adcConfig.vbat.ioTag = IO_TAG(PA4);
     }
@@ -50,7 +52,7 @@ void targetValidateConfiguration(master_t *config)
     /* make sure the SDCARD cannot be turned on */
     if (hardwareRevision == BJF4_MINI_REV3A || hardwareRevision == BJF4_REV1) {
         intFeatureClear(FEATURE_SDCARD, &config->enabledFeatures);
-        
+ 
         if (config->blackboxConfig.device == BLACKBOX_DEVICE_SDCARD) {
             config->blackboxConfig.device = BLACKBOX_DEVICE_FLASH;
         }

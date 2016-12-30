@@ -40,6 +40,9 @@
 #include "drivers/max7456_symbols.h"
 #include "drivers/display.h"
 #include "drivers/system.h"
+#ifdef USE_RTC6705
+#include "drivers/vtx_soft_spi_rtc6705.h"
+#endif
 
 #include "cms/cms.h"
 #include "cms/cms_types.h"
@@ -47,6 +50,9 @@
 
 #include "io/flashfs.h"
 #include "io/osd.h"
+
+#include "io/vtx.h"
+
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
@@ -115,7 +121,7 @@ static displayPort_t *osdDisplayPort;
  */
 static char osdGetAltitudeSymbol()
 {
-    switch (masterConfig.osdProfile.units) {
+    switch (osdProfile()->units) {
         case OSD_UNIT_IMPERIAL:
             return 0xF;
         default:
@@ -129,7 +135,7 @@ static char osdGetAltitudeSymbol()
  */
 static int32_t osdGetAltitude(int32_t alt)
 {
-    switch (masterConfig.osdProfile.units) {
+    switch (osdProfile()->units) {
         case OSD_UNIT_IMPERIAL:
             return (alt * 328) / 100; // Convert to feet / 100
         default:
@@ -139,11 +145,11 @@ static int32_t osdGetAltitude(int32_t alt)
 
 static void osdDrawSingleElement(uint8_t item)
 {
-    if (!VISIBLE(masterConfig.osdProfile.item_pos[item]) || BLINK(masterConfig.osdProfile.item_pos[item]))
+    if (!VISIBLE(osdProfile()->item_pos[item]) || BLINK(osdProfile()->item_pos[item]))
         return;
 
-    uint8_t elemPosX = OSD_X(masterConfig.osdProfile.item_pos[item]);
-    uint8_t elemPosY = OSD_Y(masterConfig.osdProfile.item_pos[item]);
+    uint8_t elemPosX = OSD_X(osdProfile()->item_pos[item]);
+    uint8_t elemPosY = OSD_Y(osdProfile()->item_pos[item]);
     char buff[32];
 
     switch(item) {
@@ -196,7 +202,7 @@ static void osdDrawSingleElement(uint8_t item)
 
         case OSD_ALTITUDE:
         {
-            int32_t alt = osdGetAltitude(BaroAlt);
+            int32_t alt = osdGetAltitude(baro.BaroAlt);
             sprintf(buff, "%c%d.%01d%c", alt < 0 ? '-' : ' ', abs(alt / 100), abs((alt % 100) / 10), osdGetAltitudeSymbol());
             break;
         }
@@ -257,7 +263,7 @@ static void osdDrawSingleElement(uint8_t item)
             break;
         }
 
-#ifdef VTX
+#ifdef USE_RTC6705
         case OSD_VTX_CHANNEL:
         {
             sprintf(buff, "CH:%d", current_vtx_channel % CHANNELS_PER_BAND + 1);
@@ -319,8 +325,9 @@ static void osdDrawSingleElement(uint8_t item)
 #else
             brainFpvOsdArtificialHorizon();
 #endif
-        case OSD_HORIZON_SIDEBARS:
+
 #if !defined(USE_BRAINFPV_OSD)
+        case OSD_HORIZON_SIDEBARS:
         {
             elemPosX = 14;
             elemPosY = 6;
@@ -344,6 +351,32 @@ static void osdDrawSingleElement(uint8_t item)
             return;
         }
 #endif
+        case OSD_ROLL_PIDS:
+        {
+            const pidProfile_t *pidProfile = &currentProfile->pidProfile;
+            sprintf(buff, "ROL %3d %3d %3d", pidProfile->P8[PIDROLL], pidProfile->I8[PIDROLL], pidProfile->D8[PIDROLL]);
+            break;
+        }
+
+        case OSD_PITCH_PIDS:
+        {
+            const pidProfile_t *pidProfile = &currentProfile->pidProfile;
+            sprintf(buff, "PIT %3d %3d %3d", pidProfile->P8[PIDPITCH], pidProfile->I8[PIDPITCH], pidProfile->D8[PIDPITCH]);
+            break;
+        }
+
+        case OSD_YAW_PIDS:
+        {
+            const pidProfile_t *pidProfile = &currentProfile->pidProfile;
+            sprintf(buff, "YAW %3d %3d %3d", pidProfile->P8[PIDYAW], pidProfile->I8[PIDYAW], pidProfile->D8[PIDYAW]);
+            break;
+        }
+
+        case OSD_POWER:
+        {
+            sprintf(buff, "%dW", amperage * vbat / 1000);
+            break;
+        }
         default:
             return;
     }
@@ -383,6 +416,10 @@ void osdDrawElements(void)
     osdDrawSingleElement(OSD_MAH_DRAWN);
     osdDrawSingleElement(OSD_CRAFT_NAME);
     osdDrawSingleElement(OSD_ALTITUDE);
+    osdDrawSingleElement(OSD_ROLL_PIDS);
+    osdDrawSingleElement(OSD_PITCH_PIDS);
+    osdDrawSingleElement(OSD_YAW_PIDS);
+    osdDrawSingleElement(OSD_POWER);
 
 #ifdef GPS
 #ifdef CMS
@@ -414,6 +451,10 @@ void osdResetConfig(osd_profile_t *osdProfile)
     osdProfile->item_pos[OSD_GPS_SPEED] = OSD_POS(2, 2);
     osdProfile->item_pos[OSD_GPS_SATS] = OSD_POS(2, 12);
     osdProfile->item_pos[OSD_ALTITUDE] = OSD_POS(1, 5);
+    osdProfile->item_pos[OSD_ROLL_PIDS] = OSD_POS(2, 10) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_PITCH_PIDS] = OSD_POS(2, 11) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_YAW_PIDS] = OSD_POS(2, 12) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_POWER] = OSD_POS(15, 1);
 
     osdProfile->rssi_alarm = 20;
     osdProfile->cap_alarm = 2200;
@@ -466,9 +507,9 @@ void osdUpdateAlarms(void)
     osd_profile_t *pOsdProfile = &masterConfig.osdProfile;
 
     // This is overdone?
-    // uint16_t *itemPos = masterConfig.osdProfile.item_pos;
+    // uint16_t *itemPos = osdProfile()->item_pos;
 
-    int32_t alt = osdGetAltitude(BaroAlt) / 100;
+    int32_t alt = osdGetAltitude(baro.BaroAlt) / 100;
     statRssi = rssi * 100 / 1024;
 
     if (statRssi < pOsdProfile->rssi_alarm)
@@ -525,9 +566,10 @@ static void osdResetStats(void)
 
 static void osdUpdateStats(void)
 {
-    int16_t value;
-
+    int16_t value = 0;
+#ifdef GPS
     value = GPS_speed * 36 / 1000;
+#endif
     if (stats.max_speed < value)
         stats.max_speed = value;
 
@@ -541,8 +583,8 @@ static void osdUpdateStats(void)
     if (stats.min_rssi > statRssi)
         stats.min_rssi = statRssi;
 
-    if (stats.max_altitude < BaroAlt)
-        stats.max_altitude = BaroAlt;
+    if (stats.max_altitude < baro.BaroAlt)
+        stats.max_altitude = baro.BaroAlt;
 }
 
 static void osdShowStats(void)
@@ -597,9 +639,7 @@ static void osdArmMotors(void)
     osdResetStats();
 }
 
-extern bool cmsInMenu;
-
-static void osdRefresh(uint32_t currentTime)
+static void osdRefresh(timeUs_t currentTimeUs)
 {
     static uint8_t lastSec = 0;
     uint8_t sec;
@@ -622,7 +662,7 @@ static void osdRefresh(uint32_t currentTime)
 
     osdUpdateStats();
 
-    sec = currentTime / 1000000;
+    sec = currentTimeUs / 1000000;
 
     if (ARMING_FLAG(ARMED) && sec != lastSec) {
         flyTime++;
@@ -655,7 +695,7 @@ static void osdRefresh(uint32_t currentTime)
     }
 #endif
 
-    blinkState = (currentTime / 200000) % 2;
+    blinkState = (currentTimeUs / 200000) % 2;
 
 #ifdef OSD_CALLS_CMS
     cmsUpdate(currentTime);
@@ -672,7 +712,7 @@ static void osdRefresh(uint32_t currentTime)
 /*
  * Called periodically by the scheduler
  */
-void osdUpdate(uint32_t currentTime)
+void osdUpdate(timeUs_t currentTimeUs)
 {
     static uint32_t counter = 0;
 #ifdef MAX7456_DMA_CHANNEL_TX
@@ -690,7 +730,7 @@ void osdUpdate(uint32_t currentTime)
 #define DRAW_FREQ_DENOM 10 // MWOSD @ 115200 baud
 #endif
     if (counter++ % DRAW_FREQ_DENOM == 0) {
-        osdRefresh(currentTime);
+        osdRefresh(currentTimeUs);
     } else { // rest of time redraw screen 10 chars per idle so it doesn't lock the main idle
         displayDrawScreen(osdDisplayPort);
     }

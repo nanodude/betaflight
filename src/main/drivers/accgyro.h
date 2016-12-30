@@ -17,7 +17,10 @@
 
 #pragma once
 
+#include "common/axis.h"
+#include "drivers/exti.h"
 #include "drivers/sensor.h"
+#include "drivers/accgyro_mpu.h"
 
 #ifndef MPU_I2C_INSTANCE
 #define MPU_I2C_INSTANCE I2C_DEVICE
@@ -32,18 +35,29 @@
 #define GYRO_LPF_5HZ        6
 #define GYRO_LPF_NONE       7
 
-typedef struct gyro_s {
+typedef struct gyroDev_s {
     sensorGyroInitFuncPtr init;                             // initialize function
-    sensorReadFuncPtr read;                                 // read 3 axis data function
-    sensorReadFuncPtr temperature;                          // read temperature if available
-    sensorInterruptFuncPtr intStatus;
+    sensorGyroReadFuncPtr read;                             // read 3 axis data function
+    sensorGyroReadDataFuncPtr temperature;                  // read temperature if available
+    sensorGyroInterruptStatusFuncPtr intStatus;
+    extiCallbackRec_t exti;
     float scale;                                            // scalefactor
-    uint32_t targetLooptime;
-} gyro_t;
+    volatile bool dataReady;
+    uint16_t lpf;
+    int16_t gyroADCRaw[XYZ_AXIS_COUNT];
+    sensor_align_e gyroAlign;
+    const extiConfig_t *mpuIntExtiConfig;
+    mpuDetectionResult_t mpuDetectionResult;
+    mpuConfiguration_t mpuConfiguration;
+} gyroDev_t;
 
-typedef struct acc_s {
-    sensorAccInitFuncPtr init;                                 // initialize function
-    sensorReadFuncPtr read;                                 // read 3 axis data function
+typedef struct accDev_s {
+    sensorAccInitFuncPtr init;                              // initialize function
+    sensorAccReadFuncPtr read;                              // read 3 axis data function
     uint16_t acc_1G;
+    int16_t ADCRaw[XYZ_AXIS_COUNT];
     char revisionCode;                                      // a revision code for the sensor, if known
-} acc_t;
+    sensor_align_e accAlign;
+    mpuDetectionResult_t mpuDetectionResult;
+    mpuConfiguration_t mpuConfiguration;
+} accDev_t;

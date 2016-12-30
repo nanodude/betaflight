@@ -52,8 +52,8 @@
 #define JEDEC_ID_SPANSION_S25FL127     0x012018
 #define JEDEC_ID_MACRONIX_MX25L25635E  0xC22019
 
-#define DISABLE_M25P16       IOHi(m25p16CsPin)
-#define ENABLE_M25P16        IOLo(m25p16CsPin)
+#define DISABLE_M25P16       IOHi(m25p16CsPin); __NOP()
+#define ENABLE_M25P16        __NOP(); IOLo(m25p16CsPin)
 
 // Option to skip some sectors
 #ifdef M25P16_FIRST_SECTOR
@@ -221,27 +221,21 @@ static bool m25p16_readIdentification()
  * Attempts to detect a connected m25p16. If found, true is returned and device capacity can be fetched with
  * m25p16_getGeometry().
  */
-bool m25p16_init(ioTag_t csTag)
+bool m25p16_init(flashConfig_t *flashConfig)
 {
     /*
         if we have already detected a flash device we can simply exit
-
-        TODO: change the init param in favour of flash CFG when ParamGroups work is done
-        then cs pin can be specified in hardware_revision.c or config.c (dependent on revision).
     */
     if (geometry.sectors) {
         return true;
     }
 
-    if (csTag) {
-        m25p16CsPin = IOGetByTag(csTag);
+    if (flashConfig->csTag) {
+        m25p16CsPin = IOGetByTag(flashConfig->csTag);
     } else {
-#ifdef M25P16_CS_PIN
-        m25p16CsPin = IOGetByTag(IO_TAG(M25P16_CS_PIN));
-#else
         return false;
-#endif
     }
+
     IOInit(m25p16CsPin, OWNER_FLASH_CS, 0);
     IOConfigGPIO(m25p16CsPin, SPI_IO_CS_CFG);
 

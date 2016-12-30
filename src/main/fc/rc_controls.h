@@ -140,6 +140,10 @@ typedef struct modeActivationCondition_s {
     channelRange_t range;
 } modeActivationCondition_t;
 
+typedef struct modeActivationProfile_s {
+    modeActivationCondition_t modeActivationConditions[MAX_MODE_ACTIVATION_CONDITION_COUNT];
+} modeActivationProfile_t;
+
 #define IS_RANGE_USABLE(range) ((range)->startStep < (range)->endStep)
 
 typedef struct controlRateConfig_s {
@@ -205,8 +209,9 @@ typedef enum {
     ADJUSTMENT_ROLL_I,
     ADJUSTMENT_ROLL_D,
     ADJUSTMENT_RC_RATE_YAW,
-    ADJUSTMENT_FUNCTION_COUNT,
-
+    ADJUSTMENT_D_SETPOINT,
+    ADJUSTMENT_D_SETPOINT_TRANSITION,
+    ADJUSTMENT_FUNCTION_COUNT
 } adjustmentFunction_e;
 
 
@@ -261,6 +266,10 @@ typedef struct adjustmentState_s {
 #endif
 
 #define MAX_ADJUSTMENT_RANGE_COUNT 15
+
+typedef struct adjustmentProfile_s {
+    adjustmentRange_t adjustmentRanges[MAX_ADJUSTMENT_RANGE_COUNT];
+} adjustmentProfile_t;
 
 bool isAirmodeActive(void);
 void resetAdjustmentStates(void);

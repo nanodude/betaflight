@@ -95,7 +95,6 @@ typedef struct {
     volatile timCCR_t *ccr;
     TIM_TypeDef *tim;
     uint16_t period;
-    pwmWriteFuncPtr pwmWritePtr;
     bool enabled;
     IO_t io;
 } pwmOutputPort_t;
@@ -121,3 +120,4 @@ pwmOutputPort_t *pwmGetMotors(void);
 bool pwmIsSynced(void);
 void pwmDisableMotors(void);
 void pwmEnableMotors(void);
+bool pwmAreMotorsEnabled(void);

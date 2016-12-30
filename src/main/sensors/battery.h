@@ -42,10 +42,8 @@ typedef enum {
 } currentSensor_e;
 
 typedef enum {
-    BATTERY_SENSOR_NONE = 0,
-    BATTERY_SENSOR_ADC,
-    BATTERY_SENSOR_ESC,
-    BATTERY_SENSOR_MAX = BATTERY_SENSOR_ESC
+    BATTERY_SENSOR_ADC = 0,
+    BATTERY_SENSOR_ESC
 } batterySensor_e;
 
 typedef struct batteryConfig_s {
@@ -99,4 +97,3 @@ int32_t currentMeterToCentiamps(uint16_t src);
 
 float calculateVbatPidCompensation(void);
 uint8_t calculateBatteryPercentage(void);
-uint8_t calculateBatteryCapacityRemainingPercentage(void);

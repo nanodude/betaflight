@@ -35,7 +35,6 @@ enum {
     INPUT_RC_AUX4,
     INPUT_GIMBAL_PITCH,
     INPUT_GIMBAL_ROLL,
-
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
@@ -59,8 +58,7 @@ typedef enum {
     SERVO_SINGLECOPTER_1 = 3,
     SERVO_SINGLECOPTER_2 = 4,
     SERVO_SINGLECOPTER_3 = 5,
-    SERVO_SINGLECOPTER_4 = 6,
-
+    SERVO_SINGLECOPTER_4 = 6
 } servoIndex_e; // FIXME rename to servoChannel_e
 
 #define SERVO_PLANE_INDEX_MIN SERVO_FLAPS
@@ -111,6 +109,10 @@ typedef struct servoMixerConfig_s{
     uint16_t servo_lowpass_freq;             // lowpass servo filter frequency selection; 1/1000ths of loop freq
     int8_t servo_lowpass_enable;            // enable/disable lowpass filter
 } servoMixerConfig_t;
+
+typedef struct servoProfile_s {
+    servoParam_t servoConf[MAX_SUPPORTED_SERVOS];
+} servoProfile_t;
 
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 

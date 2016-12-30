@@ -15,6 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #ifdef STM32F10X
 #define MAX_FIR_DENOISE_WINDOW_SIZE 60
 #else
@@ -23,6 +25,7 @@
 
 typedef struct pt1Filter_s {
     float state;
+    float k;
     float RC;
     float dT;
 } pt1Filter_t;

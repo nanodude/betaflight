@@ -36,17 +36,19 @@
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
 #include "drivers/compass.h"
+#include "drivers/io.h"
+#include "drivers/light_ws2811strip.h"
+#include "drivers/max7456.h"
+#include "drivers/pwm_esc_detect.h"
+#include "drivers/pwm_output.h"
+#include "drivers/rx_pwm.h"
+#include "drivers/rx_spi.h"
+#include "drivers/sdcard.h"
+#include "drivers/serial.h"
+#include "drivers/sound_beeper.h"
 #include "drivers/system.h"
 #include "drivers/timer.h"
-#include "drivers/pwm_rx.h"
-#include "drivers/rx_spi.h"
-#include "drivers/serial.h"
-#include "drivers/pwm_output.h"
 #include "drivers/vcd.h"
-#include "drivers/max7456.h"
-#include "drivers/sound_beeper.h"
-#include "drivers/light_ws2811strip.h"
-#include "drivers/sdcard.h"
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
@@ -171,34 +173,23 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
     pidProfile->pidSumLimit = PIDSUM_LIMIT;
     pidProfile->yaw_lpf_hz = 0;
-    pidProfile->rollPitchItermIgnoreRate = 130;
-    pidProfile->yawItermIgnoreRate = 32;
+    pidProfile->rollPitchItermIgnoreRate = 200;
+    pidProfile->yawItermIgnoreRate = 55;
     pidProfile->dterm_filter_type = FILTER_BIQUAD;
     pidProfile->dterm_lpf_hz = 100;    // filtering ON by default
     pidProfile->dterm_notch_hz = 260;
     pidProfile->dterm_notch_cutoff = 160;
     pidProfile->vbatPidCompensation = 0;
     pidProfile->pidAtMinThrottle = PID_STABILISATION_ON;
+    pidProfile->max_angle_inclination = 70.0f;    // 70 degrees
 
     // Betaflight PID controller parameters
     pidProfile->setpointRelaxRatio = 30;
     pidProfile->dtermSetpointWeight = 200;
-    pidProfile->yawRateAccelLimit = 220;
-    pidProfile->rateAccelLimit = 0;
-    pidProfile->itermThrottleGain = 0;
+    pidProfile->yawRateAccelLimit = 20.0f;
+    pidProfile->rateAccelLimit = 0.0f;
+    pidProfile->itermThrottleThreshold = 350;
     pidProfile->levelSensitivity = 2.0f;
-
-#ifdef GTUNE
-    pidProfile->gtune_lolimP[ROLL] = 10;          // [0..200] Lower limit of ROLL P during G tune.
-    pidProfile->gtune_lolimP[PITCH] = 10;         // [0..200] Lower limit of PITCH P during G tune.
-    pidProfile->gtune_lolimP[YAW] = 10;           // [0..200] Lower limit of YAW P during G tune.
-    pidProfile->gtune_hilimP[ROLL] = 100;         // [0..200] Higher limit of ROLL P during G tune. 0 Disables tuning for that axis.
-    pidProfile->gtune_hilimP[PITCH] = 100;        // [0..200] Higher limit of PITCH P during G tune. 0 Disables tuning for that axis.
-    pidProfile->gtune_hilimP[YAW] = 100;          // [0..200] Higher limit of YAW P during G tune. 0 Disables tuning for that axis.
-    pidProfile->gtune_pwr = 0;                    // [0..10] Strength of adjustment
-    pidProfile->gtune_settle_time = 450;          // [200..1000] Settle time in ms
-    pidProfile->gtune_average_cycles = 16;        // [8..128] Number of looptime cycles used for gyro average calculation
-#endif
 }
 
 void resetProfile(profile_t *profile)
@@ -234,13 +225,6 @@ void resetBarometerConfig(barometerConfig_t *barometerConfig)
     barometerConfig->baro_cf_alt = 0.965f;
 }
 #endif
-
-void resetSensorAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
-{
-    sensorAlignmentConfig->gyro_align = ALIGN_DEFAULT;
-    sensorAlignmentConfig->acc_align = ALIGN_DEFAULT;
-    sensorAlignmentConfig->mag_align = ALIGN_DEFAULT;
-}
 
 #ifdef LED_STRIP
 void resetLedStripConfig(ledStripConfig_t *ledStripConfig)
@@ -286,9 +270,19 @@ void resetMotorConfig(motorConfig_t *motorConfig)
     motorConfig->motorPwmProtocol = PWM_TYPE_BRUSHED;
     motorConfig->useUnsyncedPwm = true;
 #else
-    motorConfig->minthrottle = 1070;
-    motorConfig->motorPwmRate = BRUSHLESS_MOTORS_PWM_RATE;
-    motorConfig->motorPwmProtocol = PWM_TYPE_ONESHOT125;
+#ifdef BRUSHED_ESC_AUTODETECT
+    if (hardwareMotorType == MOTOR_BRUSHED) {
+        motorConfig->minthrottle = 1000;
+        motorConfig->motorPwmRate = BRUSHED_MOTORS_PWM_RATE;
+        motorConfig->motorPwmProtocol = PWM_TYPE_BRUSHED;
+        motorConfig->useUnsyncedPwm = true;
+    } else
+#endif
+    {
+        motorConfig->minthrottle = 1070;
+        motorConfig->motorPwmRate = BRUSHLESS_MOTORS_PWM_RATE;
+        motorConfig->motorPwmProtocol = PWM_TYPE_ONESHOT125;
+    }
 #endif
     motorConfig->maxthrottle = 2000;
     motorConfig->mincommand = 1000;
@@ -410,6 +404,7 @@ void resetFlight3DConfig(flight3DConfig_t *flight3DConfig)
 void resetTelemetryConfig(telemetryConfig_t *telemetryConfig)
 {
     telemetryConfig->telemetry_inversion = 1;
+    telemetryConfig->sportHalfDuplex = 1;
     telemetryConfig->telemetry_switch = 0;
     telemetryConfig->gpsNoFixLatitude = 0;
     telemetryConfig->gpsNoFixLongitude = 0;
@@ -504,6 +499,46 @@ void resetMax7456Config(vcdProfile_t *pVcdProfile)
 }
 #endif
 
+void resetStatusLedConfig(statusLedConfig_t *statusLedConfig)
+{
+    for (int i = 0; i < LED_NUMBER; i++) {
+        statusLedConfig->ledTags[i] = IO_TAG_NONE;
+    }
+
+#ifdef LED0
+    statusLedConfig->ledTags[0] = IO_TAG(LED0);
+#endif
+#ifdef LED1
+    statusLedConfig->ledTags[1] = IO_TAG(LED1);
+#endif
+#ifdef LED2
+    statusLedConfig->ledTags[2] = IO_TAG(LED2);
+#endif
+
+    statusLedConfig->polarity = 0
+#ifdef LED0_INVERTED
+    | BIT(0)
+#endif
+#ifdef LED1_INVERTED
+    | BIT(1)
+#endif
+#ifdef LED2_INVERTED
+    | BIT(2)
+#endif
+    ;    
+}
+
+#ifdef USE_FLASHFS
+void resetFlashConfig(flashConfig_t *flashConfig)
+{
+#ifdef M25P16_CS_PIN
+    flashConfig->csTag = IO_TAG(M25P16_CS_PIN);
+#else
+    flashConfig->csTag = IO_TAG_NONE;
+#endif
+}
+#endif
+
 uint8_t getCurrentProfile(void)
 {
     return masterConfig.current_profile_index;
@@ -535,7 +570,7 @@ controlRateConfig_t *getControlRateConfig(uint8_t profileIndex)
 
 uint16_t getCurrentMinthrottle(void)
 {
-    return masterConfig.motorConfig.minthrottle;
+    return motorConfig()->minthrottle;
 }
 
 
@@ -581,13 +616,13 @@ void createDefaultConfig(master_t *config)
     config->gyroConfig.gyro_lpf = GYRO_LPF_256HZ;    // 256HZ default
 #ifdef STM32F10X
     config->gyroConfig.gyro_sync_denom = 8;
-    config->pid_process_denom = 1;
+    config->pidConfig.pid_process_denom = 1;
 #elif defined(USE_GYRO_SPI_MPU6000) || defined(USE_GYRO_SPI_MPU6500)  || defined(USE_GYRO_SPI_ICM20689)
     config->gyroConfig.gyro_sync_denom = 1;
-    config->pid_process_denom = 4;
+    config->pidConfig.pid_process_denom = 4;
 #else
     config->gyroConfig.gyro_sync_denom = 4;
-    config->pid_process_denom = 2;
+    config->pidConfig.pid_process_denom = 2;
 #endif
     config->gyroConfig.gyro_soft_lpf_type = FILTER_PT1;
     config->gyroConfig.gyro_soft_lpf_hz = 90;
@@ -598,22 +633,23 @@ void createDefaultConfig(master_t *config)
 
     config->debug_mode = DEBUG_MODE;
 
-    resetAccelerometerTrims(&config->sensorTrims.accZero);
+    resetAccelerometerTrims(&config->accelerometerConfig.accZero);
 
-    resetSensorAlignment(&config->sensorAlignmentConfig);
+    config->gyroConfig.gyro_align = ALIGN_DEFAULT;
+    config->accelerometerConfig.acc_align = ALIGN_DEFAULT;
+    config->compassConfig.mag_align = ALIGN_DEFAULT;
 
     config->boardAlignment.rollDegrees = 0;
     config->boardAlignment.pitchDegrees = 0;
     config->boardAlignment.yawDegrees = 0;
-    config->sensorSelectionConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
-    config->max_angle_inclination = 700;    // 70 degrees
+    config->accelerometerConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
     config->rcControlsConfig.yaw_control_direction = 1;
     config->gyroConfig.gyroMovementCalibrationThreshold = 32;
 
     // xxx_hardware: 0:default/autodetect, 1: disable
-    config->sensorSelectionConfig.mag_hardware = 1;
+    config->compassConfig.mag_hardware = 1;
 
-    config->sensorSelectionConfig.baro_hardware = 1;
+    config->barometerConfig.baro_hardware = 1;
 
     resetBatteryConfig(&config->batteryConfig);
 
@@ -675,7 +711,9 @@ void createDefaultConfig(master_t *config)
 
     resetAllRxChannelRangeConfigurations(config->rxConfig.channelRanges);
 
-    config->inputFilteringMode = INPUT_FILTERING_DISABLED;
+#ifdef USE_PWM
+    config->pwmConfig.inputFilteringMode = INPUT_FILTERING_DISABLED;
+#endif
 
     config->armingConfig.gyro_cal_on_first_arm = 0;  // TODO - Cleanup retarded arm support
     config->armingConfig.disarm_kill_switch = 1;
@@ -709,7 +747,7 @@ void createDefaultConfig(master_t *config)
 
     resetProfile(&config->profile[0]);
 
-    resetRollAndPitchTrims(&config->accelerometerTrims);
+    resetRollAndPitchTrims(&config->accelerometerConfig.accelerometerTrims);
 
     config->compassConfig.mag_declination = 0;
     config->accelerometerConfig.acc_lpf_hz = 10.0f;
@@ -745,13 +783,13 @@ void createDefaultConfig(master_t *config)
 #ifdef USE_SERVOS
     // servos
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        config->servoConf[i].min = DEFAULT_SERVO_MIN;
-        config->servoConf[i].max = DEFAULT_SERVO_MAX;
-        config->servoConf[i].middle = DEFAULT_SERVO_MIDDLE;
-        config->servoConf[i].rate = 100;
-        config->servoConf[i].angleAtMin = DEFAULT_SERVO_MIN_ANGLE;
-        config->servoConf[i].angleAtMax = DEFAULT_SERVO_MAX_ANGLE;
-        config->servoConf[i].forwardFromChannel = CHANNEL_FORWARDING_DISABLED;
+        config->servoProfile.servoConf[i].min = DEFAULT_SERVO_MIN;
+        config->servoProfile.servoConf[i].max = DEFAULT_SERVO_MAX;
+        config->servoProfile.servoConf[i].middle = DEFAULT_SERVO_MIDDLE;
+        config->servoProfile.servoConf[i].rate = 100;
+        config->servoProfile.servoConf[i].angleAtMin = DEFAULT_SERVO_MIN_ANGLE;
+        config->servoProfile.servoConf[i].angleAtMax = DEFAULT_SERVO_MAX_ANGLE;
+        config->servoProfile.servoConf[i].forwardFromChannel = CHANNEL_FORWARDING_DISABLED;
     }
 
     // gimbal
@@ -805,6 +843,12 @@ void createDefaultConfig(master_t *config)
     }
 #endif
 
+#ifdef USE_FLASHFS
+    resetFlashConfig(&config->flashConfig);
+#endif
+
+    resetStatusLedConfig(&config->statusLedConfig);
+
 #if defined(TARGET_CONFIG)
     targetConfiguration(config);
 #endif
@@ -838,7 +882,7 @@ void activateConfig(void)
     resetAdjustmentStates();
 
     useRcControlsConfig(
-        masterConfig.modeActivationConditions,
+        modeActivationProfile()->modeActivationConditions,
         &masterConfig.motorConfig,
         &currentProfile->pidProfile
     );
@@ -853,8 +897,8 @@ void activateConfig(void)
 #endif
 
     useFailsafeConfig(&masterConfig.failsafeConfig);
-    setAccelerationTrims(&masterConfig.sensorTrims.accZero);
-    setAccelerationFilter(masterConfig.accelerometerConfig.acc_lpf_hz);
+    setAccelerationTrims(&accelerometerConfig()->accZero);
+    setAccelerationFilter(accelerometerConfig()->acc_lpf_hz);
 
     mixerUseConfigs(
         &masterConfig.flight3DConfig,
@@ -865,14 +909,14 @@ void activateConfig(void)
     );
 
 #ifdef USE_SERVOS
-    servoUseConfigs(&masterConfig.servoMixerConfig, masterConfig.servoConf, &masterConfig.gimbalConfig);
+    servoUseConfigs(&masterConfig.servoMixerConfig, masterConfig.servoProfile.servoConf, &masterConfig.gimbalConfig);
 #endif
 
 
     imuConfigure(
         &masterConfig.imuConfig,
         &currentProfile->pidProfile,
-        masterConfig.throttleCorrectionConfig.throttle_correction_angle
+        throttleCorrectionConfig()->throttle_correction_angle
     );
 
     configureAltitudeHold(
@@ -889,8 +933,8 @@ void activateConfig(void)
 
 void validateAndFixConfig(void)
 {
-    if((masterConfig.motorConfig.motorPwmProtocol == PWM_TYPE_BRUSHED) && (masterConfig.motorConfig.mincommand < 1000)){
-        masterConfig.motorConfig.mincommand = 1000;
+    if((motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) && (motorConfig()->mincommand < 1000)){
+        motorConfig()->mincommand = 1000;
     }
 
     if (!(featureConfigured(FEATURE_RX_PARALLEL_PWM) || featureConfigured(FEATURE_RX_PPM) || featureConfigured(FEATURE_RX_SERIAL) || featureConfigured(FEATURE_RX_MSP) || featureConfigured(FEATURE_RX_SPI))) {
@@ -919,7 +963,7 @@ void validateAndFixConfig(void)
         // rssi adc needs the same ports
         featureClear(FEATURE_RSSI_ADC);
         // current meter needs the same ports
-        if (masterConfig.batteryConfig.currentMeterType == CURRENT_SENSOR_ADC) {
+        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
             featureClear(FEATURE_CURRENT_METER);
         }
 #endif
@@ -941,7 +985,7 @@ void validateAndFixConfig(void)
         // rssi adc needs the same ports
         featureClear(FEATURE_RSSI_ADC);
         // current meter needs the same ports
-        if (masterConfig.batteryConfig.currentMeterType == CURRENT_SENSOR_ADC) {
+        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
             featureClear(FEATURE_CURRENT_METER);
         }
 #endif
@@ -949,13 +993,13 @@ void validateAndFixConfig(void)
 #endif
 
 #if defined(NAZE) && defined(SONAR)
-    if (featureConfigured(FEATURE_RX_PARALLEL_PWM) && featureConfigured(FEATURE_SONAR) && featureConfigured(FEATURE_CURRENT_METER) && masterConfig.batteryConfig.currentMeterType == CURRENT_SENSOR_ADC) {
+    if (featureConfigured(FEATURE_RX_PARALLEL_PWM) && featureConfigured(FEATURE_SONAR) && featureConfigured(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
         featureClear(FEATURE_CURRENT_METER);
     }
 #endif
 
 #if defined(OLIMEXINO) && defined(SONAR)
-    if (feature(FEATURE_SONAR) && feature(FEATURE_CURRENT_METER) && masterConfig.batteryConfig.currentMeterType == CURRENT_SENSOR_ADC) {
+    if (feature(FEATURE_SONAR) && feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
         featureClear(FEATURE_CURRENT_METER);
     }
 #endif
@@ -976,7 +1020,7 @@ void validateAndFixConfig(void)
 #endif
 
 #if defined(COLIBRI_RACE)
-    masterConfig.serialConfig.portConfigs[0].functionMask = FUNCTION_MSP;
+    serialConfig()->portConfigs[0].functionMask = FUNCTION_MSP;
     if (featureConfigured(FEATURE_RX_PARALLEL_PWM) || featureConfigured(FEATURE_RX_MSP)) {
         featureClear(FEATURE_RX_PARALLEL_PWM);
         featureClear(FEATURE_RX_MSP);
@@ -1002,24 +1046,17 @@ void validateAndFixConfig(void)
 void validateAndFixGyroConfig(void)
 {
     // Prevent invalid notch cutoff
-    if (masterConfig.gyroConfig.gyro_soft_notch_cutoff_1 >= masterConfig.gyroConfig.gyro_soft_notch_hz_1) {
-        masterConfig.gyroConfig.gyro_soft_notch_hz_1 = 0;
+    if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
+        gyroConfig()->gyro_soft_notch_hz_1 = 0;
     }
-    if (masterConfig.gyroConfig.gyro_soft_notch_cutoff_2 >= masterConfig.gyroConfig.gyro_soft_notch_hz_2) {
-        masterConfig.gyroConfig.gyro_soft_notch_hz_2 = 0;
+    if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
+        gyroConfig()->gyro_soft_notch_hz_2 = 0;
     }
 
-    if (masterConfig.gyroConfig.gyro_lpf != GYRO_LPF_256HZ && masterConfig.gyroConfig.gyro_lpf != GYRO_LPF_NONE) {
-        masterConfig.pid_process_denom = 1; // When gyro set to 1khz always set pid speed 1:1 to sampling speed
-        masterConfig.gyroConfig.gyro_sync_denom = 1;
+    if (gyroConfig()->gyro_lpf != GYRO_LPF_256HZ && gyroConfig()->gyro_lpf != GYRO_LPF_NONE) {
+        pidConfig()->pid_process_denom = 1; // When gyro set to 1khz always set pid speed 1:1 to sampling speed
+        gyroConfig()->gyro_sync_denom = 1;
     }
-}
-
-void readEEPROMAndNotify(void)
-{
-    // re-read written data
-    readEEPROM();
-    beeperConfirmationBeeps(1);
 }
 
 void ensureEEPROMContainsValidData(void)
@@ -1040,11 +1077,15 @@ void resetEEPROM(void)
 void saveConfigAndNotify(void)
 {
     writeEEPROM();
-    readEEPROMAndNotify();
+    readEEPROM();
+    beeperConfirmationBeeps(1);
 }
 
 void changeProfile(uint8_t profileIndex)
 {
+    if (profileIndex >= MAX_PROFILE_COUNT) {
+        profileIndex = MAX_PROFILE_COUNT - 1;
+    }
     masterConfig.current_profile_index = profileIndex;
     writeEEPROM();
     readEEPROM();

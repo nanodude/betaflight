@@ -46,8 +46,7 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define USE_DSHOT
-#define USE_ESC_TELEMETRY
+#define USE_ESC_SENSOR
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -160,6 +159,9 @@
 #define BIND_PIN                PC5
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+#define USE_ESCSERIAL
+#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
 
 // IO - assuming 303 in 64pin package, TODO
 #define TARGET_IO_PORTA         0xffff

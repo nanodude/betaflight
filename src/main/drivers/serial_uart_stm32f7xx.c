@@ -415,14 +415,14 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
             IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
         }
 
-        if (mode & MODE_RX) { 
+        if (mode & MODE_RX) {
             IOInit(rx, OWNER_SERIAL_RX, RESOURCE_INDEX(device));
             IOConfigGPIOAF(rx, IOCFG_AF_PP, uart->af);
         }
     }
 
     // DMA TX Interrupt
-    dmaInit(uart->txIrq, OWNER_SERIAL_TX, (uint32_t)uart);
+    dmaInit(uart->txIrq, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
     dmaSetHandler(uart->txIrq, dmaIRQHandler, uart->txPriority, (uint32_t)uart);
 
 

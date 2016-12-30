@@ -46,8 +46,7 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define USE_DSHOT
-#define USE_ESC_TELEMETRY
+#define USE_ESC_SENSOR
 #define REMAP_TIM17_DMA
 
 #define USE_VCP
@@ -55,6 +54,9 @@
 #define USE_UART2
 #define USE_UART3
 #define SERIAL_PORT_COUNT 4
+
+#define USE_ESCSERIAL
+#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10

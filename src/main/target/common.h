@@ -17,6 +17,13 @@
 
 #pragma once
 
+// type conversion warnings.
+// -Wconversion can be turned on to enable the process of eliminating these warnings
+//#pragma GCC diagnostic warning "-Wconversion"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+// -Wpadded can be turned on to check padding of structs
+//#pragma GCC diagnostic warning "-Wpadded"
+
 //#define SCHEDULER_DEBUG // define this to use scheduler debug[] values. Undefined by default for performance reasons
 #define DEBUG_MODE DEBUG_NONE // change this to change initial debug mode
 
@@ -25,15 +32,18 @@
 
 #ifdef STM32F7
 #define STM_FAST_TARGET
+#define I2C3_OVERCLOCK true
+#define I2C4_OVERCLOCK true
 #endif
 
 /****************************
-  STM32 F4 specific settings. 
+  STM32 F4 specific settings.
 ****************************/
 #ifdef STM32F4
 #define STM_FAST_TARGET
 #define USE_DSHOT
 #define I2C3_OVERCLOCK true
+#define GPS
 #endif
 
 #ifdef STM32F3
@@ -44,6 +54,8 @@
 // Using RX DMA disables the use of receive callbacks
 #define USE_UART1_RX_DMA
 #define USE_UART1_TX_DMA
+
+#define CLI_MINIMAL_VERBOSITY
 #endif
 
 #define SERIAL_RX
@@ -70,7 +82,6 @@
 
 #if (FLASH_SIZE > 64)
 #define BLACKBOX
-#define GPS
 #define TELEMETRY
 #define TELEMETRY_FRSKY
 #define TELEMETRY_HOTT
@@ -85,6 +96,7 @@
 #define USE_DASHBOARD
 #define USE_MSP_DISPLAYPORT
 #define TELEMETRY_CRSF
+#define TELEMETRY_SRXL
 #define TELEMETRY_JETIEXBUS
 #define TELEMETRY_MAVLINK
 #define USE_RX_MSP
