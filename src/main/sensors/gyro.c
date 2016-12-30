@@ -44,6 +44,7 @@
 #include "drivers/accgyro_spi_mpu6000.h"
 #include "drivers/accgyro_spi_mpu6500.h"
 #include "drivers/accgyro_spi_mpu9250.h"
+#include "drivers/accgyro_spi_bmi160.h"
 #include "drivers/bus_spi.h"
 #include "drivers/gyro_sync.h"
 #include "drivers/io.h"
@@ -216,6 +217,19 @@ case GYRO_MPU9250:
 #endif
         ; // fallthrough
 
+    case GYRO_BMI160:
+#ifdef USE_ACCGYRO_BMI160
+        if (bmi160SpiGyroDetect(dev))
+        {
+            gyroHardware = GYRO_BMI160;
+#ifdef GYRO_BMI160_ALIGN
+            dev->gyroAlign = GYRO_BMI160_ALIGN;
+#endif
+
+            break;
+        }
+#endif
+        ; // fallthrough
     case GYRO_FAKE:
 #ifdef USE_FAKE_GYRO
         if (fakeGyroDetect(dev)) {
@@ -422,9 +436,9 @@ void gyroUpdate(void)
             spec_gyro_data_pitch[spec_idx] = debug[1];
             spec_gyro_data_yaw[spec_idx] = debug[2];
         } else {
-            spec_gyro_data_roll[spec_idx] = gyroADCf[0];
-            spec_gyro_data_pitch[spec_idx] = gyroADCf[1];
-            spec_gyro_data_yaw[spec_idx] = gyroADCf[2];
+            spec_gyro_data_roll[spec_idx] = gyro.gyroADCf[0];
+            spec_gyro_data_pitch[spec_idx] = gyro.gyroADCf[1];
+            spec_gyro_data_yaw[spec_idx] = gyro.gyroADCf[2];
         }
         spec_idx++;
         if (spec_idx == SPEC_FFT_LENGTH) {

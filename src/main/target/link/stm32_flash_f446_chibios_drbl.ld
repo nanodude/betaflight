@@ -56,4 +56,6 @@ REGION_ALIAS("BSS_RAM", RAM);
 /* RAM region to be used for the default heap.*/
 REGION_ALIAS("HEAP_RAM", RAM);
 
+REGION_ALIAS("STACKRAM", RAM)
+
 INCLUDE "stm32F446xx_chibios_sections.ld"

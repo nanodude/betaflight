@@ -56,7 +56,6 @@
 #include "drivers/serial.h"
 #include "drivers/compass.h"
 #include "drivers/timer.h"
-#include "drivers/pwm_rx.h"
 #include "drivers/accgyro.h"
 #include "drivers/light_led.h"
 #include "drivers/light_ws2811strip.h"

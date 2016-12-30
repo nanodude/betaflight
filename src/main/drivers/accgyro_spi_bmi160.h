@@ -68,7 +68,7 @@ enum bmi160_gyro_range {
 	BMI160_RANGE_2000DPS = 0x00,
 };
 
-bool bmi160SpiAccDetect(acc_t *acc);
-bool bmi160SpiGyroDetect(gyro_t *gyro);
+bool bmi160SpiAccDetect(accDev_t *acc);
+bool bmi160SpiGyroDetect(gyroDev_t *gyro);
 
 #endif /* BMI160_H */

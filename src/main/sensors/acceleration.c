@@ -44,6 +44,7 @@
 #include "drivers/accgyro_spi_mpu6000.h"
 #include "drivers/accgyro_spi_mpu6500.h"
 #include "drivers/accgyro_spi_mpu9250.h"
+#include "drivers/accgyro_spi_bmi160.h"
 #include "drivers/system.h"
 
 #include "fc/config.h"
@@ -193,6 +194,19 @@ retry:
             dev->accAlign = ACC_ICM20689_ALIGN;
 #endif
             accHardware = ACC_ICM20689;
+            break;
+        }
+#endif
+        ; // fallthrough
+    case ACC_BMI160:
+#ifdef USE_ACCGYRO_BMI160
+
+        if (bmi160SpiAccDetect(dev))
+        {
+#ifdef ACC_BMI160_ALIGN
+            dev->accAlign = ACC_BMI160_ALIGN;
+#endif
+            accHardware = ACC_BMI160;
             break;
         }
 #endif

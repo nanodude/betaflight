@@ -4,17 +4,16 @@
 
 #include "common/time.h"
 
+
+bool cmsInMenu;
+
 // Device management
 bool cmsDisplayPortRegister(displayPort_t *pDisplay);
 
 // For main.c and scheduler
 void cmsInit(void);
-<<<<<<< HEAD
-void cmsHandler(uint32_t currentTime);
+void cmsHandler(uint32_t currentTimeUs);
 void cmsUpdate(uint32_t currentTimeUs);
-=======
-void cmsHandler(timeUs_t currentTimeUs);
->>>>>>> master
 
 long cmsMenuChange(displayPort_t *pPort, const void *ptr);
 long cmsMenuExit(displayPort_t *pPort, const void *ptr);

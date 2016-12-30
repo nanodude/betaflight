@@ -40,7 +40,6 @@
 #include "drivers/serial_uart.h"
 #include "drivers/accgyro.h"
 #include "drivers/compass.h"
-#include "drivers/pwm_rx.h"
 #include "drivers/pwm_output.h"
 #include "drivers/adc.h"
 #include "drivers/bus_i2c.h"

@@ -698,7 +698,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
     blinkState = (currentTimeUs / 200000) % 2;
 
 #ifdef OSD_CALLS_CMS
-    cmsUpdate(currentTime);
+    cmsUpdate(currentTimeUs);
 #endif
 
 #ifdef CMS
@@ -735,7 +735,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         displayDrawScreen(osdDisplayPort);
     }
 #else
-    osdRefresh(currentTime);
+    osdRefresh(currentTimeUs);
 #endif
 
 #ifdef CMS

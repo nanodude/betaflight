@@ -107,7 +107,6 @@ static int32_t BMI160_Config();
 static int32_t BMI160_do_foc();
 static uint8_t BMI160_ReadReg(uint8_t reg);
 static int32_t BMI160_WriteReg(uint8_t reg, uint8_t data);
-static void bmi160IntExtiInit(void);
 
 static IO_t bmi160CsPin = IO_NONE;
 #define DISABLE_BMI160       IOHi(bmi160CsPin)
@@ -171,9 +170,6 @@ static void BMI160_Init()
         writeEEPROM();
     }
 #endif
-
-    /* Set up EXTI line */
-    bmi160IntExtiInit();
 
     BMI160InitDone = true;
 }
@@ -346,10 +342,10 @@ extiCallbackRec_t bmi160IntCallbackRec;
 #if defined(USE_CHIBIOS)
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
 {
-    UNUSED(cb);
     CH_IRQ_PROLOGUE();
 
-    bmi160DataReady = true;
+    gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
+    gyro->dataReady = true;
 
     chSysLockFromISR();
     chBSemSignalI(&gyroSem);
@@ -359,11 +355,11 @@ void bmi160ExtiHandler(extiCallbackRec_t *cb)
 #else
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
 {
-    UNUSED(cb);
-    bmi160DataReady = true;
+    gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
+    gyro->dataReady = true;
 #endif
 
-static void bmi160IntExtiInit(void)
+static void bmi160IntExtiInit(gyroDev_t *gyro)
 {
     static bool bmi160ExtiInitDone = false;
 
@@ -376,15 +372,15 @@ static void bmi160IntExtiInit(void)
     IOInit(mpuIntIO, OWNER_MPU_EXTI, 0);
     IOConfigGPIO(mpuIntIO, IOCFG_IN_FLOATING);   // TODO - maybe pullup / pulldown ?
 
-    EXTIHandlerInit(&bmi160IntCallbackRec, bmi160ExtiHandler);
-    EXTIConfig(mpuIntIO, &bmi160IntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Rising);
+    EXTIHandlerInit(&gyro->exti, bmi160ExtiHandler);
+    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Rising);
     EXTIEnable(mpuIntIO, true);
 
     bmi160ExtiInitDone = true;
 }
 
 
-bool bmi160AccRead(int16_t *accData)
+bool bmi160AccRead(accDev_t *acc)
 {
     enum {
         IDX_REG = 0,
@@ -404,15 +400,15 @@ bool bmi160AccRead(int16_t *accData)
     spiTransfer(BMI160_SPI_INSTANCE, bmi160_rec_buf, bmi160_tx_buf, BUFFER_SIZE);   // receive response
     DISABLE_BMI160;
 
-    accData[0] = (int16_t)((bmi160_rec_buf[IDX_ACCEL_XOUT_H] << 8) | bmi160_rec_buf[IDX_ACCEL_XOUT_L]);
-    accData[1] = (int16_t)((bmi160_rec_buf[IDX_ACCEL_YOUT_H] << 8) | bmi160_rec_buf[IDX_ACCEL_YOUT_L]);
-    accData[2] = (int16_t)((bmi160_rec_buf[IDX_ACCEL_ZOUT_H] << 8) | bmi160_rec_buf[IDX_ACCEL_ZOUT_L]);
+    acc->ADCRaw[X] = (int16_t)((bmi160_rec_buf[IDX_ACCEL_XOUT_H] << 8) | bmi160_rec_buf[IDX_ACCEL_XOUT_L]);
+    acc->ADCRaw[Y] = (int16_t)((bmi160_rec_buf[IDX_ACCEL_YOUT_H] << 8) | bmi160_rec_buf[IDX_ACCEL_YOUT_L]);
+    acc->ADCRaw[Z] = (int16_t)((bmi160_rec_buf[IDX_ACCEL_ZOUT_H] << 8) | bmi160_rec_buf[IDX_ACCEL_ZOUT_L]);
 
     return true;
 }
 
 
-bool bmi160GyroRead(int16_t *gyroADC)
+bool bmi160GyroRead(gyroDev_t *gyro)
 {
     enum {
         IDX_REG = 0,
@@ -432,33 +428,33 @@ bool bmi160GyroRead(int16_t *gyroADC)
     spiTransfer(BMI160_SPI_INSTANCE, bmi160_rec_buf, bmi160_tx_buf, BUFFER_SIZE);   // receive response
     DISABLE_BMI160;
 
-    gyroADC[0] = (int16_t)((bmi160_rec_buf[IDX_GYRO_XOUT_H] << 8) | bmi160_rec_buf[IDX_GYRO_XOUT_L]);
-    gyroADC[1] = (int16_t)((bmi160_rec_buf[IDX_GYRO_YOUT_H] << 8) | bmi160_rec_buf[IDX_GYRO_YOUT_L]);
-    gyroADC[2] = (int16_t)((bmi160_rec_buf[IDX_GYRO_ZOUT_H] << 8) | bmi160_rec_buf[IDX_GYRO_ZOUT_L]);
+    gyro->gyroADCRaw[X] = (int16_t)((bmi160_rec_buf[IDX_GYRO_XOUT_H] << 8) | bmi160_rec_buf[IDX_GYRO_XOUT_L]);
+    gyro->gyroADCRaw[Y] = (int16_t)((bmi160_rec_buf[IDX_GYRO_YOUT_H] << 8) | bmi160_rec_buf[IDX_GYRO_YOUT_L]);
+    gyro->gyroADCRaw[Z] = (int16_t)((bmi160_rec_buf[IDX_GYRO_ZOUT_H] << 8) | bmi160_rec_buf[IDX_GYRO_ZOUT_L]);
 
     return true;
 }
 
 
-bool checkBMI160DataReady(void)
+bool checkBMI160DataReady(gyroDev_t* gyro)
 {
     bool ret;
-    if (bmi160DataReady) {
+    if (gyro->dataReady) {
         ret = true;
-        bmi160DataReady= false;
+        gyro->dataReady= false;
     } else {
         ret = false;
     }
     return ret;
 }
 
-void bmi160SpiGyroInit(uint8_t lpf)
+void bmi160SpiGyroInit(gyroDev_t *gyro)
 {
-    (void)(lpf);
     BMI160_Init();
+    bmi160IntExtiInit(gyro);
 }
 
-void bmi160SpiAccInit(acc_t *acc)
+void bmi160SpiAccInit(accDev_t *acc)
 {
     BMI160_Init();
 
@@ -466,7 +462,7 @@ void bmi160SpiAccInit(acc_t *acc)
 }
 
 
-bool bmi160SpiAccDetect(acc_t *acc)
+bool bmi160SpiAccDetect(accDev_t *acc)
 {
     if (!BMI160_Detect()) {
         return false;
@@ -479,7 +475,7 @@ bool bmi160SpiAccDetect(acc_t *acc)
 }
 
 
-bool bmi160SpiGyroDetect(gyro_t *gyro)
+bool bmi160SpiGyroDetect(gyroDev_t *gyro)
 {
     if (!BMI160_Detect()) {
         return false;

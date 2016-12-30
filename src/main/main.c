@@ -632,7 +632,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 16 * 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 8 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -648,7 +648,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse);
 
 extern binary_semaphore_t onScreenDisplaySemaphore;
 
-static THD_WORKING_AREA(waOSDThread, 8 * 1024);
+static THD_WORKING_AREA(waOSDThread, 16 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
