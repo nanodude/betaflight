@@ -150,7 +150,10 @@ static void osdDrawSingleElement(uint8_t item)
 
     uint8_t elemPosX = OSD_X(osdProfile()->item_pos[item]);
     uint8_t elemPosY = OSD_Y(osdProfile()->item_pos[item]);
-    char buff[32];
+
+#define OSDBUF_SIZE 32
+    char buff[OSDBUF_SIZE];
+    memset(buff, 0, OSDBUF_SIZE);
 
     switch(item) {
         case OSD_RSSI_VALUE:
@@ -354,8 +357,6 @@ static void osdDrawSingleElement(uint8_t item)
         }
 #endif
 
-#if 0
-        // this is silly
         case OSD_ROLL_PIDS:
         {
             const pidProfile_t *pidProfile = &currentProfile->pidProfile;
@@ -376,7 +377,6 @@ static void osdDrawSingleElement(uint8_t item)
             sprintf(buff, "YAW %3d %3d %3d", pidProfile->P8[PIDYAW], pidProfile->I8[PIDYAW], pidProfile->D8[PIDYAW]);
             break;
         }
-#endif
 
         case OSD_POWER:
         {
@@ -452,14 +452,14 @@ void osdResetConfig(osd_profile_t *osdProfile)
     osdProfile->item_pos[OSD_CRAFT_NAME] = OSD_POS(12, 12);
     osdProfile->item_pos[OSD_THROTTLE_POS] = OSD_POS(1, 4);
     osdProfile->item_pos[OSD_VTX_CHANNEL] = OSD_POS(8, 6);
-    osdProfile->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3);
+    osdProfile->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_MAH_DRAWN] = OSD_POS(15, 3);
     osdProfile->item_pos[OSD_GPS_SPEED] = OSD_POS(2, 2);
     osdProfile->item_pos[OSD_GPS_SATS] = OSD_POS(2, 12);
     osdProfile->item_pos[OSD_ALTITUDE] = OSD_POS(1, 5);
-    osdProfile->item_pos[OSD_ROLL_PIDS] = OSD_POS(2, 10) | VISIBLE_FLAG;
-    osdProfile->item_pos[OSD_PITCH_PIDS] = OSD_POS(2, 11) | VISIBLE_FLAG;
-    osdProfile->item_pos[OSD_YAW_PIDS] = OSD_POS(2, 12) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_ROLL_PIDS] = OSD_POS(2, 10);
+    osdProfile->item_pos[OSD_PITCH_PIDS] = OSD_POS(2, 11);
+    osdProfile->item_pos[OSD_YAW_PIDS] = OSD_POS(2, 12);
     osdProfile->item_pos[OSD_POWER] = OSD_POS(15, 1);
 
     osdProfile->rssi_alarm = 20;
