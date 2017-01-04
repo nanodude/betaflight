@@ -285,7 +285,7 @@ void fcTasksInit(void)
 #ifdef USE_ESC_SENSOR
     setTaskEnabled(TASK_ESC_SENSOR, feature(FEATURE_ESC_SENSOR));
 #endif
-#ifdef CMS && !defined(BRAINRE1)
+#if defined(CMS) && !defined(BRAINRE1)
 #ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
 #else
