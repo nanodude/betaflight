@@ -110,9 +110,8 @@ static bool gyroDetect(gyroDev_t *dev)
 
     switch(gyroHardware) {
     case GYRO_DEFAULT:
-        ; // fallthrough
-    case GYRO_MPU6050:
 #ifdef USE_GYRO_MPU6050
+    case GYRO_MPU6050:
         if (mpu6050GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6050;
 #ifdef GYRO_MPU6050_ALIGN
@@ -121,9 +120,9 @@ static bool gyroDetect(gyroDev_t *dev)
             break;
         }
 #endif
-        ; // fallthrough
-    case GYRO_L3G4200D:
+
 #ifdef USE_GYRO_L3G4200D
+    case GYRO_L3G4200D:
         if (l3g4200dDetect(dev)) {
             gyroHardware = GYRO_L3G4200D;
 #ifdef GYRO_L3G4200D_ALIGN
@@ -132,10 +131,9 @@ static bool gyroDetect(gyroDev_t *dev)
             break;
         }
 #endif
-        ; // fallthrough
 
-    case GYRO_MPU3050:
 #ifdef USE_GYRO_MPU3050
+    case GYRO_MPU3050:
         if (mpu3050Detect(dev)) {
             gyroHardware = GYRO_MPU3050;
 #ifdef GYRO_MPU3050_ALIGN
@@ -144,10 +142,9 @@ static bool gyroDetect(gyroDev_t *dev)
             break;
         }
 #endif
-        ; // fallthrough
 
-    case GYRO_L3GD20:
 #ifdef USE_GYRO_L3GD20
+    case GYRO_L3GD20:
         if (l3gd20Detect(dev)) {
             gyroHardware = GYRO_L3GD20;
 #ifdef GYRO_L3GD20_ALIGN
@@ -156,10 +153,9 @@ static bool gyroDetect(gyroDev_t *dev)
             break;
         }
 #endif
-        ; // fallthrough
 
-    case GYRO_MPU6000:
 #ifdef USE_GYRO_SPI_MPU6000
+    case GYRO_MPU6000:
         if (mpu6000SpiGyroDetect(dev)) {
             gyroHardware = GYRO_MPU6000;
 #ifdef GYRO_MPU6000_ALIGN
@@ -168,54 +164,60 @@ static bool gyroDetect(gyroDev_t *dev)
             break;
         }
 #endif
-        ; // fallthrough
 
-    case GYRO_MPU6500:
 #if defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500)
+    case GYRO_MPU6500:
+    case GYRO_ICM20608G:
+    case GYRO_ICM20602:
 #ifdef USE_GYRO_SPI_MPU6500
-        if (mpu6500GyroDetect(dev) || mpu6500SpiGyroDetect(dev))
+        if (mpu6500GyroDetect(dev) || mpu6500SpiGyroDetect(dev)) {
 #else
-        if (mpu6500GyroDetect(dev))
+        if (mpu6500GyroDetect(dev)) {
 #endif
-        {
-            gyroHardware = GYRO_MPU6500;
+            switch(dev->mpuDetectionResult.sensor) {
+            case MPU_9250_SPI:
+                gyroHardware = GYRO_MPU9250;
+                break;
+            case ICM_20608_SPI:
+                gyroHardware = GYRO_ICM20608G;
+                break;
+            case ICM_20602_SPI:
+                gyroHardware = GYRO_ICM20602;
+                break;
+            default:        
+                gyroHardware = GYRO_MPU6500;
+            }
 #ifdef GYRO_MPU6500_ALIGN
             dev->gyroAlign = GYRO_MPU6500_ALIGN;
 #endif
-
             break;
         }
 #endif
-        ; // fallthrough
 
-case GYRO_MPU9250:
 #ifdef USE_GYRO_SPI_MPU9250
+    case GYRO_MPU9250:
 
-    if (mpu9250SpiGyroDetect(dev))
-    {
-        gyroHardware = GYRO_MPU9250;
+        if (mpu9250SpiGyroDetect(dev))
+        {
+            gyroHardware = GYRO_MPU9250;
 #ifdef GYRO_MPU9250_ALIGN
-        dev->gyroAlign = GYRO_MPU9250_ALIGN;
+            dev->gyroAlign = GYRO_MPU9250_ALIGN;
 #endif
-
         break;
     }
 #endif
-    ; // fallthrough
 
-    case GYRO_ICM20689:
 #ifdef USE_GYRO_SPI_ICM20689
+    case GYRO_ICM20689:
         if (icm20689SpiGyroDetect(dev))
         {
             gyroHardware = GYRO_ICM20689;
 #ifdef GYRO_ICM20689_ALIGN
             dev->gyroAlign = GYRO_ICM20689_ALIGN;
 #endif
-
             break;
         }
 #endif
-        ; // fallthrough
 
     case GYRO_BMI160:
 #ifdef USE_ACCGYRO_BMI160
@@ -230,15 +232,15 @@ case GYRO_MPU9250:
         }
 #endif
         ; // fallthrough
-    case GYRO_FAKE:
+
 #ifdef USE_FAKE_GYRO
+    case GYRO_FAKE:
         if (fakeGyroDetect(dev)) {
             gyroHardware = GYRO_FAKE;
             break;
         }
 #endif
-        ; // fallthrough
-    case GYRO_NONE:
+    default:
         gyroHardware = GYRO_NONE;
     }
 

@@ -88,6 +88,7 @@
 #define VBUS_SENSING_ENABLED
 
 #define USE_UART1
+#undef USE_UART1_TX_DMA
 #define USE_UART1_TX_NODMA
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
@@ -97,7 +98,7 @@
 //#define UART3_TX_PIN            PB10
 
 #define USE_UART6
-#define USE_UART6_TX_NODMA
+#undef USE_UART6_TX_DMA
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 

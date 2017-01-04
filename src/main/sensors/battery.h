@@ -76,7 +76,6 @@ typedef enum {
     BATTERY_NOT_PRESENT
 } batteryState_e;
 
-extern uint16_t vbat;
 extern uint16_t vbatRaw;
 extern uint16_t vbatLatest;
 extern uint8_t batteryCellCount;
@@ -97,3 +96,4 @@ int32_t currentMeterToCentiamps(uint16_t src);
 
 float calculateVbatPidCompensation(void);
 uint8_t calculateBatteryPercentage(void);
+uint16_t getVbat(void);

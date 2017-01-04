@@ -124,12 +124,12 @@ typedef void(*mpuResetFuncPtr)(void);
 extern mpuResetFuncPtr mpuReset;
 
 typedef struct mpuConfiguration_s {
-    uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
     mpuReadRegisterFunc read;
     mpuWriteRegisterFunc write;
     mpuReadRegisterFunc slowread;
     mpuWriteRegisterFunc verifywrite;
     mpuResetFuncPtr reset;
+    uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
 } mpuConfiguration_t;
 
 enum gyro_fsr_e {
@@ -168,7 +168,9 @@ typedef enum {
     MPU_65xx_I2C,
     MPU_65xx_SPI,
     MPU_9250_SPI,
-    ICM_20689_SPI
+    ICM_20689_SPI,
+    ICM_20608_SPI,
+    ICM_20602_SPI
 } detectedMPUSensor_e;
 
 typedef enum {

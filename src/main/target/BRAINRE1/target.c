@@ -68,7 +68,6 @@
 #include "io/gimbal.h"
 #include "io/ledstrip.h"
 #include "io/asyncfatfs/asyncfatfs.h"
-#include "io/serial_cli.h"
 #include "io/transponder_ir.h"
 #include "io/osd.h"
 #include "io/vtx.h"

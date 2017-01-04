@@ -100,6 +100,7 @@ void ws2811LedStripInit(ioTag_t ioTag)
     const hsvColor_t hsv_white = {  0, 255, 255};
     setStripColor(&hsv_white);
 #endif
+    (void)ioTag;
     ws2811UpdateStrip();
 }
 
