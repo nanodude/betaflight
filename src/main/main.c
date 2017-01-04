@@ -64,6 +64,7 @@ static THD_WORKING_AREA(waBetaFlightThread, 8 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
+    chRegSetThreadName("Betaflight");
     while(1) {
         main_step();
     }
@@ -87,6 +88,7 @@ static THD_WORKING_AREA(waOSDThread, 12 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
+    chRegSetThreadName("OSD");
     displayPort_t *osdDisplayPort = max7456DisplayPortInit(&masterConfig.vcdProfile);
     osdInit(osdDisplayPort);
     while (1) {
@@ -105,6 +107,7 @@ static THD_WORKING_AREA(waSpecThread, 1024);
 static THD_FUNCTION(SpecThread, arg)
 {
     (void)arg;
+    chRegSetThreadName("Spectrograph");
     while (1) {
         // wait for data ready
         chBSemWait(&spectrographDataReadySemaphore);
