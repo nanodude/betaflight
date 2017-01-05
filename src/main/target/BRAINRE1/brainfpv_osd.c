@@ -91,6 +91,7 @@
 
 #include "config/config_profile.h"
 #include "config/config_master.h"
+#include "config/feature.h"
 
 #include "fc/runtime_config.h"
 
@@ -104,10 +105,13 @@ extern binary_semaphore_t onScreenDisplaySemaphore;
 extern uint8_t *draw_buffer;
 extern uint8_t *disp_buffer;
 
+extern bool cmsInMenu;
+
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch,
         uint8_t n_pitch_steps);
+void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 
 enum BrainFPVOSDMode {
     MODE_BETAFLIGHT,
@@ -188,6 +192,38 @@ void brainFpvOsdWelcome(void)
 #endif
 }
 
+static int32_t getAltitude(void)
+{
+    int32_t alt = baro.BaroAlt;
+    switch (osdProfile()->units) {
+        case OSD_UNIT_IMPERIAL:
+            return (alt * 328) / 100; // Convert to feet / 100
+        default:
+            return alt;               // Already in metre / 100
+    }
+}
+
+void osdUpdateLocal()
+{
+    if (masterConfig.bfOsdConfig.altitude_scale && sensors(SENSOR_BARO)) {
+        float altitude = getAltitude() / 100.f;
+        osd_draw_vertical_scale(altitude, 100, 1, GRAPHICS_RIGHT - 20, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
+    }
+
+    if (masterConfig.bfOsdConfig.sticks_display == 1) {
+        // Mode 2
+        draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rcData[YAW], rcData[THROTTLE]);
+        draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rcData[ROLL], rcData[PITCH]);
+    }
+    else if (masterConfig.bfOsdConfig.sticks_display == 2) {
+        // Mode 1
+        draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rcData[YAW], rcData[PITCH]);
+        draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rcData[ROLL], rcData[THROTTLE]);
+    }
+}
+
+
+
 #define IS_HI(X)  (rcData[X] > 1750)
 #define IS_LO(X)  (rcData[X] < 1250)
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
@@ -225,6 +261,9 @@ void osdMain(void) {
         switch (mode) {
             case MODE_BETAFLIGHT:
                 osdUpdate(currentTime);
+                if (!cmsInMenu){
+                    osdUpdateLocal();
+                }
                 break;
             case MODE_SPEC:
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
@@ -253,6 +292,8 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
     bfOsdConfig->ir_ilap_id = 0;
     bfOsdConfig->ahi_steps = 2;
     bfOsdConfig->bmi160foc = 0;
+    bfOsdConfig->altitude_scale = 1;
+    bfOsdConfig->sticks_display = 1;
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     bfOsdConfig->spec_enabled = 0;
 #endif
@@ -360,4 +401,55 @@ static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, in
     }
 }
 
+
+
+#define FIX_RC_RANGE(x) (MIN(MAX(-500, x - 1500), 500))
+#define STICK_WIDTH 2
+#define STICK_LENGTH 20
+#define STICK_BOX_SIZE 4
+#define STICK_MOVEMENT_EXTENT (STICK_LENGTH - STICK_BOX_SIZE / 2 + 1)
+
+void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical)
+{
+
+    write_filled_rectangle_lm(x - STICK_LENGTH, y - STICK_WIDTH / 2, 2 * STICK_LENGTH, STICK_WIDTH, 0, 1);
+    write_filled_rectangle_lm(x - STICK_WIDTH / 2, y - STICK_LENGTH, STICK_WIDTH, 2 * STICK_LENGTH, 0, 1);
+
+    write_hline_lm(x - STICK_LENGTH - 1, x - STICK_WIDTH / 2 -1, y - STICK_WIDTH / 2 - 1, 1, 1);
+    write_hline_lm(x - STICK_LENGTH - 1, x - STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, 1, 1);
+
+    write_hline_lm(x + STICK_WIDTH / 2 + 1, x + STICK_LENGTH + 1, y - STICK_WIDTH / 2 - 1, 1, 1);
+    write_hline_lm(x + STICK_WIDTH / 2 + 1, x + STICK_LENGTH + 1, y + STICK_WIDTH / 2 + 1, 1, 1);
+
+    write_hline_lm(x - STICK_WIDTH / 2 -1, x + STICK_WIDTH / 2 + 1 , y - STICK_LENGTH -1, 1, 1);
+    write_hline_lm(x - STICK_WIDTH / 2 -1, x + STICK_WIDTH / 2 + 1 , y + STICK_LENGTH + 1, 1, 1);
+
+    write_vline_lm(x - STICK_WIDTH / 2 - 1, y - STICK_WIDTH / 2 - 1, y - STICK_LENGTH -1, 1, 1);
+    write_vline_lm(x + STICK_WIDTH / 2 + 1, y - STICK_WIDTH / 2 - 1, y - STICK_LENGTH -1, 1, 1);
+
+    write_vline_lm(x - STICK_WIDTH / 2 - 1, y + STICK_LENGTH  + 1, y + STICK_WIDTH / 2 + 1, 1, 1);
+    write_vline_lm(x + STICK_WIDTH / 2 + 1, y + STICK_LENGTH  + 1, y + STICK_WIDTH / 2 + 1, 1, 1);
+
+    write_vline_lm(x - STICK_LENGTH - 1, y -STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, 1, 1);
+    write_vline_lm(x + STICK_LENGTH + 1, y -STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, 1, 1);
+
+    int16_t stick_x =  x + (STICK_MOVEMENT_EXTENT * FIX_RC_RANGE(horizontal)) / 500.f;
+    int16_t stick_y =  y - (STICK_MOVEMENT_EXTENT * FIX_RC_RANGE(vertical)) / 500.f;
+
+    write_filled_rectangle_lm(stick_x - (STICK_BOX_SIZE) / 2 - 1, stick_y - (STICK_BOX_SIZE) / 2 - 1, STICK_BOX_SIZE + 2, STICK_BOX_SIZE + 2, 0, 1);
+    write_filled_rectangle_lm(stick_x - (STICK_BOX_SIZE) / 2, stick_y - (STICK_BOX_SIZE) / 2, STICK_BOX_SIZE, STICK_BOX_SIZE, 1, 1);
+}
 #endif /* USE_BRAINFPV_OSD */
+
+
+
+
+
+
+
+
+
+
+
+
+

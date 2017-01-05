@@ -42,7 +42,7 @@
 #include "video.h"
 #include "fonts.h"
 #include "osd_utils.h"
-
+#include "common/printf.h"
 
 extern struct FontEntry* fonts[NUM_FONTS];
 
@@ -604,8 +604,8 @@ void write_filled_rectangle(int x, int y, int width, int height, uint8_t value)
 	// step these addresses through each row until we iterate `height` times.
 	int addr0     = CALC_BUFF_ADDR(x, y);
 	int addr1     = CALC_BUFF_ADDR(x + width, y);
-	int addr0_bit = CALC_BIT_IN_WORD(x);
-	int addr1_bit = CALC_BIT_IN_WORD(x + width);
+    int addr0_bit = CALC_BIT1_IN_WORD(x);
+    int addr1_bit = CALC_BIT0_IN_WORD(x + width);
 	int mask, mask_l, mask_r, i;
 	// If the addresses are equal, we need to write one word vertically.
 	if (addr0 == addr1) {
@@ -1435,3 +1435,170 @@ void draw_polygon(int16_t x, int16_t y, float angle, const point_t * points, uin
 	write_line_lm( x + x1, y + y1, x + x2, y + y2, 1, 1);
 }
 
+
+/**
+ * hud_draw_vertical_scale: Draw a vertical scale.
+ *
+ * @param       v                   value to display as an integer
+ * @param       range               range about value to display (+/- range/2 each direction)
+ * @param       halign              horizontal alignment: -1 = left, +1 = right.
+ * @param       x                   x displacement
+ * @param       y                   y displacement
+ * @param       height              height of scale
+ * @param       mintick_step        how often a minor tick is shown
+ * @param       majtick_step        how often a major tick is shown
+ * @param       mintick_len         minor tick length
+ * @param       majtick_len         major tick length
+ * @param       boundtick_len       boundary tick length
+ * @param       max_val             maximum expected value (used to compute size of arrow ticker)
+ * @param       flags               special flags (see hud.h.)
+ */
+// #define VERTICAL_SCALE_BRUTE_FORCE_BLANK_OUT
+#define VERTICAL_SCALE_FILLED_NUMBER
+#define VSCALE_FONT FONT8X10
+void osd_draw_vertical_scale(int v, int range, int halign, int x, int y, int height, int mintick_step, int majtick_step, int mintick_len,
+                             int majtick_len, int boundtick_len, int flags)
+{
+    char temp[15];
+    const struct FontEntry *font_info;
+    struct FontDimensions dim;
+    // Compute the position of the elements.
+    int majtick_start = 0, majtick_end = 0, mintick_start = 0, mintick_end = 0, boundtick_start = 0, boundtick_end = 0;
+
+    majtick_start   = x;
+    mintick_start   = x;
+    boundtick_start = x;
+    if (halign == -1) {
+        majtick_end     = x + majtick_len;
+        mintick_end     = x + mintick_len;
+        boundtick_end   = x + boundtick_len;
+    } else if (halign == +1) {
+        majtick_end     = x - majtick_len;
+        mintick_end     = x - mintick_len;
+        boundtick_end   = x - boundtick_len;
+    }
+    // Retrieve width of large font (font #0); from this calculate the x spacing.
+    font_info = get_font_info(VSCALE_FONT);
+    if (font_info == NULL)
+        return;
+    int arrow_len      = (font_info->height / 2) + 1;
+    int text_x_spacing = (font_info->width / 2);
+    int max_text_y     = 0, text_length = 0;
+    int small_font_char_width = font_info->width + 1; // +1 for horizontal spacing = 1
+    // For -(range / 2) to +(range / 2), draw the scale.
+    int range_2 = range / 2; // , height_2 = height / 2;
+    int r = 0, rr = 0, rv = 0, ys = 0, style = 0; // calc_ys = 0,
+    // Iterate through each step.
+    for (r = -range_2; r <= +range_2; r++) {
+        style = 0;
+        rr    = r + range_2 - v; // normalise range for modulo, subtract value to move ticker tape
+        rv    = -rr + range_2; // for number display
+        if (flags & HUD_VSCALE_FLAG_NO_NEGATIVE) {
+            rr += majtick_step / 2;
+        }
+        if (rr % majtick_step == 0) {
+            style = 1; // major tick
+        } else if (rr % mintick_step == 0) {
+            style = 2; // minor tick
+        } else {
+            style = 0;
+        }
+        if (flags & HUD_VSCALE_FLAG_NO_NEGATIVE && rv < 0) {
+            continue;
+        }
+        if (style) {
+            // Calculate y position.
+            ys = ((long int)(r * height) / (long int)range) + y;
+            // Depending on style, draw a minor or a major tick.
+            if (style == 1) {
+                write_hline_outlined(majtick_start, majtick_end, ys, 2, 2, 0, 1);
+                memset(temp, ' ', 10);
+                sprintf(temp, "%d", rv);
+                text_length = (strlen(temp) + 1) * small_font_char_width; // add 1 for margin
+                if (text_length > max_text_y) {
+                    max_text_y = text_length;
+                }
+                if (halign == -1) {
+                    write_string(temp, majtick_end + text_x_spacing + 1, ys, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_LEFT, FONT_OUTLINED8X8);
+                } else {
+                    write_string(temp, majtick_end - text_x_spacing + 1, ys, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_RIGHT, FONT_OUTLINED8X8);
+                }
+            } else if (style == 2) {
+                write_hline_outlined(mintick_start, mintick_end, ys, 2, 2, 0, 1);
+            }
+        }
+    }
+    // Generate the string for the value, as well as calculating its dimensions.
+    memset(temp, ' ', 10);
+    // my_itoa(v, temp);
+    sprintf(temp, "%02d", v);
+    // TODO: add auto-sizing.
+    calc_text_dimensions(temp, font_info, 1, 0, &dim);
+    int xx = 0, i = 0;
+    if (halign == -1) {
+        xx = majtick_end + text_x_spacing;
+    } else {
+        xx = majtick_end - text_x_spacing;
+    }
+    y++;
+    uint8_t width =  dim.width + 4;
+    // Draw an arrow from the number to the point.
+    for (i = 0; i < arrow_len; i++) {
+        if (halign == -1) {
+            write_pixel_lm(xx - arrow_len + i, y - i - 1, 1, 1);
+            write_pixel_lm(xx - arrow_len + i, y + i - 1, 1, 1);
+#ifdef VERTICAL_SCALE_FILLED_NUMBER
+            write_hline_lm(xx + width - 1, xx - arrow_len + i + 1, y - i - 1, 0, 1);
+            write_hline_lm(xx + width - 1, xx - arrow_len + i + 1, y + i - 1, 0, 1);
+#else
+            write_hline_lm(xx + width - 1, xx - arrow_len + i + 1, y - i - 1, 0, 0);
+            write_hline_lm(xx + width - 1, xx - arrow_len + i + 1, y + i - 1, 0, 0);
+#endif
+        } else {
+            write_pixel_lm(xx + arrow_len - i, y - i - 1, 1, 1);
+            write_pixel_lm(xx + arrow_len - i, y + i - 1, 1, 1);
+#ifdef VERTICAL_SCALE_FILLED_NUMBER
+            write_hline_lm(xx - width - 1, xx + arrow_len - i - 1, y - i - 1, 0, 1);
+            write_hline_lm(xx - width - 1, xx + arrow_len - i - 1, y + i - 1, 0, 1);
+#else
+            write_hline_lm(xx - width - 1, xx + arrow_len - i - 1, y - i - 1, 0, 0);
+            write_hline_lm(xx - width - 1, xx + arrow_len - i - 1, y + i - 1, 0, 0);
+#endif
+        }
+    }
+    if (halign == -1) {
+        write_hline_lm(xx, xx + width -1, y - arrow_len, 1, 1);
+        write_hline_lm(xx, xx + width - 1, y + arrow_len - 2, 1, 1);
+        write_vline_lm(xx + width - 1, y - arrow_len, y + arrow_len - 2, 1, 1);
+    } else {
+        write_hline_lm(xx, xx - width - 1, y - arrow_len, 1, 1);
+        write_hline_lm(xx, xx - width - 1, y + arrow_len - 2, 1, 1);
+        write_vline_lm(xx - width - 1, y - arrow_len, y + arrow_len - 2, 1, 1);
+    }
+    // Draw the text.
+    if (halign == -1) {
+        write_string(temp, xx + width / 2, y - 1, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, VSCALE_FONT);
+    } else {
+        write_string(temp, xx - width / 2, y - 1, 1, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, VSCALE_FONT);
+    }
+#ifdef VERTICAL_SCALE_BRUTE_FORCE_BLANK_OUT
+    // This is a bad brute force method destuctive to other things that maybe drawn underneath like e.g. the artificial horizon:
+    // Then, add a slow cut off on the edges, so the text doesn't sharply
+    // disappear. We simply clear the areas above and below the ticker, and we
+    // use little markers on the edges.
+    if (halign == -1) {
+        write_filled_rectangle_lm(majtick_end + text_x_spacing, y + (height / 2) - (font_info->height / 2), max_text_y - boundtick_start,
+                                  font_info->height, 0, 0);
+        write_filled_rectangle_lm(majtick_end + text_x_spacing, y - (height / 2) - (font_info->height / 2), max_text_y - boundtick_start,
+                                  font_info->height, 0, 0);
+    } else {
+        write_filled_rectangle_lm(majtick_end - text_x_spacing - max_text_y, y + (height / 2) - (font_info->height / 2), max_text_y,
+                                  font_info->height, 0, 0);
+        write_filled_rectangle_lm(majtick_end - text_x_spacing - max_text_y, y - (height / 2) - (font_info->height / 2), max_text_y,
+                                  font_info->height, 0, 0);
+    }
+#endif
+    y--;
+    write_hline_outlined(boundtick_start, boundtick_end, y + (height / 2), 2, 2, 0, 1);
+    write_hline_outlined(boundtick_start, boundtick_end, y - (height / 2), 2, 2, 0, 1);
+}

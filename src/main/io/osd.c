@@ -446,8 +446,8 @@ void osdResetConfig(osd_profile_t *osdProfile)
     osdProfile->item_pos[OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 0) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6) | VISIBLE_FLAG;
-    osdProfile->item_pos[OSD_ONTIME] = OSD_POS(22, 11) | VISIBLE_FLAG;
-    osdProfile->item_pos[OSD_FLYTIME] = OSD_POS(22, 12) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_ONTIME] = OSD_POS(1, 0) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_FLYTIME] = OSD_POS(1, 1) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_FLYMODE] = OSD_POS(12, 11) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_CRAFT_NAME] = OSD_POS(12, 12);
     osdProfile->item_pos[OSD_THROTTLE_POS] = OSD_POS(1, 4);

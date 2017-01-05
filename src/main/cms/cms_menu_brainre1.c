@@ -54,6 +54,8 @@
 
 
 OSD_UINT8_t entryAhiSteps =  {&masterConfig.bfOsdConfig.ahi_steps, 0, 4, 1};
+const char *STICKS_DISPLAY_NAMES[] = {"OFF", "MODE2", "MODE1"};
+OSD_TAB_t entrySticksDisplay = {&masterConfig.bfOsdConfig.sticks_display, 2, &STICKS_DISPLAY_NAMES[0]};
 const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "BOLD"};
 OSD_TAB_t entryOSDFont = {&masterConfig.bfOsdConfig.font, 2, &FONT_NAMES[0]};
 OSD_UINT8_t entryWhiteLevel =  {&masterConfig.bfOsdConfig.white_level, 100, 120, 1};
@@ -66,19 +68,21 @@ OSD_UINT8_t entry3DShift =  {&masterConfig.bfOsdConfig.sbs_3d_right_eye_offset, 
 
 OSD_Entry cmsx_menuBrainRE1OsdEntries[] =
 {
-    {"------- OSD --------", OME_Label, NULL, NULL},
-    {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps},
-    {"FONT", OME_TAB, NULL, &entryOSDFont},
-    {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel},
-    {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel},
-    {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh},
-    {"OSD X OFF", OME_INT8, NULL, &entryXoff},
-    {"OSD X SC", OME_UINT8, NULL, &entryXScale},
-    {"3D MODE", OME_Bool, NULL, &masterConfig.bfOsdConfig.sbs_3d_enabled},
-    {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift},
+    {"------- OSD --------", OME_Label, NULL, NULL, 0},
+    {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
+    {"ALTITUDE SCALE", OME_Bool, NULL, &masterConfig.bfOsdConfig.altitude_scale, 0},
+    {"SHOW STICKS", OME_TAB, NULL, &entrySticksDisplay, 0},
+    {"FONT", OME_TAB, NULL, &entryOSDFont, 0},
+    {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel, 0},
+    {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel, 0},
+    {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh, 0},
+    {"OSD X OFF", OME_INT8, NULL, &entryXoff, 0},
+    {"OSD X SC", OME_UINT8, NULL, &entryXScale, 0},
+    {"3D MODE", OME_Bool, NULL, &masterConfig.bfOsdConfig.sbs_3d_enabled, 0},
+    {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift, 0},
 
-    {"BACK", OME_Back, NULL, NULL},
-    {NULL, OME_END, NULL, NULL}
+    {"BACK", OME_Back, NULL, NULL, 0},
+    {NULL, OME_END, NULL, NULL, 0}
 };
 
 CMS_Menu cmsx_menuBrainRE1Osd = {
@@ -98,13 +102,13 @@ OSD_UINT16_t entryIRTrackmate =  {&masterConfig.bfOsdConfig.ir_trackmate_id, 0, 
 
 OSD_Entry cmsx_menuBrainRE1IrEntries[] =
 {
-    {"-- IR TRANSPONDER --", OME_Label, NULL, NULL},
-    {"IR SYS", OME_TAB, NULL, &entryIRSys},
-    {"I LAP ID", OME_UINT32, NULL, &entryIRIlap},
-    {"TRACKMATE ID", OME_UINT16, NULL, &entryIRTrackmate},
+    {"-- IR TRANSPONDER --", OME_Label, NULL, NULL, 0},
+    {"IR SYS", OME_TAB, NULL, &entryIRSys, 0},
+    {"I LAP ID", OME_UINT32, NULL, &entryIRIlap, 0},
+    {"TRACKMATE ID", OME_UINT16, NULL, &entryIRTrackmate, 0},
 
-    {"BACK", OME_Back, NULL, NULL},
-    {NULL, OME_END, NULL, NULL}
+    {"BACK", OME_Back, NULL, NULL, 0},
+    {NULL, OME_END, NULL, NULL, 0}
 };
 
 CMS_Menu cmsx_menuBrainRE1Ir = {
@@ -123,10 +127,10 @@ OSD_Entry cmsx_menuBrainRE1Entires[] =
 
     {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainRE1Ir, 0},
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
-    {"SPECTROGRAPH", OME_Bool, NULL, &masterConfig.bfOsdConfig.spec_enabled},
+    {"SPECTROGRAPH", OME_Bool, NULL, &masterConfig.bfOsdConfig.spec_enabled, 0},
 #endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
-    {"BACK", OME_Back, NULL, NULL},
-    {NULL, OME_END, NULL, NULL}
+    {"BACK", OME_Back, NULL, NULL, 0},
+    {NULL, OME_END, NULL, NULL, 0}
 };
 
 CMS_Menu cmsx_menuBrainRE1 = {
