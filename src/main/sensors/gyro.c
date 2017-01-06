@@ -443,7 +443,7 @@ void gyroUpdate(void)
 
     const bool calibrationComplete = isGyroCalibrationComplete();
     if (calibrationComplete) {
-#if defined(GYRO_USES_SPI) && defined(USE_MPU_DATA_READY_SIGNAL)
+#if defined(GYRO_USES_SPI) && defined(USE_MPU_DATA_READY_SIGNAL) && !defined(BRAINRE1)
         // SPI-based gyro so can read and update in ISR
         if (gyroConfig->gyro_isr_update) {
             mpuGyroSetIsrUpdate(&gyro.dev, gyroUpdateISR);
