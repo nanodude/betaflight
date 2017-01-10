@@ -431,15 +431,20 @@ static bool gyroUpdateISR(gyroDev_t* gyroDev)
 void gyroUpdate(void)
 {
     // range: +/- 8192; +/- 2000 deg/sec
-#if defined(MPU_INT_EXTI)
-    if (!gyro.dev.dataReady || !gyro.dev.read(&gyro.dev)) {
+    if (gyro.dev.update) {
+        // if the gyro update function is set then return, since the gyro is read in gyroUpdateISR
         return;
     }
-#else
     if (!gyro.dev.read(&gyro.dev)) {
         return;
     }
-#endif
+    gyro.dev.dataReady = false;
+    // move gyro data into 32-bit variables to avoid overflows in calculations
+    gyroADC[X] = gyro.dev.gyroADCRaw[X];
+    gyroADC[Y] = gyro.dev.gyroADCRaw[Y];
+    gyroADC[Z] = gyro.dev.gyroADCRaw[Z];
+
+    alignSensors(gyroADC, gyro.dev.gyroAlign);
 
     const bool calibrationComplete = isGyroCalibrationComplete();
     if (calibrationComplete) {
@@ -453,16 +458,7 @@ void gyroUpdate(void)
 #ifdef DEBUG_MPU_DATA_READY_INTERRUPT
         debug[3] = (uint16_t)(micros() & 0xffff);
 #endif
-    }
-    gyro.dev.dataReady = false;
-    // move gyro data into 32-bit variables to avoid overflows in calculations
-    gyroADC[X] = gyro.dev.gyroADCRaw[X];
-    gyroADC[Y] = gyro.dev.gyroADCRaw[Y];
-    gyroADC[Z] = gyro.dev.gyroADCRaw[Z];
-
-    alignSensors(gyroADC, gyro.dev.gyroAlign);
-
-    if (!calibrationComplete) {
+    } else {
         performGyroCalibration(gyroConfig->gyroMovementCalibrationThreshold);
     }
 
@@ -480,10 +476,12 @@ void gyroUpdate(void)
         gyroADCf = notchFilter1ApplyFn(notchFilter1[axis], gyroADCf);
         gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
         gyro.gyroADCf[axis] = gyroADCf;
+    }
 
-        if (!calibrationComplete) {
-            gyroADC[axis] = lrintf(gyro.gyroADCf[axis] / gyro.dev.scale);
-        }
+    if (!calibrationComplete) {
+        gyroADC[X] = lrintf(gyro.gyroADCf[X] / gyro.dev.scale);
+        gyroADC[Y] = lrintf(gyro.gyroADCf[Y] / gyro.dev.scale);
+        gyroADC[Z] = lrintf(gyro.gyroADCf[Z] / gyro.dev.scale);
     }
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     if (spec_data_processed) {

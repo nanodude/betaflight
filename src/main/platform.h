@@ -18,7 +18,7 @@
 #pragma once
 
 
-#if defined(STM32F745xx) || defined(STM32F746xx)
+#if defined(STM32F745xx) || defined(STM32F746xx) || defined(STM32F722xx)
 #include "stm32f7xx.h"
 #include "stm32f7xx_hal.h"
 
@@ -28,7 +28,6 @@
 #define U_ID_2 (*(uint32_t*)0x1ff0f428)
 
 #define STM32F7
-#endif
 
 #if defined(STM32F40_41xxx) || defined (STM32F411xE) || defined (STM32F446xx)
 #include "stm32f4xx_conf.h"
@@ -42,9 +41,8 @@
 #define U_ID_2 (*(uint32_t*)0x1fff7a18)
 
 #define STM32F4
-#endif
 
-#ifdef STM32F303xC
+#elif defined(STM32F303xC)
 #include "stm32f30x_conf.h"
 #include "stm32f30x_rcc.h"
 #include "stm32f30x_gpio.h"
@@ -56,9 +54,8 @@
 #define U_ID_2 (*(uint32_t*)0x1FFFF7B4)
 
 #define STM32F3
-#endif
 
-#ifdef STM32F10X
+#elif defined(STM32F10X)
 
 #include "stm32f10x_conf.h"
 #include "stm32f10x_gpio.h"
@@ -70,7 +67,10 @@
 #define U_ID_2 (*(uint32_t*)0x1FFFF7F0)
 
 #define STM32F1
-#endif // STM32F10X
+
+#else // STM32F10X
+#error "Invalid chipset specified. Update platform.h"
+#endif
 
 #include "target/common.h"
 #include "target.h"

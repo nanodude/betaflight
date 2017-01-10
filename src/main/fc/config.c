@@ -186,7 +186,7 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->levelSensitivity = 100;  // 100 degrees at full stick
     pidProfile->setpointRelaxRatio = 30;
     pidProfile->dtermSetpointWeight = 200;
-    pidProfile->yawRateAccelLimit = 20.0f;
+    pidProfile->yawRateAccelLimit = 10.0f;
     pidProfile->rateAccelLimit = 0.0f;
     pidProfile->itermThrottleThreshold = 350;
 }
@@ -446,10 +446,11 @@ void resetBatteryConfig(batteryConfig_t *batteryConfig)
 
 void resetSerialConfig(serialConfig_t *serialConfig)
 {
-    uint8_t index;
     memset(serialConfig, 0, sizeof(serialConfig_t));
+    serialConfig->serial_update_rate_hz =  100;
+    serialConfig->reboot_character = 'R';
 
-    for (index = 0; index < SERIAL_PORT_COUNT; index++) {
+    for (int index = 0; index < SERIAL_PORT_COUNT; index++) {
         serialConfig->portConfigs[index].identifier = serialPortIdentifiers[index];
         serialConfig->portConfigs[index].msp_baudrateIndex = BAUD_115200;
         serialConfig->portConfigs[index].gps_baudrateIndex = BAUD_57600;
@@ -458,13 +459,10 @@ void resetSerialConfig(serialConfig_t *serialConfig)
     }
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
-
 #if defined(USE_VCP)
     // This allows MSP connection via USART & VCP so the board can be reconfigured.
     serialConfig->portConfigs[1].functionMask = FUNCTION_MSP;
 #endif
-
-    serialConfig->reboot_character = 'R';
 }
 
 void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig)
@@ -631,6 +629,7 @@ void createDefaultConfig(master_t *config)
     config->gyroConfig.gyro_soft_notch_cutoff_2 = 100;
 
     config->debug_mode = DEBUG_MODE;
+    config->task_statistics = true;
 
     resetAccelerometerTrims(&config->accelerometerConfig.accZero);
 
@@ -703,6 +702,7 @@ void createDefaultConfig(master_t *config)
     config->rxConfig.rssi_scale = RSSI_SCALE_DEFAULT;
     config->rxConfig.rssi_ppm_invert = 0;
     config->rxConfig.rcInterpolation = RC_SMOOTHING_AUTO;
+    config->rxConfig.rcInterpolationChannels = 0;
     config->rxConfig.rcInterpolationInterval = 19;
     config->rxConfig.fpvCamAngleDegrees = 0;
     config->rxConfig.max_aux_channel = MAX_AUX_CHANNELS;
@@ -1060,6 +1060,13 @@ void validateAndFixGyroConfig(void)
     if (gyroConfig()->gyro_use_32khz) {
 #ifdef GYRO_SUPPORTS_32KHZ
         samplingTime = 0.00003125;
+        // F1 and F3 can't handle high pid speed.
+#if defined(STM32F1)
+        pidConfig()->pid_process_denom = constrain(pidConfig()->pid_process_denom, 16, 16);
+#endif
+#if defined(STM32F3)
+        pidConfig()->pid_process_denom = constrain(pidConfig()->pid_process_denom, 4, 16);
+#endif
 #else
         gyroConfig()->gyro_use_32khz = false;
 #endif
@@ -1089,9 +1096,12 @@ void validateAndFixGyroConfig(void)
             motorUpdateRestriction = 0.0001f;
             break;
         case (PWM_TYPE_DSHOT150):
-            motorUpdateRestriction = 0.000125f;
+            motorUpdateRestriction = 0.000250f;
             break;
         case (PWM_TYPE_DSHOT300):
+            motorUpdateRestriction = 0.0001f;
+            break;
+        case (PWM_TYPE_DSHOT600):
             motorUpdateRestriction = 0.0000625f;
             break;
         default:
@@ -1102,7 +1112,7 @@ void validateAndFixGyroConfig(void)
         pidConfig()->pid_process_denom = motorUpdateRestriction / (samplingTime * gyroConfig()->gyro_sync_denom);
 
     // Prevent overriding the max rate of motors
-    if(motorConfig()->useUnsyncedPwm) {
+    if(motorConfig()->useUnsyncedPwm && (motorConfig()->motorPwmProtocol <= PWM_TYPE_BRUSHED)) {
         uint32_t maxEscRate = lrintf(1.0f / motorUpdateRestriction);
 
         if(motorConfig()->motorPwmRate > maxEscRate)
