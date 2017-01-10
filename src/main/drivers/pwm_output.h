@@ -40,6 +40,16 @@ typedef enum {
 #ifdef USE_DSHOT
 #define MAX_DMA_TIMERS        8
 
+#if defined(STM32F446xx)
+#define MOTOR_DSHOT1200_MHZ   90
+#define MOTOR_DSHOT600_MHZ    45
+#define MOTOR_DSHOT300_MHZ    22.5
+#define MOTOR_DSHOT150_MHZ    11.25
+
+#define MOTOR_BIT_0     28
+#define MOTOR_BIT_1     56
+#define MOTOR_BITLENGTH 77
+#else
 #define MOTOR_DSHOT1200_MHZ   24
 #define MOTOR_DSHOT600_MHZ    12
 #define MOTOR_DSHOT300_MHZ    6
@@ -48,6 +58,7 @@ typedef enum {
 #define MOTOR_BIT_0           7
 #define MOTOR_BIT_1           14
 #define MOTOR_BITLENGTH       19
+#endif /* defined(STM32F446xx) */
 #endif
 
 #if defined(STM32F40_41xxx) // must be multiples of timer clock
