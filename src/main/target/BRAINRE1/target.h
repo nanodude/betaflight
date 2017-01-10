@@ -33,6 +33,9 @@
 #define BEEPER
 #define LED_STRIP
 
+#define USE_ESCSERIAL
+#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_FIRST_SECTOR     4
