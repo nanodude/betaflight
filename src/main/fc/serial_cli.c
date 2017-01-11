@@ -192,7 +192,7 @@ static const char * const lookupTableMagHardware[] = {
 };
 #endif
 
-#if (FLASH_SIZE > 64) && !defined(CLI_MINIMAL_VERBOSITY)
+#if defined(USE_SENSOR_NAMES)
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
     "GYRO", "ACC", "BARO", "MAG", "SONAR", "GPS", "GPS+MAG", NULL
@@ -206,7 +206,7 @@ static const char * const sensorHardwareNames[4][15] = {
     { "", "None", "BMP085", "MS5611", "BMP280", NULL },
     { "", "None", "HMC5883", "AK8975", "AK8963", NULL }
 };
-#endif
+#endif /* USE_SENSOR_NAMES */
 
 static const char * const lookupTableOffOn[] = {
     "OFF", "ON"
@@ -269,7 +269,8 @@ static const char * const lookupTableSerialRX[] = {
     "XB-B-RJ01",
     "IBUS",
     "JETIEXBUS",
-    "CRSF"
+    "CRSF",
+    "SRXL"
 };
 #endif
 
@@ -616,9 +617,7 @@ const clivalue_t valueTable[] = {
 #if defined(GYRO_USES_SPI) && defined(USE_MPU_DATA_READY_SIGNAL)
     { "gyro_isr_update",            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &gyroConfig()->gyro_isr_update, .config.lookup = { TABLE_OFF_ON } },
 #endif
-#ifdef GYRO_SUPPORTS_32KHZ
     { "gyro_use_32khz",             VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &gyroConfig()->gyro_use_32khz, .config.lookup = { TABLE_OFF_ON } },
-#endif
     { "gyro_lowpass_type",          VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &gyroConfig()->gyro_soft_lpf_type, .config.lookup = { TABLE_LOWPASS_TYPE } },
     { "gyro_lowpass",               VAR_UINT8  | MASTER_VALUE,  &gyroConfig()->gyro_soft_lpf_hz, .config.minmax = { 0,  255 } },
     { "gyro_notch1_hz",             VAR_UINT16 | MASTER_VALUE,  &gyroConfig()->gyro_soft_notch_hz_1, .config.minmax = { 0,  1000 } },
@@ -3208,7 +3207,7 @@ static void cliStatus(char *cmdline)
 
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
-#if (FLASH_SIZE > 64) && !defined(CLI_MINIMAL_VERBOSITY)
+#if defined(USE_SENSOR_NAMES)
     const uint32_t detectedSensorsMask = sensorsMask();
     for (uint32_t i = 0; ; i++) {
         if (sensorTypeNames[i] == NULL) {
@@ -3224,7 +3223,7 @@ static void cliStatus(char *cmdline)
             }
         }
     }
-#endif
+#endif /* USE_SENSOR_NAMES */
     cliPrint("\r\n");
 
 #ifdef USE_SDCARD
@@ -3359,7 +3358,7 @@ static void cliVersion(char *cmdline)
     );
 }
 
-#if (FLASH_SIZE > 64)
+#if defined(USE_RESOURCE_MGMT)
 
 typedef struct {
     const uint8_t owner;
@@ -3585,7 +3584,7 @@ static void cliResource(char *cmdline)
 
     cliShowParseError();
 }
-#endif
+#endif /* USE_RESOURCE_MGMT */
 
 static void printConfig(char *cmdline, bool doDiff)
 {
@@ -3627,8 +3626,10 @@ static void printConfig(char *cmdline, bool doDiff)
 #endif
         printName(dumpMask);
 
+#ifdef USE_RESOURCE_MGMT
         cliPrintHashLine("resources");
         printResource(dumpMask, &defaultConfig);
+#endif 
 
 #ifndef USE_QUAD_MIXER_ONLY
         cliPrintHashLine("mixer");
@@ -3813,28 +3814,23 @@ const clicmd_t cmdTable[] = {
 #ifdef LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
-    CLI_COMMAND_DEF("map", "configure rc channel order",
-        "[<map>]", cliMap),
+    CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
 #ifndef USE_QUAD_MIXER_ONLY
-    CLI_COMMAND_DEF("mixer", "configure mixer", "list\r\n"
-        "\t<name>", cliMixer),
+    CLI_COMMAND_DEF("mixer", "configure mixer", "list\r\n\t<name>", cliMixer),
 #endif
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
 #ifdef LED_STRIP
     CLI_COMMAND_DEF("mode_color", "configure mode and special colors", NULL, cliModeColor),
 #endif
-    CLI_COMMAND_DEF("motor",  "get/set motor",
-       "<index> [<value>]", cliMotor),
+    CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor), 
     CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),
 #if (FLASH_SIZE > 128)
-    CLI_COMMAND_DEF("play_sound", NULL,
-        "[<index>]", cliPlaySound),
+    CLI_COMMAND_DEF("play_sound", NULL, "[<index>]", cliPlaySound),
 #endif
-    CLI_COMMAND_DEF("profile", "change profile",
-        "[<index>]", cliProfile),
+    CLI_COMMAND_DEF("profile", "change profile", "[<index>]", cliProfile),
     CLI_COMMAND_DEF("rateprofile", "change rate profile", "[<index>]", cliRateProfile),
-#if (FLASH_SIZE > 64)
-    CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
+#if defined(USE_RESOURCE_MGMT)
+    CLI_COMMAND_DEF("resource", "show/set resources", NULL, cliResource),
 #endif
     CLI_COMMAND_DEF("rxfail", "show/set rx failsafe settings", NULL, cliRxFail),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),

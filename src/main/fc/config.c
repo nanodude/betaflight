@@ -459,11 +459,6 @@ void resetSerialConfig(serialConfig_t *serialConfig)
     }
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
-
-#if defined(USE_VCP) && !defined(BRAINRE1)
-    // This allows MSP connection via USART & VCP so the board can be reconfigured.
-    serialConfig->portConfigs[1].functionMask = FUNCTION_MSP;
-#endif
 }
 
 void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig)
@@ -1059,17 +1054,12 @@ void validateAndFixGyroConfig(void)
     float samplingTime = 0.000125f;
 
     if (gyroConfig()->gyro_use_32khz) {
-#ifdef GYRO_SUPPORTS_32KHZ
         samplingTime = 0.00003125;
-        // F1 and F3 can't handle high pid speed.
+        // F1 and F3 can't handle high sample speed.
 #if defined(STM32F1)
-        pidConfig()->pid_process_denom = constrain(pidConfig()->pid_process_denom, 16, 16);
-#endif
-#if defined(STM32F3)
-        pidConfig()->pid_process_denom = constrain(pidConfig()->pid_process_denom, 4, 16);
-#endif
-#else
-        gyroConfig()->gyro_use_32khz = false;
+        gyroConfig()->gyro_sync_denom = constrain(gyroConfig()->gyro_sync_denom, 16, 16);
+#elif defined(STM32F3)
+        gyroConfig()->gyro_sync_denom = constrain(gyroConfig()->gyro_sync_denom, 4, 16);
 #endif
     }
 
@@ -1096,15 +1086,14 @@ void validateAndFixGyroConfig(void)
         case (PWM_TYPE_ONESHOT42):
             motorUpdateRestriction = 0.0001f;
             break;
+#ifdef USE_DSHOT
         case (PWM_TYPE_DSHOT150):
             motorUpdateRestriction = 0.000250f;
             break;
         case (PWM_TYPE_DSHOT300):
             motorUpdateRestriction = 0.0001f;
             break;
-        case (PWM_TYPE_DSHOT600):
-            motorUpdateRestriction = 0.0000625f;
-            break;
+#endif
         default:
             motorUpdateRestriction = 0.00003125f;
     }
