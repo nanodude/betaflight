@@ -293,7 +293,7 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
     bfOsdConfig->ahi_steps = 2;
     bfOsdConfig->bmi160foc = 0;
     bfOsdConfig->altitude_scale = 1;
-    bfOsdConfig->sticks_display = 1;
+    bfOsdConfig->sticks_display = 0;
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     bfOsdConfig->spec_enabled = 0;
 #endif
