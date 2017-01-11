@@ -613,6 +613,9 @@ void createDefaultConfig(master_t *config)
 #elif defined(USE_GYRO_SPI_MPU6000) || defined(USE_GYRO_SPI_MPU6500)  || defined(USE_GYRO_SPI_ICM20689)
     config->gyroConfig.gyro_sync_denom = 1;
     config->pidConfig.pid_process_denom = 4;
+#elif defined(BRAINRE1)
+    config->gyroConfig.gyro_sync_denom = 1;
+    config->pidConfig.pid_process_denom = 1;
 #else
     config->gyroConfig.gyro_sync_denom = 4;
     config->pidConfig.pid_process_denom = 2;
@@ -1072,6 +1075,10 @@ void validateAndFixGyroConfig(void)
         gyroConfig()->gyro_sync_denom = 1;
         samplingTime = 0.001f;
     }
+
+#if defined(BRAINRE1)
+    samplingTime = 0.0003125f;
+#endif
 
     // check for looptime restrictions based on motor protocol. Motor times have safety margin
     const float pidLooptime = samplingTime * gyroConfig()->gyro_sync_denom * pidConfig()->pid_process_denom;
