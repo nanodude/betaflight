@@ -46,10 +46,10 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
     bool inverted = uartPort->port.options & SERIAL_INVERTED;
 
 #ifdef USE_INVERTER
-	if (inverted) {
-		// Enable hardware inverter if available.
-		enableInverter(uartPort->USARTx, true);
-	}
+    if (inverted) {
+        // Enable hardware inverter if available.
+        enableInverter(uartPort->USARTx, true);
+    }
 #endif
 
 #ifdef USE_RE1_FPGA
@@ -59,12 +59,20 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
         }
         if (uartPort->USARTx == USART6) {
             if (uartPort->port.options & SERIAL_BIDIR) {
+                // inverted bi-directional mode with pull-down
                 RE1FPGA_MPTxPinMode(true, true);
                 RE1FPGA_MPTxPinPullUpDown(true, false);
             }
             else {
                 RE1FPGA_MPTxPinMode(false, true);
             }
+        }
+    }
+    else {
+        if ((uartPort->USARTx == USART6) && (uartPort->port.options & SERIAL_BIDIR)) {
+            // non-inverted bi-directional mode with pullup
+            RE1FPGA_MPTxPinMode(true, false);
+            RE1FPGA_MPTxPinPullUpDown(true, true);
         }
     }
 #endif
