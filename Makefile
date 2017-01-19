@@ -81,7 +81,9 @@ include $(ROOT)/make/system-id.mk
 -include $(ROOT)/make/local.mk
 
 # configure some directories that are relative to wherever ROOT_DIR is located
+ifndef TOOLS_DIR
 TOOLS_DIR := $(ROOT)/tools
+endif
 BUILD_DIR := $(ROOT)/build
 DL_DIR    := $(ROOT)/downloads
 
@@ -94,7 +96,7 @@ include $(ROOT)/make/$(OSFAMILY).mk
 include $(ROOT)/make/tools.mk
 
 # default xtal value for F4 targets
-HSE_VALUE       = 8000000
+HSE_VALUE       ?= 8000000
 
 # used for turning on features like VCP and SDCARD
 FEATURES        =
@@ -541,13 +543,13 @@ COMMON_SRC = \
             fc/fc_init.c \
             fc/fc_dispatch.c \
             fc/fc_hardfaults.c \
-            fc/fc_main.c \
+            fc/fc_core.c \
             fc/fc_msp.c \
             fc/fc_tasks.c \
             fc/rc_controls.c \
             fc/rc_curves.c \
             fc/runtime_config.c \
-            fc/serial_cli.c \
+            fc/cli.c \
             flight/altitudehold.c \
             flight/failsafe.c \
             flight/imu.c \
@@ -606,6 +608,7 @@ HIGHEND_SRC = \
             drivers/serial_escserial.c \
             drivers/serial_softserial.c \
             drivers/sonar_hcsr04.c \
+            drivers/vtx_common.c \
             flight/navigation.c \
             flight/gps_conversion.c \
             io/dashboard.c \
@@ -627,7 +630,9 @@ HIGHEND_SRC = \
             telemetry/mavlink.c \
             telemetry/ibus.c \
             sensors/esc_sensor.c \
-            io/vtx_smartaudio.c
+            io/vtx_string.c \
+            io/vtx_smartaudio.c \
+            io/vtx_tramp.c
 
 SPEED_OPTIMISED_SRC := ""
 SIZE_OPTIMISED_SRC  := ""
@@ -719,7 +724,8 @@ SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
 
 SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             drivers/serial_escserial.c \
-            io/serial_cli.c \
+            drivers/vtx_common.c \
+            io/cli.c \
             io/serial_4way.c \
             io/serial_4way_avrootloader.c \
             io/serial_4way_stk500v2.c \
@@ -732,7 +738,8 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             cms/cms_menu_misc.c \
             cms/cms_menu_osd.c \
             cms/cms_menu_vtx.c \
-            io/vtx_smartaudio.c
+            io/vtx_smartaudio.c \
+            io/vtx_tramp.c
 endif #F3
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))

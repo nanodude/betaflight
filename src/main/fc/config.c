@@ -142,10 +142,10 @@ static void resetControlRateConfig(controlRateConfig_t *controlRateConfig)
 
 static void resetPidProfile(pidProfile_t *pidProfile)
 {
-    pidProfile->P8[ROLL] = 43;
+    pidProfile->P8[ROLL] = 40;
     pidProfile->I8[ROLL] = 40;
     pidProfile->D8[ROLL] = 20;
-    pidProfile->P8[PITCH] = 58;
+    pidProfile->P8[PITCH] = 55;
     pidProfile->I8[PITCH] = 50;
     pidProfile->D8[PITCH] = 22;
     pidProfile->P8[YAW] = 70;
@@ -182,13 +182,14 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->dterm_notch_cutoff = 160;
     pidProfile->vbatPidCompensation = 0;
     pidProfile->pidAtMinThrottle = PID_STABILISATION_ON;
-    pidProfile->levelAngleLimit = 70;    // 70 degrees
-    pidProfile->levelSensitivity = 100;  // 100 degrees at full stick
+    pidProfile->levelAngleLimit = 55;
+    pidProfile->levelSensitivity = 55;
     pidProfile->setpointRelaxRatio = 30;
     pidProfile->dtermSetpointWeight = 200;
     pidProfile->yawRateAccelLimit = 10.0f;
     pidProfile->rateAccelLimit = 0.0f;
-    pidProfile->itermThrottleThreshold = 350;
+    pidProfile->itermThrottleThreshold = 300;
+    pidProfile->itermAcceleratorGain = 4.0f;
 }
 
 void resetProfile(profile_t *profile)
@@ -471,6 +472,11 @@ void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig)
 
 void resetMixerConfig(mixerConfig_t *mixerConfig)
 {
+#ifdef TARGET_DEFAULT_MIXER
+    mixerConfig->mixerMode = TARGET_DEFAULT_MIXER;
+#else
+    mixerConfig->mixerMode = MIXER_QUADX;
+#endif
     mixerConfig->yaw_motor_direction = 1;
 }
 
@@ -491,6 +497,12 @@ void resetMax7456Config(vcdProfile_t *pVcdProfile)
     pVcdProfile->v_offset = 0;
 }
 #endif
+
+void resetDisplayPortProfile(displayPortProfile_t *pDisplayPortProfile)
+{
+    pDisplayPortProfile->colAdjust = 0;
+    pDisplayPortProfile->rowAdjust = 0;
+}
 
 void resetStatusLedConfig(statusLedConfig_t *statusLedConfig)
 {
@@ -580,6 +592,13 @@ void createDefaultConfig(master_t *config)
     intFeatureSet(DEFAULT_FEATURES, featuresPtr);
 #endif
 
+#ifdef USE_MSP_DISPLAYPORT
+    resetDisplayPortProfile(&config->displayPortProfileMsp);
+#endif
+#ifdef USE_MAX7456
+    resetDisplayPortProfile(&config->displayPortProfileMax7456);
+#endif
+
 #ifdef USE_MAX7456
     resetMax7456Config(&config->vcdProfile);
 #endif
@@ -600,7 +619,6 @@ void createDefaultConfig(master_t *config)
 #endif
 
     config->version = EEPROM_CONF_VERSION;
-    config->mixerConfig.mixerMode = MIXER_QUADX;
 
     // global settings
     config->current_profile_index = 0;    // default profile
@@ -641,7 +659,7 @@ void createDefaultConfig(master_t *config)
     config->boardAlignment.yawDegrees = 0;
     config->accelerometerConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
     config->rcControlsConfig.yaw_control_direction = 1;
-    config->gyroConfig.gyroMovementCalibrationThreshold = 32;
+    config->gyroConfig.gyroMovementCalibrationThreshold = 48;
 
     // xxx_hardware: 0:default/autodetect, 1: disable
     config->compassConfig.mag_hardware = 1;
@@ -1056,6 +1074,13 @@ void validateAndFixGyroConfig(void)
 
     float samplingTime = 0.000125f;
 
+    if (gyroConfig()->gyro_lpf != GYRO_LPF_256HZ && gyroConfig()->gyro_lpf != GYRO_LPF_NONE) {
+        pidConfig()->pid_process_denom = 1; // When gyro set to 1khz always set pid speed 1:1 to sampling speed
+        gyroConfig()->gyro_sync_denom = 1;
+        gyroConfig()->gyro_use_32khz = false;
+        samplingTime = 0.001f;
+    }
+
     if (gyroConfig()->gyro_use_32khz) {
         samplingTime = 0.00003125;
         // F1 and F3 can't handle high sample speed.
@@ -1069,12 +1094,6 @@ void validateAndFixGyroConfig(void)
 #if !defined(GYRO_USES_SPI) || !defined(USE_MPU_DATA_READY_SIGNAL)
     gyroConfig()->gyro_isr_update = false;
 #endif
-
-    if (gyroConfig()->gyro_lpf != GYRO_LPF_256HZ && gyroConfig()->gyro_lpf != GYRO_LPF_NONE) {
-        pidConfig()->pid_process_denom = 1; // When gyro set to 1khz always set pid speed 1:1 to sampling speed
-        gyroConfig()->gyro_sync_denom = 1;
-        samplingTime = 0.001f;
-    }
 
 #if defined(BRAINRE1)
     samplingTime = 0.0003125f;

@@ -21,6 +21,7 @@
 
 #define PID_CONTROLLER_BETAFLIGHT 1
 #define PID_MIXER_SCALING 100.0f
+#define PID_SERVO_MIXER_SCALING 7.0f
 #define YAW_P_LIMIT_MIN 100                 // Maximum value for yaw P limiter
 #define YAW_P_LIMIT_MAX 500                 // Maximum value for yaw P limiter
 #define PIDSUM_LIMIT 0.5f
@@ -77,6 +78,7 @@ typedef struct pidProfile_s {
 
     // Betaflight PID controller parameters
     uint16_t itermThrottleThreshold;        // max allowed throttle delta before errorGyroReset in ms
+    float itermAcceleratorGain;             // Iterm Accelerator Gain when itermThrottlethreshold is hit
     uint8_t setpointRelaxRatio;             // Setpoint weight relaxation effect
     uint8_t dtermSetpointWeight;            // Setpoint weight for Dterm (0= measurement, 1= full error, 1 > agressive derivative)
     float yawRateAccelLimit;                // yaw accel limiter for deg/sec/ms
@@ -101,6 +103,7 @@ extern uint8_t PIDweight[3];
 void pidResetErrorGyroState(void);
 void pidStabilisationState(pidStabilisationState_e pidControllerState);
 void pidSetTargetLooptime(uint32_t pidLooptime);
+void pidSetItermAccelerator(float newItermAccelerator);
 void pidInitFilters(const pidProfile_t *pidProfile);
 void pidInitConfig(const pidProfile_t *pidProfile);
 

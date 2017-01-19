@@ -32,14 +32,15 @@
 #include "drivers/compass.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/config.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
-#include "fc/fc_main.h"
+#include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
-#include "fc/serial_cli.h"
+#include "fc/cli.h"
 #include "fc/fc_dispatch.h"
 
 #include "flight/pid.h"
@@ -52,7 +53,7 @@
 #include "io/osd.h"
 #include "io/serial.h"
 #include "io/transponder_ir.h"
-#include "io/vtx_smartaudio.h"
+#include "io/vtx_tramp.h" // Will be gone
 
 #include "msp/msp_serial.h"
 
@@ -212,8 +213,8 @@ void taskVtxControl(uint32_t currentTime)
     if (ARMING_FLAG(ARMED))
         return;
 
-#ifdef VTX_SMARTAUDIO
-    smartAudioProcess(currentTime);
+#ifdef VTX_COMMON
+    vtxCommonProcess(currentTime);
 #endif
 }
 #endif
@@ -300,7 +301,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
 #ifdef VTX_CONTROL
-#ifdef VTX_SMARTAUDIO
+#if defined(VTX_SMARTAUDIO) || defined(VTX_TRAMP)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif

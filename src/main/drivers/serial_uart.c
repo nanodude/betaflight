@@ -40,17 +40,16 @@
 #endif
 
 static void usartConfigurePinInversion(uartPort_t *uartPort) {
-#if !defined(INVERTER) && !defined(STM32F303xC) && !defined(USE_RE1_FPGA)
+#if !defined(USE_INVERTER) && !defined(STM32F303xC) && !defined(USE_RE1_FPGA)
     UNUSED(uartPort);
 #else
     bool inverted = uartPort->port.options & SERIAL_INVERTED;
 
-#ifdef INVERTER
-    if (inverted && uartPort->USARTx == INVERTER_USART) {
-        // Enable hardware inverter if available.
-
-        INVERTER_ON;
-    }
+#ifdef USE_INVERTER
+	if (inverted) {
+		// Enable hardware inverter if available.
+		enableInverter(uartPort->USARTx, true);
+	}
 #endif
 
 #ifdef USE_RE1_FPGA

@@ -17,10 +17,25 @@
 
 #pragma once
 
-#if defined(INVERTER_PIN_USART1) || defined(INVERTER_PIN_USART2) || defined(INVERTER_PIN_USART3) || defined(INVERTER_PIN_USART4) || defined(INVERTER_PIN_USART5) || defined(INVERTER_PIN_USART6)
-#define USE_INVERTER
-#endif
+#include "fc/rc_controls.h"
 
-void initInverters(void);
+#define VTX_BAND_MIN                            1
+#define VTX_BAND_MAX                            5
+#define VTX_CHANNEL_MIN                         1
+#define VTX_CHANNEL_MAX                         8
+#define MAX_CHANNEL_ACTIVATION_CONDITION_COUNT  10
 
-void enableInverter(USART_TypeDef *USARTx, bool on);
+typedef struct vtxChannelActivationCondition_s {
+    uint8_t auxChannelIndex;
+    uint8_t band;
+    uint8_t channel;
+    channelRange_t range;
+} vtxChannelActivationCondition_t;
+
+void vtxSingularityInit(void);
+void vtxSingularityIncrementBand(void);
+void vtxSingularityDecrementBand(void);
+void vtxSingularityIncrementChannel(void);
+void vtxSingularityDecrementChannel(void);
+void vtxSingularityUpdateActivatedChannel(void);
+

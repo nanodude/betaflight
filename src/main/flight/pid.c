@@ -28,7 +28,7 @@
 #include "common/maths.h"
 #include "common/filter.h"
 
-#include "fc/fc_main.h"
+#include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
@@ -63,6 +63,12 @@ void pidResetErrorGyroState(void)
     for (int axis = 0; axis < 3; axis++) {
         previousGyroIf[axis] = 0.0f;
     }
+}
+
+static float itermAccelerator = 1.0f;
+
+void pidSetItermAccelerator(float newItermAccelerator) {
+    itermAccelerator = newItermAccelerator;
 }
 
 void pidStabilisationState(pidStabilisationState_e pidControllerState)
@@ -237,7 +243,7 @@ void pidController(const pidProfile_t *pidProfile, const rollAndPitchTrims_t *an
         const float setpointRateScaler = constrainf(1.0f - (ABS(currentPidSetpoint) / accumulationThreshold), 0.0f, 1.0f);
 
         float ITerm = previousGyroIf[axis];
-        ITerm += Ki[axis] * errorRate * dT * setpointRateScaler;
+        ITerm += Ki[axis] * errorRate * dT * setpointRateScaler * itermAccelerator;
         // limit maximum integrator value to prevent WindUp
         ITerm = constrainf(ITerm, -250.0f, 250.0f);
         previousGyroIf[axis] = ITerm;

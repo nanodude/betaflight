@@ -15,14 +15,13 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-#include "common/time.h"
+#include <platform.h>
 
-void transponderInit(uint8_t* transponderCode);
+#include "config/config_master.h"
 
-void transponderUpdate(timeUs_t currentTimeUs);
-void transponderUpdateData(uint8_t* transponderData);
-void transponderTransmitOnce(void);
-void transponderStartRepeating(void);
-void transponderStopRepeating(void);
+void targetConfiguration(master_t *config) {
+    config->batteryConfig.vbatmaxcellvoltage = 45;
+    config->batteryConfig.currentMeterScale = 119;
+}

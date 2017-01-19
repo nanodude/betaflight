@@ -65,11 +65,12 @@ uint8_t cliMode = 0;
 #include "drivers/system.h"
 #include "drivers/timer.h"
 #include "drivers/vcd.h"
+#include "drivers/display.h"
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
-#include "fc/serial_cli.h"
+#include "fc/cli.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -700,6 +701,7 @@ const clivalue_t valueTable[] = {
     { "vbat_pid_compensation",      VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, &masterConfig.profile[0].pidProfile.vbatPidCompensation, .config.lookup = { TABLE_OFF_ON } },
     { "pid_at_min_throttle",        VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, &masterConfig.profile[0].pidProfile.pidAtMinThrottle, .config.lookup = { TABLE_OFF_ON } },
     { "anti_gravity_threshold",     VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.itermThrottleThreshold, .config.minmax = {20, 1000 } },
+    { "anti_gravity_gain",          VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.itermAcceleratorGain, .config.minmax = {1, 30 } },
     { "setpoint_relax_ratio",       VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.setpointRelaxRatio, .config.minmax = {0, 100 } },
     { "dterm_setpoint_weight",      VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.dtermSetpointWeight, .config.minmax = {0, 255 } },
     { "yaw_accel_limit",            VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.yawRateAccelLimit, .config.minmax = {0.1f, 50.0f } },
@@ -818,6 +820,14 @@ const clivalue_t valueTable[] = {
     { "vcd_video_system",           VAR_UINT8   | MASTER_VALUE, &vcdProfile()->video_system, .config.minmax = { 0, 2 } },
     { "vcd_h_offset",               VAR_INT8    | MASTER_VALUE, &vcdProfile()->h_offset, .config.minmax = { -32, 31 } },
     { "vcd_v_offset",               VAR_INT8    | MASTER_VALUE, &vcdProfile()->v_offset, .config.minmax = { -15, 16 } },
+#endif
+#ifdef USE_MSP_DISPLAYPORT
+    { "displayport_msp_col_adjust", VAR_INT8    | MASTER_VALUE, &displayPortProfileMsp()->colAdjust, .config.minmax = { -6, 0 } },
+    { "displayport_msp_row_adjust", VAR_INT8    | MASTER_VALUE, &displayPortProfileMsp()->rowAdjust, .config.minmax = { -3, 0 } },
+#endif
+#ifdef OSD
+    { "displayport_max7456_col_adjust", VAR_INT8    | MASTER_VALUE, &displayPortProfileMax7456()->colAdjust, .config.minmax = { -6, 0 } },
+    { "displayport_max7456_row_adjust", VAR_INT8    | MASTER_VALUE, &displayPortProfileMax7456()->rowAdjust, .config.minmax = { -3, 0 } },
 #endif
 };
 
@@ -2788,9 +2798,8 @@ static void cliReboot(void)
 static void cliDfu(char *cmdLine)
 {
     UNUSED(cmdLine);
-#ifndef CLI_MINIMAL_VERBOSITY
-    cliPrint("\r\nRestarting in DFU mode");
-#endif
+
+    cliPrintHashLine("restarting in DFU mode");
     cliRebootEx(true);
 }
 
@@ -2798,9 +2807,7 @@ static void cliExit(char *cmdline)
 {
     UNUSED(cmdline);
 
-#ifndef CLI_MINIMAL_VERBOSITY
-    cliPrint("\r\nLeaving CLI mode, unsaved changes lost.\r\n");
-#endif
+    cliPrintHashLine("leaving CLI mode, unsaved changes lost");
     bufWriterFlush(cliWriter);
 
     *cliBuffer = '\0';
@@ -3066,7 +3073,7 @@ static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrint("Saving");
+    cliPrintHashLine("saving");
     writeEEPROM();
     cliReboot();
 }
@@ -3075,7 +3082,7 @@ static void cliDefaults(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrint("Resetting to defaults");
+    cliPrintHashLine("resetting to defaults");
     resetEEPROM();
     cliReboot();
 }
@@ -3617,13 +3624,12 @@ static void printConfig(char *cmdline, bool doDiff)
         cliPrintHashLine("version");
         cliVersion(NULL);
 
-#ifndef CLI_MINIMAL_VERBOSITY
         if ((dumpMask & (DUMP_ALL | DO_DIFF)) == (DUMP_ALL | DO_DIFF)) {
-            cliPrintHashLine("reset configuration to default settings\r\ndefaults");
+            cliPrintHashLine("reset configuration to default settings");
+            cliPrint("defaults\r\n");
         }
 
         cliPrintHashLine("name");
-#endif
         printName(dumpMask);
 
 #ifdef USE_RESOURCE_MGMT
@@ -3709,19 +3715,16 @@ static void printConfig(char *cmdline, bool doDiff)
                 }
 
                 changeControlRateProfile(currentRateIndex);
-#ifndef CLI_MINIMAL_VERBOSITY
                 cliPrintHashLine("restore original rateprofile selection");
                 cliRateProfile("");
-#endif
             }
 
             changeProfile(activeProfile);
-#ifndef CLI_MINIMAL_VERBOSITY
             cliPrintHashLine("restore original profile selection");
             cliProfile("");
 
-            cliPrintHashLine("save configuration\r\nsave");
-#endif
+            cliPrintHashLine("save configuration");
+            cliPrint("save");
         } else {
             cliDumpProfile(masterConfig.current_profile_index, dumpMask, &defaultConfig);
             cliDumpRateProfile(currentProfile->activeRateProfile, dumpMask, &defaultConfig);
