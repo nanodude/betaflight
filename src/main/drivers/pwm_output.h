@@ -48,9 +48,9 @@ typedef enum {
 #define MOTOR_DSHOT300_MHZ    22.5
 #define MOTOR_DSHOT150_MHZ    11.25
 
-#define MOTOR_BIT_0     28
-#define MOTOR_BIT_1     56
-#define MOTOR_BITLENGTH 77
+#define MOTOR_BIT_0     27
+#define MOTOR_BIT_1     55
+#define MOTOR_BITLENGTH 74
 #else
 #define MOTOR_DSHOT1200_MHZ   24
 #define MOTOR_DSHOT600_MHZ    12
