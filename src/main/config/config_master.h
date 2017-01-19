@@ -228,7 +228,7 @@ typedef struct master_s {
 # ifdef USE_MSP_DISPLAYPORT
     displayPortProfile_t displayPortProfileMsp;
 # endif
-# ifdef USE_MAX7456
+#if defined(USE_MAX7456) || defined(USE_BRAINFPV_OSD)
     displayPortProfile_t displayPortProfileMax7456;
 # endif
 

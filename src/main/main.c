@@ -89,7 +89,7 @@ static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
     chRegSetThreadName("OSD");
-    displayPort_t *osdDisplayPort = max7456DisplayPortInit(&masterConfig.vcdProfile);
+	displayPort_t *osdDisplayPort = max7456DisplayPortInit(&masterConfig.vcdProfile, displayPortProfileMax7456());
     osdInit(osdDisplayPort);
     while (1) {
         // wait for VSYNC
