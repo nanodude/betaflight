@@ -442,7 +442,7 @@ void osdDrawElements(void)
 
 void osdResetConfig(osd_profile_t *osdProfile)
 {
-    osdProfile->item_pos[OSD_RSSI_VALUE] = OSD_POS(22, 0) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_RSSI_VALUE] = OSD_POS(22, 0);
     osdProfile->item_pos[OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 0) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6) | VISIBLE_FLAG;
@@ -472,6 +472,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 {
 #ifndef BRAINRE1
     char x, string_buffer[30];
+    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
     osdDisplayPort = osdDisplayPortToUse;
 #ifdef CMS
     cmsDisplayPortRegister(osdDisplayPort);

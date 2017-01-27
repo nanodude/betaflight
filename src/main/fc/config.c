@@ -142,10 +142,10 @@ static void resetControlRateConfig(controlRateConfig_t *controlRateConfig)
 
 static void resetPidProfile(pidProfile_t *pidProfile)
 {
-    pidProfile->P8[ROLL] = 40;
+    pidProfile->P8[ROLL] = 44;
     pidProfile->I8[ROLL] = 40;
     pidProfile->D8[ROLL] = 20;
-    pidProfile->P8[PITCH] = 55;
+    pidProfile->P8[PITCH] = 58;
     pidProfile->I8[PITCH] = 50;
     pidProfile->D8[PITCH] = 22;
     pidProfile->P8[YAW] = 70;
@@ -460,6 +460,10 @@ void resetSerialConfig(serialConfig_t *serialConfig)
     }
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
+#if defined(USE_VCP) && defined(USE_MSP_UART)
+    // This allows MSP connection via USART & VCP so the board can be reconfigured.
+    serialConfig->portConfigs[1].functionMask = FUNCTION_MSP;
+#endif
 }
 
 void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig)
@@ -530,7 +534,7 @@ void resetStatusLedConfig(statusLedConfig_t *statusLedConfig)
 #ifdef LED2_INVERTED
     | BIT(2)
 #endif
-    ;    
+    ;
 }
 
 #ifdef USE_FLASHFS
@@ -867,7 +871,7 @@ void createDefaultConfig(master_t *config)
 
     /* merely to force a reset if the person inadvertently flashes the wrong target */
     strncpy(config->boardIdentifier, TARGET_BOARD_IDENTIFIER, sizeof(TARGET_BOARD_IDENTIFIER));
-    
+
 #if defined(TARGET_CONFIG)
     targetConfiguration(config);
 #endif
