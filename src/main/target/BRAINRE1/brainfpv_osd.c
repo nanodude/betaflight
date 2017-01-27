@@ -301,7 +301,7 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
 
 void brainFpvOsdArtificialHorizon(void)
 {
-    simple_artificial_horizon(-1 * attitude.values.roll, -1 * attitude.values.pitch,
+    simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
                               GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
                               GRAPHICS_BOTTOM * 0.8f, GRAPHICS_RIGHT * 0.8f, 30,
                               masterConfig.bfOsdConfig.ahi_steps);
