@@ -367,8 +367,10 @@ void scheduler(void)
             brainre1_settings_updated = false;
         }
 #endif
-        // wait for gyro
-        chBSemWaitTimeout(&gyroSem, MS2ST(2));
+        // wait for gyro if no tasks are ready
+        if (selectedTask == NULL) {
+            chBSemWaitTimeout(&gyroSem, MS2ST(2));
+        }
     }
 #endif
 }
