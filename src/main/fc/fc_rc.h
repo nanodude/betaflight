@@ -14,12 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #pragma once
 
-struct controlRateConfig_s;
-struct motorConfig_s;
-void generateThrottleCurve(struct controlRateConfig_s *controlRateConfig, struct motorConfig_s *motorConfig);
+#include <stdbool.h>
 
-int16_t rcLookupThrottle(int32_t tmp);
-
+void calculateSetpointRate(int axis, int16_t rc);
+void scaleRcCommandToFpvCamAngle(void);
+void checkForThrottleErrorResetState(uint16_t rxRefreshRate);
+void checkForThrottleErrorResetState(uint16_t rxRefreshRate);
+void processRcCommand(void);
+float getSetpointRate(int axis);
+float getRcDeflection(int axis);
+float getRcDeflectionAbs(int axis);
+float getThrottlePIDAttenuation(void);
+void updateRcCommands(void);
+void resetYawAxis(void);

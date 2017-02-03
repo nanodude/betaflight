@@ -15,21 +15,38 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <platform.h>
+
+#include "common/utils.h"
+
 #include "drivers/io.h"
 
-#include "drivers/dma.h"
-#include "drivers/timer.h"
-#include "drivers/timer_def.h"
+#include "fc/rc_controls.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-    DEF_TIM(TIM4, CH3, PB8,  TIM_USE_MOTOR, TIMER_OUTPUT_ENABLED), //DMA1_CH5
-    DEF_TIM(TIM8, CH3, PB9,  TIM_USE_MOTOR, TIMER_OUTPUT_ENABLED), //DMA2_CH1
-    DEF_TIM(TIM2, CH4, PA3,  TIM_USE_MOTOR, TIMER_OUTPUT_ENABLED), //DMA1_CH7
-    DEF_TIM(TIM2, CH3, PA2,  TIM_USE_MOTOR, TIMER_OUTPUT_ENABLED), //DMA1_CH1
+#include "flight/failsafe.h"
+#include "flight/mixer.h"
+#include "flight/pid.h"
 
-    DEF_TIM(TIM1, CH1, PA8,  TIM_USE_LED,   TIMER_OUTPUT_ENABLED)  //DMA1_CH2 - LED
-};
+#include "rx/rx.h"
+
+#include "config/config_profile.h"
+#include "config/config_master.h"
+
+#include "sensors/boardalignment.h"
+
+
+void targetConfiguration(master_t *config)
+{
+    UNUSED(config);
+
+#ifdef KISSCC
+    // alternative defaults settings for Beebrain target
+    config->boardAlignment.rollDegrees = 180;
+    config->boardAlignment.pitchDegrees = 0;
+    config->boardAlignment.yawDegrees = 0;
+#endif
+}
 

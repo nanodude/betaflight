@@ -606,10 +606,10 @@ COMMON_SRC = \
             fc/fc_dispatch.c \
             fc/fc_hardfaults.c \
             fc/fc_core.c \
+            fc/fc_rc.c \
             fc/fc_msp.c \
             fc/fc_tasks.c \
             fc/rc_controls.c \
-            fc/rc_curves.c \
             fc/runtime_config.c \
             fc/cli.c \
             flight/altitudehold.c \
@@ -728,9 +728,8 @@ SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
             drivers/system.c \
             drivers/timer.c \
             fc/fc_tasks.c \
-            fc/mw.c \
+            fc/fc_rc.c \
             fc/rc_controls.c \
-            fc/rc_curves.c \
             fc/runtime_config.c \
             flight/altitudehold.c \
             flight/failsafe.c \

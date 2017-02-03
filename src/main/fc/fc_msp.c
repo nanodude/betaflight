@@ -47,6 +47,7 @@
 #include "drivers/vtx_soft_spi_rtc6705.h"
 #include "drivers/pwm_output.h"
 #include "drivers/serial_escserial.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -1140,7 +1141,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, motorConfig()->useUnsyncedPwm);
         sbufWriteU8(dst, motorConfig()->motorPwmProtocol);
         sbufWriteU16(dst, motorConfig()->motorPwmRate);
-        sbufWriteU16(dst, (uint16_t)(motorConfig()->digitalIdleOffsetPercent * 100));
+        sbufWriteU16(dst, (uint16_t)lrintf(motorConfig()->digitalIdleOffsetPercent * 100));
         sbufWriteU8(dst, gyroConfig()->gyro_use_32khz);
         //!!TODO gyro_isr_update to be added pending decision
         //sbufWriteU8(dst, gyroConfig()->gyro_isr_update);
@@ -1159,8 +1160,8 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         break;
 
     case MSP_PID_ADVANCED:
-        sbufWriteU16(dst, currentProfile->pidProfile.rollPitchItermIgnoreRate);
-        sbufWriteU16(dst, currentProfile->pidProfile.yawItermIgnoreRate);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
         sbufWriteU16(dst, currentProfile->pidProfile.yaw_p_limit);
         sbufWriteU8(dst, 0); // reserved
         sbufWriteU8(dst, currentProfile->pidProfile.vbatPidCompensation);
@@ -1169,8 +1170,8 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, 0); // reserved
         sbufWriteU8(dst, 0); // reserved
         sbufWriteU8(dst, 0); // reserved
-        sbufWriteU16(dst, currentProfile->pidProfile.rateAccelLimit * 10);
-        sbufWriteU16(dst, currentProfile->pidProfile.yawRateAccelLimit * 10);
+        sbufWriteU16(dst, (uint16_t)lrintf(currentProfile->pidProfile.rateAccelLimit * 10));
+        sbufWriteU16(dst, (uint16_t)lrintf(currentProfile->pidProfile.yawRateAccelLimit * 10));
         sbufWriteU8(dst, currentProfile->pidProfile.levelAngleLimit);
         sbufWriteU8(dst, currentProfile->pidProfile.levelSensitivity);
         break;
@@ -1185,6 +1186,35 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         if (mspPostProcessFn) {
             *mspPostProcessFn = mspRebootFn;
         }
+        break;
+
+#if defined(VTX_COMMON)
+    case MSP_VTX_CONFIG:
+        {
+            uint8_t deviceType = vtxCommonGetDeviceType();
+            if (deviceType != VTXDEV_UNKNOWN) {
+
+                uint8_t band=0, channel=0;
+                vtxCommonGetBandChan(&band,&channel);
+                
+                uint8_t powerIdx=0; // debug
+                vtxCommonGetPowerIndex(&powerIdx);
+                
+                uint8_t pitmode=0;
+                vtxCommonGetPitmode(&pitmode);
+                
+                sbufWriteU8(dst, deviceType);
+                sbufWriteU8(dst, band);
+                sbufWriteU8(dst, channel);
+                sbufWriteU8(dst, powerIdx);
+                sbufWriteU8(dst, pitmode);
+                // future extensions here...
+            }
+            else {
+                sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX detected
+            }
+        }
+#endif
         break;
 
     default:
@@ -1515,8 +1545,8 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_PID_ADVANCED:
-        currentProfile->pidProfile.rollPitchItermIgnoreRate = sbufReadU16(src);
-        currentProfile->pidProfile.yawItermIgnoreRate = sbufReadU16(src);
+        sbufReadU16(src);
+        sbufReadU16(src);
         currentProfile->pidProfile.yaw_p_limit = sbufReadU16(src);
         sbufReadU8(src); // reserved
         currentProfile->pidProfile.vbatPidCompensation = sbufReadU8(src);
@@ -1634,15 +1664,44 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
-#ifdef USE_RTC6705
+#if defined(USE_RTC6705) || defined(VTX_COMMON)
     case MSP_SET_VTX_CONFIG:
-        ;
-        uint16_t tmp = sbufReadU16(src);
-        if  (tmp < 40)
-            masterConfig.vtx_channel = tmp;
-        if (current_vtx_channel != masterConfig.vtx_channel) {
-            current_vtx_channel = masterConfig.vtx_channel;
-            rtc6705_soft_spi_set_channel(vtx_freq[current_vtx_channel]);
+        {
+            uint16_t tmp = sbufReadU16(src);
+#if defined(USE_RTC6705)
+            if  (tmp < 40)
+                masterConfig.vtx_channel = tmp;
+            if (current_vtx_channel != masterConfig.vtx_channel) {
+                current_vtx_channel = masterConfig.vtx_channel;
+                rtc6705_soft_spi_set_channel(vtx_freq[current_vtx_channel]);
+            }
+#else
+            if (vtxCommonGetDeviceType() != VTXDEV_UNKNOWN) {
+
+                uint8_t band    = (tmp / 8) + 1;
+                uint8_t channel = (tmp % 8) + 1;
+
+                uint8_t current_band=0, current_channel=0;
+                vtxCommonGetBandChan(&current_band,&current_channel);
+                if ((current_band != band) || (current_channel != channel))
+                    vtxCommonSetBandChan(band,channel);
+
+                if (sbufBytesRemaining(src) < 2)
+                    break;
+            
+                uint8_t power = sbufReadU8(src);
+                uint8_t current_power = 0;
+                vtxCommonGetPowerIndex(&current_power);
+                if (current_power != power)
+                    vtxCommonSetPowerByIndex(power);
+            
+                uint8_t pitmode = sbufReadU8(src);
+                uint8_t current_pitmode = 0;
+                vtxCommonGetPitmode(&current_pitmode);
+                if (current_pitmode != pitmode)
+                    vtxCommonSetPitmode(pitmode);
+            }
+#endif
         }
         break;
 #endif

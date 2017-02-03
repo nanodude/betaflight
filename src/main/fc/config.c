@@ -53,7 +53,6 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
-#include "fc/rc_curves.h"
 #include "fc/runtime_config.h"
 
 #include "sensors/sensors.h"
@@ -174,8 +173,7 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
     pidProfile->pidSumLimit = PIDSUM_LIMIT;
     pidProfile->yaw_lpf_hz = 0;
-    pidProfile->rollPitchItermIgnoreRate = 200;
-    pidProfile->yawItermIgnoreRate = 55;
+    pidProfile->itermWindupPointPercent = 50;
     pidProfile->dterm_filter_type = FILTER_BIQUAD;
     pidProfile->dterm_lpf_hz = 100;    // filtering ON by default
     pidProfile->dterm_notch_hz = 260;
@@ -185,11 +183,12 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->levelAngleLimit = 55;
     pidProfile->levelSensitivity = 55;
     pidProfile->setpointRelaxRatio = 30;
-    pidProfile->dtermSetpointWeight = 200;
+    pidProfile->dtermSetpointWeight = 190;
     pidProfile->yawRateAccelLimit = 10.0f;
     pidProfile->rateAccelLimit = 0.0f;
-    pidProfile->itermThrottleThreshold = 300;
-    pidProfile->itermAcceleratorGain = 4.0f;
+    pidProfile->itermThrottleThreshold = 350;
+    pidProfile->itermAcceleratorGain = 2.0f;
+    pidProfile->itermAcceleratorRateLimit = 80;
 }
 
 void resetProfile(profile_t *profile)
@@ -286,7 +285,7 @@ void resetMotorConfig(motorConfig_t *motorConfig)
 #endif
     motorConfig->maxthrottle = 2000;
     motorConfig->mincommand = 1000;
-    motorConfig->digitalIdleOffsetPercent = 3.0f;
+    motorConfig->digitalIdleOffsetPercent = 4.5f;
 
     int motorIndex = 0;
     for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT && motorIndex < MAX_SUPPORTED_MOTORS; i++) {
@@ -414,6 +413,9 @@ void resetTelemetryConfig(telemetryConfig_t *telemetryConfig)
     telemetryConfig->frsky_vfas_cell_voltage = 0;
     telemetryConfig->hottAlarmSoundInterval = 5;
     telemetryConfig->pidValuesAsTelemetry = 0;
+#ifdef TELEMETRY_IBUS
+    telemetryConfig->report_cell_voltage = false;
+#endif
 }
 #endif
 
@@ -893,15 +895,8 @@ static void resetConf(void)
 #endif
 }
 
-void activateControlRateConfig(void)
-{
-    generateThrottleCurve(currentControlRateProfile, &masterConfig.motorConfig);
-}
-
 void activateConfig(void)
 {
-    activateControlRateConfig();
-
     resetAdjustmentStates();
 
     useRcControlsConfig(
@@ -1089,9 +1084,13 @@ void validateAndFixGyroConfig(void)
         samplingTime = 0.00003125;
         // F1 and F3 can't handle high sample speed.
 #if defined(STM32F1)
-        gyroConfig()->gyro_sync_denom = constrain(gyroConfig()->gyro_sync_denom, 16, 16);
+        gyroConfig()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 16);
 #elif defined(STM32F3)
-        gyroConfig()->gyro_sync_denom = constrain(gyroConfig()->gyro_sync_denom, 4, 16);
+        gyroConfig()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 4);
+#endif
+    } else {
+#if defined(STM32F1)
+        gyroConfig()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 4);
 #endif
     }
 
@@ -1179,7 +1178,6 @@ void changeControlRateProfile(uint8_t profileIndex)
         profileIndex = MAX_RATEPROFILES - 1;
     }
     setControlRateProfile(profileIndex);
-    activateControlRateConfig();
 }
 
 void beeperOffSet(uint32_t mask)
