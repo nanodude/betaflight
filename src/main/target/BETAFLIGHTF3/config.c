@@ -14,13 +14,31 @@
  * You should have received a copy of the GNU General Public License
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
-#pragma once
 
-void processRcCommand(void);
-float getSetpointRate(int axis);
-float getRcDeflection(int axis);
-float getRcDeflectionAbs(int axis);
-float getThrottlePIDAttenuation(void);
-void updateRcCommands(void);
-void resetYawAxis(void);
-void generateThrottleCurve(void);
+#include <stdbool.h>
+#include <stdint.h>
+
+#include <platform.h>
+
+#include "common/utils.h"
+
+#include "drivers/io.h"
+
+#include "fc/rc_controls.h"
+
+#include "flight/failsafe.h"
+#include "flight/mixer.h"
+#include "flight/pid.h"
+
+#include "rx/rx.h"
+
+#include "config/config_profile.h"
+#include "config/config_master.h"
+
+void targetConfiguration(master_t *config)
+{
+    UNUSED(config);
+
+    batteryConfig->currentMeterScale = 235;
+}
+
