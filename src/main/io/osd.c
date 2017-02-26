@@ -733,7 +733,8 @@ static void osdRefresh(timeUs_t currentTimeUs)
         }
     }
     else {
-        if ((disarmTime > 0) && (now - disarmTime < 10000)) {
+        bool enter_menu = (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH));
+        if ((disarmTime > 0) && (now - disarmTime < 10000) && !enter_menu && !cmsInMenu) {
             osdShowStats();
             return;
         }
