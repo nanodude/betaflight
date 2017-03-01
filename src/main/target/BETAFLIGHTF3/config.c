@@ -20,6 +20,7 @@
 
 #include <platform.h>
 
+#ifdef TARGET_CONFIG
 #include "common/utils.h"
 
 #include "drivers/io.h"
@@ -39,6 +40,6 @@ void targetConfiguration(master_t *config)
 {
     UNUSED(config);
 
-    batteryConfig->currentMeterScale = 235;
+    batteryConfig->currentMeterScale = 220;
 }
-
+#endif
