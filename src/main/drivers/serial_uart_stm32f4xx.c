@@ -320,6 +320,14 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
         RCC_ClockCmd(uart->rcc_uart, ENABLE);
     }
 
+    // BRAINRE1: Make sure UART3 is never in BIDIR mode, as it may
+    // damage the external inverter
+#ifdef USE_RE1_FPGA
+    if ((s->USARTx == USART3) && ((options & SERIAL_BIDIR) || (mode & MODE_TX))) {
+        return NULL;
+    }
+#endif /* USE_RE1_FPGA */
+
     if (options & SERIAL_BIDIR) {
 #ifdef USE_RE1_FPGA
         IOInit(tx, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
