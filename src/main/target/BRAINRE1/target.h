@@ -101,7 +101,7 @@
 
 #define USE_UART3
 #define UART3_RX_PIN            PC5
-//#define UART3_TX_PIN            PB10
+#define UART3_TX_PIN            NONE
 
 #define USE_UART6
 #undef USE_UART6_TX_DMA

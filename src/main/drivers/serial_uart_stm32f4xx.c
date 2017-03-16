@@ -114,9 +114,7 @@ static uartDevice_t uart3 =
 #endif
     .dev = USART3,
     .rx = IO_TAG(UART3_RX_PIN),
-#if defined(UART3_TX_PIN)
     .tx = IO_TAG(UART3_TX_PIN),
-#endif
     .af = GPIO_AF_USART3,
     .rcc_uart = RCC_APB1(USART3),
     .rxIrq = USART3_IRQn,
