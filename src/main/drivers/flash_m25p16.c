@@ -270,19 +270,11 @@ void m25p16_eraseSector(uint32_t address)
 
 void m25p16_eraseCompletely()
 {
-#ifndef M25P16_FIRST_SECTOR
     m25p16_waitForReady(BULK_ERASE_TIMEOUT_MILLIS);
 
     m25p16_writeEnable();
 
     m25p16_performOneByteCommand(M25P16_INSTRUCTION_BULK_ERASE);
-#else
-    uint32_t addr = 0;
-    for (int i=0; i<geometry.sectors; i++){
-        m25p16_eraseSector(addr);
-        addr += geometry.sectorSize;
-    }
-#endif
 }
 
 void m25p16_pageProgramBegin(uint32_t address)
