@@ -80,10 +80,14 @@
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
+/* USE_SOFTSERIALx has a conflict with USE_BST that prevents FC from being recognized from configurator
+ Drop USE_SOFTSERIALx until resolution is provided.
 #define USE_SOFTSERIAL1
 #define USE_SOFTSERIAL2
-
 #define SERIAL_PORT_COUNT       6
+*/
+#define SERIAL_PORT_COUNT       4
+
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
@@ -118,7 +122,9 @@
 #define LED_STRIP
 
 #define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_FAILSAFE | FEATURE_AIRMODE | FEATURE_LED_STRIP)
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+//#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+//#define SERIALRX_PROVIDER       SERIALRX_CRSF
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
 

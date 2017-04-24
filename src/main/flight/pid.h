@@ -23,9 +23,8 @@
 #define PID_CONTROLLER_BETAFLIGHT   1
 #define PID_MIXER_SCALING           1000.0f
 #define PID_SERVO_MIXER_SCALING     0.7f
-#define YAW_P_LIMIT_MIN             100                 // Maximum value for yaw P limiter
-#define YAW_P_LIMIT_MAX             500                 // Maximum value for yaw P limiter
 #define PIDSUM_LIMIT                0.5f
+#define PIDSUM_LIMIT_YAW            0.5f
 
 // Scaling factors for Pids for better tunable range in configurator for betaflight pid controller. The scaling is based on legacy pid controller or previous float
 #define PTERM_SCALE 0.032029f
@@ -68,8 +67,8 @@ typedef struct pidProfile_s {
     uint16_t dterm_notch_hz;                // Biquad dterm notch hz
     uint16_t dterm_notch_cutoff;            // Biquad dterm notch low cutoff
     uint8_t itermWindupPointPercent;        // Experimental ITerm windup threshold, percent motor saturation
-    uint16_t yaw_p_limit;
     float pidSumLimit;
+    float pidSumLimitYaw;
     uint8_t dterm_average_count;            // Configurable delta count for dterm
     uint8_t vbatPidCompensation;            // Scale PIDsum to battery voltage
     uint8_t pidAtMinThrottle;               // Disable/Enable pids on zero throttle. Normally even without airmode P and D would be active.
@@ -92,8 +91,7 @@ typedef struct pidConfig_s {
 union rollAndPitchTrims_u;
 void pidController(const pidProfile_t *pidProfile, const union rollAndPitchTrims_u *angleTrim);
 
-extern float axisPIDf[3];
-extern int32_t axisPID_P[3], axisPID_I[3], axisPID_D[3];
+extern float axisPID_P[3], axisPID_I[3], axisPID_D[3];
 bool airmodeWasActivated;
 extern uint32_t targetPidLooptime;
 

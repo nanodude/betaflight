@@ -144,7 +144,7 @@ static const char * const featureNames[] = {
     "SONAR", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DISPLAY", "OSD",
     "BLACKBOX", "CHANNEL_FORWARDING", "TRANSPONDER", "AIRMODE",
-    "SDCARD", "VTX", "RX_SPI", "SOFTSPI", "ESC_SENSOR", NULL
+    "SDCARD", "VTX", "RX_SPI", "SOFTSPI", "ESC_SENSOR", "FEATURE_ANTI_GRAVITY", NULL
 };
 
 // sync this with rxFailsafeChannelMode_e
@@ -502,7 +502,7 @@ const clivalue_t valueTable[] = {
     { "rc_interp",                  VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &rxConfig()->rcInterpolation, .config.lookup = { TABLE_RC_INTERPOLATION } },
     { "rc_interp_ch",               VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &rxConfig()->rcInterpolationChannels, .config.lookup = { TABLE_RC_INTERPOLATION_CHANNELS } },
     { "rc_interp_int",              VAR_UINT8  | MASTER_VALUE,  &rxConfig()->rcInterpolationInterval, .config.minmax = { 1,  50 } },
-    { "rssi_ppm_invert",            VAR_INT8   | MASTER_VALUE | MODE_LOOKUP,  &rxConfig()->rssi_ppm_invert, .config.lookup = { TABLE_OFF_ON } },
+    { "rssi_invert",                VAR_INT8   | MASTER_VALUE | MODE_LOOKUP,  &rxConfig()->rssi_invert, .config.lookup = { TABLE_OFF_ON } },
 #if defined(USE_PWM)
     { "input_filtering_mode",       VAR_INT8   | MASTER_VALUE | MODE_LOOKUP,  &pwmConfig()->inputFilteringMode, .config.lookup = { TABLE_OFF_ON } },
 #endif
@@ -643,8 +643,10 @@ const clivalue_t valueTable[] = {
     { "yaw_control_direction",      VAR_INT8   | MASTER_VALUE,  &rcControlsConfig()->yaw_control_direction, .config.minmax = { -1,  1 } },
 
     { "yaw_motor_direction",        VAR_INT8   | MASTER_VALUE, &mixerConfig()->yaw_motor_direction, .config.minmax = { -1,  1 } },
-    { "yaw_p_limit",                VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.yaw_p_limit, .config.minmax = { YAW_P_LIMIT_MIN, YAW_P_LIMIT_MAX } },
+
     { "pidsum_limit",               VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.pidSumLimit, .config.minmax = { 0.1, 1.0 } },
+    { "pidsum_limit_yaw",           VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.pidSumLimitYaw, .config.minmax = { 0.1, 1.0 } },
+
 #ifdef USE_SERVOS
     { "servo_center_pulse",         VAR_UINT16 | MASTER_VALUE,  &servoConfig()->servoCenterPulse, .config.minmax = { PWM_RANGE_ZERO,  PWM_RANGE_MAX } },
     { "tri_unarmed_servo",          VAR_INT8   | MASTER_VALUE | MODE_LOOKUP, &servoMixerConfig()->tri_unarmed_servo, .config.lookup = { TABLE_OFF_ON } },
@@ -2848,6 +2850,7 @@ static void cliEscPassthrough(char *cmdline)
     int i = 0;
     char *pch = NULL;
     char *saveptr;
+    uint8_t indexForProg = 0;
 
     if (isEmpty(cmdline)) {
         cliShowParseError();
@@ -2882,13 +2885,15 @@ static void cliEscPassthrough(char *cmdline)
                 break;
             case 1:
                 index = atoi(pch);
+                indexForProg = index;
                 if(mode == 2 && index == 255)
                 {
                     printf("passthrough on all outputs enabled\r\n");
                 }
                 else{
-                    if ((index >= 0) && (index < USABLE_TIMER_CHANNEL_COUNT)) {
-                        printf("passthrough on output %d enabled\r\n", index);
+                    indexForProg = index + 1; // Wonky timer mapping requires this to match the actual motor numberings
+                    if ((index >= 1) && (index < USABLE_TIMER_CHANNEL_COUNT)) {
+                        printf("passthrough on esc %d enabled\r\n", index);
                     }
                     else {
                         printf("invalid output, range: 1 to %d\r\n", USABLE_TIMER_CHANNEL_COUNT);
@@ -2900,7 +2905,7 @@ static void cliEscPassthrough(char *cmdline)
         i++;
         pch = strtok_r(NULL, " ", &saveptr);
     }
-    escEnablePassthrough(cliPort,index,mode);
+    escEnablePassthrough(cliPort,indexForProg,mode);
 }
 #endif
 

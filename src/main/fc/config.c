@@ -140,10 +140,10 @@ static void resetPidProfile(pidProfile_t *pidProfile)
 {
     pidProfile->P8[ROLL] = 44;
     pidProfile->I8[ROLL] = 40;
-    pidProfile->D8[ROLL] = 20;
+    pidProfile->D8[ROLL] = 30;
     pidProfile->P8[PITCH] = 58;
     pidProfile->I8[PITCH] = 50;
-    pidProfile->D8[PITCH] = 22;
+    pidProfile->D8[PITCH] = 35;
     pidProfile->P8[YAW] = 70;
     pidProfile->I8[YAW] = 45;
     pidProfile->D8[YAW] = 20;
@@ -167,8 +167,8 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->I8[PIDVEL] = 55;
     pidProfile->D8[PIDVEL] = 75;
 
-    pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
     pidProfile->pidSumLimit = PIDSUM_LIMIT;
+    pidProfile->pidSumLimitYaw = PIDSUM_LIMIT_YAW;
     pidProfile->yaw_lpf_hz = 0;
     pidProfile->itermWindupPointPercent = 50;
     pidProfile->dterm_filter_type = FILTER_BIQUAD;
@@ -179,12 +179,12 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->pidAtMinThrottle = PID_STABILISATION_ON;
     pidProfile->levelAngleLimit = 55;
     pidProfile->levelSensitivity = 55;
-    pidProfile->setpointRelaxRatio = 20;
-    pidProfile->dtermSetpointWeight = 100;
+    pidProfile->setpointRelaxRatio = 100;
+    pidProfile->dtermSetpointWeight = 60;
     pidProfile->yawRateAccelLimit = 10.0f;
     pidProfile->rateAccelLimit = 0.0f;
     pidProfile->itermThrottleThreshold = 350;
-    pidProfile->itermAcceleratorGain = 1.0f;
+    pidProfile->itermAcceleratorGain = 3.0f;
 }
 
 void resetProfile(profile_t *profile)
@@ -889,7 +889,7 @@ void createDefaultConfig(master_t *config)
 
     config->rxConfig.rssi_channel = 0;
     config->rxConfig.rssi_scale = RSSI_SCALE_DEFAULT;
-    config->rxConfig.rssi_ppm_invert = 0;
+    config->rxConfig.rssi_invert = 0;
     config->rxConfig.rcInterpolation = RC_SMOOTHING_AUTO;
     config->rxConfig.rcInterpolationChannels = 0;
     config->rxConfig.rcInterpolationInterval = 19;
@@ -1228,6 +1228,11 @@ void validateAndFixConfig(void)
 
     if (!isSerialConfigValid(serialConfig)) {
         resetSerialConfig(serialConfig);
+    }
+
+    // Prevent invalid notch cutoff
+    if (currentProfile->pidProfile.dterm_notch_cutoff >= currentProfile->pidProfile.dterm_notch_hz) {
+        currentProfile->pidProfile.dterm_notch_hz = 0;
     }
 
     validateAndFixGyroConfig();

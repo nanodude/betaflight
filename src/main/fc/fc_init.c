@@ -248,6 +248,7 @@ void init(void)
     }
 #endif
 
+
 #ifdef SPEKTRUM_BIND
     if (feature(FEATURE_RX_SERIAL)) {
         switch (rxConfig()->serialrx_provider) {
@@ -260,6 +261,7 @@ void init(void)
                 break;
         }
     }
+    delay(200); // Make sure the satellite times out and closes the bind window. (Delay(100) below is not enough and needed for non-sat configs)
 #endif
 
     delay(100);
@@ -512,15 +514,16 @@ void init(void)
 #endif
 
 #ifdef USE_FLASHFS
+    if (blackboxConfig()->device == BLACKBOX_SPIFLASH) {
 #if defined(USE_FLASH_M25P16)
-    m25p16_init(flashConfig());
+        m25p16_init(flashConfig());
 #endif
-
-    flashfsInit();
+        flashfsInit();
+    }
 #endif
 
 #ifdef USE_SDCARD
-    if (feature(FEATURE_SDCARD)) {
+    if (feature(FEATURE_SDCARD) && blackboxConfig()->device == BLACKBOX_SDCARD) {
         sdcardInsertionDetectInit();
         sdcard_init(sdcardConfig()->useDma);
         afatfs_init();

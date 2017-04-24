@@ -123,7 +123,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXANGLE, "ANGLE;", 1 },
     { BOXHORIZON, "HORIZON;", 2 },
     { BOXBARO, "BARO;", 3 },
-    //{ BOXVARIO, "VARIO;", 4 },
+    { BOXANTIGRAVITY, "ANTI GRAVITY;", 4 },
     { BOXMAG, "MAG;", 5 },
     { BOXHEADFREE, "HEADFREE;", 6 },
     { BOXHEADADJ, "HEADADJ;", 7 },
@@ -327,6 +327,10 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXAIRMODE;
     }
 
+    if (!feature(FEATURE_ANTI_GRAVITY)) {
+        activeBoxIds[activeBoxIdCount++] = BOXANTIGRAVITY;
+    }
+
     if (sensors(SENSOR_ACC)) {
         activeBoxIds[activeBoxIdCount++] = BOXANGLE;
         activeBoxIds[activeBoxIdCount++] = BOXHORIZON;
@@ -444,6 +448,7 @@ static uint32_t packFlightModeFlags(void)
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBLACKBOX)) << BOXBLACKBOX |
         IS_ENABLED(FLIGHT_MODE(FAILSAFE_MODE)) << BOXFAILSAFE |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)) << BOXAIRMODE |
+        IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANTIGRAVITY)) << BOXANTIGRAVITY |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX)) << BOXFPVANGLEMIX;
 
     uint32_t ret = 0;
@@ -1163,7 +1168,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
     case MSP_PID_ADVANCED:
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, currentProfile->pidProfile.yaw_p_limit);
+        sbufWriteU16(dst, 0); // was pidProfile.yaw_p_limit
         sbufWriteU8(dst, 0); // reserved
         sbufWriteU8(dst, currentProfile->pidProfile.vbatPidCompensation);
         sbufWriteU8(dst, currentProfile->pidProfile.setpointRelaxRatio);
@@ -1549,7 +1554,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
     case MSP_SET_PID_ADVANCED:
         sbufReadU16(src);
         sbufReadU16(src);
-        currentProfile->pidProfile.yaw_p_limit = sbufReadU16(src);
+        sbufReadU16(src); // was pidProfile.yaw_p_limit
         sbufReadU8(src); // reserved
         currentProfile->pidProfile.vbatPidCompensation = sbufReadU8(src);
         currentProfile->pidProfile.setpointRelaxRatio = sbufReadU8(src);
