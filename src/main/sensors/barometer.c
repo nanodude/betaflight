@@ -200,6 +200,18 @@ uint32_t baroUpdate(void)
 {
     static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
 
+#if defined(BARO_ZERO_ON_ARM)
+    static uint8_t last_arming_flag = 0;
+    uint8_t arming_flag = ARMING_FLAG(ARMED);
+    if (arming_flag && !last_arming_flag) {
+        baroSetCalibrationCycles(CALIBRATING_BARO_CYCLES);
+    }
+    last_arming_flag = arming_flag;
+    if (!isBaroCalibrationComplete()) {
+        performBaroCalibrationCycle();
+    }
+#endif /* defined(BARO_ZERO_ON_ARM) */
+
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:

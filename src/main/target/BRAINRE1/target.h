@@ -84,6 +84,7 @@
 #define BMI160_INT_EXTI      PC13
 
 #define BARO
+#define BARO_ZERO_ON_ARM
 #define USE_BARO_BMP280
 #define MS5611_I2C_INSTANCE     I2CDEV_1
 
