@@ -235,6 +235,10 @@ void osdMain(void) {
     static enum BrainFPVOSDMode mode = MODE_BETAFLIGHT;
     clearGraphics();
 
+    /* Hide OSD when OSDSW mode is active */
+    if (IS_RC_MODE_ACTIVE(BOXOSD))
+      return;
+
 #if defined(USE_BRAINRE1_SPECTROGRAPH)
     if (masterConfig.bfOsdConfig.spec_enabled) {
         if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
