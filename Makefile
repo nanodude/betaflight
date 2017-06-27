@@ -331,7 +331,11 @@ STARTUP_SRC     = startup_stm32f40xx.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F446xx
 ifneq ($(filter CHIBIOS,$(FEATURES)),)
+ifneq ($(filter DRONINBL,$(FEATURES)),)
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_chibios_drbl.ld
+else
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_chibios.ld
+endif
 else
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_drbl.ld
 endif
@@ -1132,7 +1136,9 @@ CPPCHECK        = cppcheck $(CSOURCES) --enable=all --platform=unix64 \
 #
 # Things we will build
 #
+ifneq ($(filter DRONINBL,$(FEATURES)),)
 TARGET_TLFW     = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).tlfw
+endif
 TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).bin
 TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).hex
 TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf

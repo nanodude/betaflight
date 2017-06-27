@@ -21,7 +21,7 @@
 
 #define TARGET_BOARD_IDENTIFIER "RADIX"
 
-#define CONFIG_START_FLASH_ADDRESS (0x08010000) // 64kB, flash sector
+#define CONFIG_START_FLASH_ADDRESS (0x08060000) // last sector, 128kB
 
 #define USBD_PRODUCT_STRING     "BrainFPV RADIX"
 
