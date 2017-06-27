@@ -185,7 +185,7 @@ void brainFpvOsdWelcome(void)
     sprintf(string_buffer, "BF VERSION: %s", gitTag);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     write_string("MENU: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (masterConfig.bfOsdConfig.spec_enabled) {
         write_string("SPECT: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 25, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     }
@@ -239,7 +239,7 @@ void osdMain(void) {
     if (IS_RC_MODE_ACTIVE(BOXOSD))
       return;
 
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (masterConfig.bfOsdConfig.spec_enabled) {
         if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
             mode = MODE_SPEC;
@@ -256,7 +256,7 @@ void osdMain(void) {
             }
         }
     }
-#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
     if (millis() < 5000) {
         brainFpvOsdWelcome();
@@ -270,9 +270,9 @@ void osdMain(void) {
                 }
                 break;
             case MODE_SPEC:
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
                 spectrographOSD(spec_command);
-#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
                 break;
             default:
                 break;
@@ -298,7 +298,7 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
     bfOsdConfig->bmi160foc = 0;
     bfOsdConfig->altitude_scale = 1;
     bfOsdConfig->sticks_display = 0;
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
     bfOsdConfig->spec_enabled = 0;
 #endif
 }

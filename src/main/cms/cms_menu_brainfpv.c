@@ -47,10 +47,10 @@
 #include "config/config_master.h"
 #include "config/feature.h"
 
-#include "target/BRAINRE1/video.h"
-#include "target/BRAINRE1/osd_utils.h"
-#include "target/BRAINRE1/ir_transponder.h"
-#include "target/BRAINRE1/brainfpv_osd.h"
+#include "brainfpv/video.h"
+#include "brainfpv/osd_utils.h"
+#include "brainfpv/ir_transponder.h"
+#include "brainfpv/brainfpv_osd.h"
 
 
 OSD_UINT8_t entryAhiSteps =  {&masterConfig.bfOsdConfig.ahi_steps, 0, 4, 1};
@@ -66,7 +66,7 @@ OSD_UINT8_t entryXScale =  {&masterConfig.bfOsdConfig.x_scale, 0, 15, 1};
 OSD_UINT8_t entry3DShift =  {&masterConfig.bfOsdConfig.sbs_3d_right_eye_offset, 10, 40, 1};
 
 
-OSD_Entry cmsx_menuBrainRE1OsdEntries[] =
+OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
     {"------- OSD --------", OME_Label, NULL, NULL, 0},
     {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
@@ -85,13 +85,13 @@ OSD_Entry cmsx_menuBrainRE1OsdEntries[] =
     {NULL, OME_END, NULL, NULL, 0}
 };
 
-CMS_Menu cmsx_menuBrainRE1Osd = {
-    .GUARD_text = "MENURE1OSD",
+CMS_Menu cmsx_menuBrainFPVOsd = {
+    .GUARD_text = "MENUBrainFPVOSD",
     .GUARD_type = OME_MENU,
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
-    .entries = cmsx_menuBrainRE1OsdEntries,
+    .entries = cmsx_menuBrainFPVOsdEntries,
 };
 
 
@@ -100,7 +100,7 @@ OSD_TAB_t entryIRSys = {&masterConfig.bfOsdConfig.ir_system, 2, &IR_NAMES[0]};
 OSD_UINT32_t entryIRIlap =  {&masterConfig.bfOsdConfig.ir_ilap_id, 0, 9999999, 1};
 OSD_UINT16_t entryIRTrackmate =  {&masterConfig.bfOsdConfig.ir_trackmate_id, 0, 4095, 1};
 
-OSD_Entry cmsx_menuBrainRE1IrEntries[] =
+OSD_Entry cmsx_menuBrainFPVIrEntries[] =
 {
     {"-- IR TRANSPONDER --", OME_Label, NULL, NULL, 0},
     {"IR SYS", OME_TAB, NULL, &entryIRSys, 0},
@@ -111,34 +111,34 @@ OSD_Entry cmsx_menuBrainRE1IrEntries[] =
     {NULL, OME_END, NULL, NULL, 0}
 };
 
-CMS_Menu cmsx_menuBrainRE1Ir = {
-    .GUARD_text = "MENURE1IR",
+CMS_Menu cmsx_menuBrainFPVIr = {
+    .GUARD_text = "MENUBrainFPVIR",
     .GUARD_type = OME_MENU,
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
-    .entries = cmsx_menuBrainRE1IrEntries,
+    .entries = cmsx_menuBrainFPVIrEntries,
 };
 
-OSD_Entry cmsx_menuBrainRE1Entires[] =
+OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
-    {"--- BRAINFPV RE1 ---", OME_Label, NULL, NULL},
-    {"OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainRE1Osd, 0},
+    {"--- BRAINFPV ---", OME_Label, NULL, NULL},
+    {"OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
 
-    {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainRE1Ir, 0},
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+    {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVIr, 0},
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
     {"SPECTROGRAPH", OME_Bool, NULL, &masterConfig.bfOsdConfig.spec_enabled, 0},
-#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}
 };
 
-CMS_Menu cmsx_menuBrainRE1 = {
-    .GUARD_text = "MENURE1",
+CMS_Menu cmsx_menuBrainFPV = {
+    .GUARD_text = "MENUBrainFPV",
     .GUARD_type = OME_MENU,
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
-    .entries = cmsx_menuBrainRE1Entires,
+    .entries = cmsx_menuBrainFPVEntires,
 };
 #endif // CMS

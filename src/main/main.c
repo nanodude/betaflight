@@ -71,7 +71,7 @@ static THD_FUNCTION(BetaFlightThread, arg)
 }
 
 #if defined(USE_BRAINFPV_OSD)
-#include "brainfpv_osd.h"
+#include "brainfpv/brainfpv_osd.h"
 #include "drivers/display.h"
 #include "io/displayport_max7456.h"
 
@@ -99,7 +99,7 @@ static THD_FUNCTION(OSDThread, arg)
 }
 #endif
 
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
 #include "spectrograph.h"
 extern binary_semaphore_t spectrographDataReadySemaphore;
 
@@ -114,7 +114,7 @@ static THD_FUNCTION(SpecThread, arg)
         spectrographMain();
     }
 }
-#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
 uint8_t safe_boot = 0;
 
@@ -152,12 +152,12 @@ int main()
   chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
 #endif /* USE_BRAINFPV_OSD */
 
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
   if (masterConfig.bfOsdConfig.spec_enabled) {
     spectrographInit();
     chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
   }
-#endif /* USE_BRAINRE1_SPECTROGRAPH */
+#endif /* USE_BRAINFPV_SPECTROGRAPH */
 
   // sleep forever
   chThdSleep(TIME_INFINITE);

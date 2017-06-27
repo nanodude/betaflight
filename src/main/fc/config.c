@@ -93,7 +93,7 @@
 #include "config/feature.h"
 
 #ifdef USE_BRAINFPV_OSD
-#include "target/BRAINRE1/brainfpv_osd.h"
+#include "brainfpv/brainfpv_osd.h"
 #endif
 
 

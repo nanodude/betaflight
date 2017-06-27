@@ -97,7 +97,7 @@
 #include "config/config_master.h"
 
 #include "target/BRAINRE1/fpga_drv.h"
-#include "target/BRAINRE1/ir_transponder.h"
+#include "brainfpv/ir_transponder.h"
 
 
 

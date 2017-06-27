@@ -40,11 +40,11 @@
 #include "cms/cms_menu_builtin.h"
 #include "cms/cms_types.h"
 
-#ifdef BRAINRE1
-#include "target/BRAINRE1/video.h"
-#include "target/BRAINRE1/osd_utils.h"
-#include "target/BRAINRE1/ir_transponder.h"
-#include "cms/cms_menu_brainre1.h"
+#ifdef BRAINFPV
+#include "brainfpv/video.h"
+#include "brainfpv/osd_utils.h"
+#include "brainfpv/ir_transponder.h"
+#include "cms/cms_menu_brainfpv.h"
 #endif
 
 #include "common/typeconversion.h"
@@ -868,7 +868,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             // Shouldn't happen
             break;
     }
-#ifdef BRAINRE1
+#ifdef BRAINFPV
     OSD_UINT16_t *ptr = p->data;
     if (ptr == &entryIRTrackmate){
         if (key == KEY_RIGHT) {
@@ -878,7 +878,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             *ptr->val = ir_next_valid_trackmateid(*ptr->val + 1, -1);
         }
     }
-    if (currentMenu == &cmsx_menuBrainRE1Osd) {
+    if (currentMenu == &cmsx_menuBrainFPVOsd) {
         if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
             brainre1_settings_updated = true;
         }

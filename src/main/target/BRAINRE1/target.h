@@ -54,6 +54,7 @@
 
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (16564455)
 
+#define BRAINFPV
 #define OSD
 #define CMS
 #define OSD_CALLS_CMS

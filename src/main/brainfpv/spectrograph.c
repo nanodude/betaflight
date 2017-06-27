@@ -56,9 +56,9 @@
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
-#include "target/BRAINRE1/spectrograph.h"
+#include "brainfpv/spectrograph.h"
 
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
 
 #define SAMPLING_FREQ 3200
 #define FFT_BIN(freq) ((SPEC_FFT_LENGTH / 2 - 1) * freq) / (SAMPLING_FREQ / 2)
@@ -347,7 +347,7 @@ void  spectrographOSD(enum SpecCommand command)
     write_string("ROLL RIGHT: SWITCH   ROLL LEFT: EXIT", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 18, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 }
 
-#endif /* defined(USE_BRAINRE1_SPECTROGRAPH) */
+#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
 
 

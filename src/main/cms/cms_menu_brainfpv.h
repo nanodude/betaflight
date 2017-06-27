@@ -17,6 +17,6 @@
 
 #pragma once
 
-extern CMS_Menu cmsx_menuBrainRE1;
-extern CMS_Menu cmsx_menuBrainRE1Osd;
+extern CMS_Menu cmsx_menuBrainFPV;
+extern CMS_Menu cmsx_menuBrainFPVOsd;
 extern OSD_UINT16_t entryIRTrackmate;

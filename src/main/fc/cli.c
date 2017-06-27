@@ -818,7 +818,7 @@ const clivalue_t valueTable[] = {
     { "brainfpv_bmi160foc",         VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.bmi160foc, .config.minmax = { 0, 1 } },
     { "brainfpv_altitude_scale",    VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.altitude_scale, .config.minmax = { 0, 1 } },
     { "brainfpv_sticks_display",    VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sticks_display, .config.minmax = { 0, 2 } },
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.spec_enabled, .config.minmax = { 0, 1 } },
 #endif
 #endif

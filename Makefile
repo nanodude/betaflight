@@ -664,7 +664,7 @@ HIGHEND_SRC = \
             cms/cms_menu_misc.c \
             cms/cms_menu_osd.c \
             cms/cms_menu_vtx.c \
-            cms/cms_menu_brainre1.c \
+            cms/cms_menu_brainfpv.c \
             common/colorconversion.c \
             drivers/display_ug2864hsweg01.c \
             drivers/light_ws2811strip.c \
@@ -917,6 +917,18 @@ else ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
 TARGET_SRC := $(STARTUP_SRC) $(STM32F30x_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F1_TARGETS)))
 TARGET_SRC := $(STARTUP_SRC) $(STM32F10x_COMMON_SRC) $(TARGET_SRC)
+endif
+
+ifneq ($(filter BRAINFPV,$(FEATURES)),)
+BRAINFPV_SRC = \
+            brainfpv/brainfpv_osd.c \
+            brainfpv/fonts.c \
+            brainfpv/ir_transponder.c \
+            brainfpv/osd_utils.c \
+            brainfpv/spectrograph.c \
+            brainfpv/video_quadspi.c
+
+TARGET_SRC += $(BRAINFPV_SRC)
 endif
 
 ifneq ($(filter CHIBIOS,$(FEATURES)),)
