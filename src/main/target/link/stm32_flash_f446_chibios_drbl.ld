@@ -39,6 +39,8 @@ MEMORY
     ram7            : ORIGIN = 0x00000000, LENGTH = 0
 }
 
+REGION_ALIAS("START", FLASH);
+
 /* RAM region to be used for Main stack. This stack accommodates the processing
    of all exceptions and interrupts*/
 REGION_ALIAS("MAIN_STACK_RAM", RAM);

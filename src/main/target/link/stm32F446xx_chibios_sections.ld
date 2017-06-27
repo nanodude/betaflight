@@ -71,7 +71,7 @@ SECTIONS
     {
         PROVIDE (isr_vector_table_base = .);
         KEEP(*(.isr_vector)) /* Startup code */
-    } > FLASH
+    } > START
 
 
     constructors : ALIGN(4) SUBALIGN(4)
