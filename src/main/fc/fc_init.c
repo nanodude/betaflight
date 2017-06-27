@@ -124,8 +124,8 @@
 #include "hardware_revision.h"
 #endif
 
-#ifdef USE_RE1_FPGA
-#include "target/BRAINRE1/fpga_drv.h"
+#ifdef USE_BRAINFPV_FPGA
+#include "fpga_drv.h"
 #endif
 
 #include "build/build_config.h"
@@ -317,7 +317,7 @@ void init(void)
 
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
-#if defined(BEEPER) & !defined(BRAINRE1)
+#if defined(BEEPER) & !defined(USE_BRAINFPV_FPGA)
     beeperInit(beeperConfig());
 #endif
 /* temp until PGs are implemented. */
@@ -352,8 +352,8 @@ void init(void)
     #endif
 #endif
 
-#ifdef USE_RE1_FPGA
-    RE1FPGA_Init(false);
+#ifdef USE_BRAINFPV_FPGA
+    BRAINFPVFPGA_Init(false);
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION

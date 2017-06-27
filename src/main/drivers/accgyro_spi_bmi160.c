@@ -155,7 +155,7 @@ static void BMI160_Init()
 #endif
 
     bool do_foc = false;
-#ifdef BRAINRE1
+#ifdef BRAINFPV
     do_foc = masterConfig.bfOsdConfig.bmi160foc;
 #endif
 
@@ -164,7 +164,7 @@ static void BMI160_Init()
         BMI160_do_foc();
     }
 
-#ifdef BRAINRE1
+#ifdef BRAINFPV
     if (do_foc) {
         masterConfig.bfOsdConfig.bmi160foc = false;
         writeEEPROM();

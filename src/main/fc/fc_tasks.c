@@ -290,7 +290,7 @@ void fcTasksInit(void)
 #ifdef USE_ESC_SENSOR
     setTaskEnabled(TASK_ESC_SENSOR, feature(FEATURE_ESC_SENSOR));
 #endif
-#if defined(CMS) && !defined(BRAINRE1)
+#if defined(CMS) && !defined(BRAINFPV)
 #ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
 #else
@@ -437,7 +437,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
-#if defined(OSD) && !defined(BRAINRE1)
+#if defined(OSD) && !defined(BRAINFPV)
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = osdUpdate,

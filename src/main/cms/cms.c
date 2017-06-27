@@ -880,7 +880,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
     }
     if (currentMenu == &cmsx_menuBrainFPVOsd) {
         if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
-            brainre1_settings_updated = true;
+            brainfpv_settings_updated = true;
         }
     }
 #endif

@@ -319,7 +319,7 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
     }
 
     if (options & SERIAL_BIDIR) {
-#ifdef USE_RE1_FPGA
+#ifdef USE_BRAINFPV_FPGA
         IOInit(tx, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
         if (options & SERIAL_INVERTED) {
             IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);

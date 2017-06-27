@@ -43,14 +43,14 @@
 #define M25P16_CS_PIN           PB15
 #define M25P16_SPI_INSTANCE     SPI3
 
-#define USE_RE1_FPGA
-#define RE1FPGA_SPI_INSTANCE SPI3
-#define RE1FPGA_SPI_DIVISOR  8
-#define RE1FPGA_CS_PIN       PC15
-#define RE1FPGA_CDONE_PIN    PB0
-#define RE1FPGA_CRESET_PIN   PB1
-#define RE1FPGA_CLOCK_PIN    PA8
-#define RE1FPGA_RESET_PIN    PB10
+#define USE_BRAINFPV_FPGA
+#define BRAINFPVFPGA_SPI_INSTANCE SPI3
+#define BRAINFPVFPGA_SPI_DIVISOR  8
+#define BRAINFPVFPGA_CS_PIN       PC15
+#define BRAINFPVFPGA_CDONE_PIN    PB0
+#define BRAINFPVFPGA_CRESET_PIN   PB1
+#define BRAINFPVFPGA_CLOCK_PIN    PA8
+#define BRAINFPVFPGA_RESET_PIN    PB10
 
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (16564455)
 
@@ -70,7 +70,7 @@
 #define VTX_CONTROL
 #define VTX_SMARTAUDIO
 
-#define USE_BRAINRE1_SPECTROGRAPH
+#define USE_BRAINFPV_SPECTROGRAPH
 
 #define USE_EXTI
 #define GYRO
@@ -166,5 +166,5 @@
 #define USE_DSHOT
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
 
-bool brainre1_settings_updated;
-void brainRE1UpdateSettings(void);
+bool brainfpv_settings_updated;
+void brainFPVUpdateSettings(void);

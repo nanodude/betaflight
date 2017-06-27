@@ -41,14 +41,14 @@
 #include "light_ws2811strip.h"
 
 
-#ifndef USE_RE1_FPGA
+#ifndef USE_BRAINFPV_FPGA
 #if defined(STM32F1) || defined(STM32F3)
 uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #else
 uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #endif
 #else
-#include "target/BRAINRE1/fpga_drv.h"
+#include "fpga_drv.h"
 #endif
 
 volatile uint8_t ws2811LedDataTransferInProgress = 0;
@@ -93,7 +93,7 @@ void setStripColors(const hsvColor_t *colors)
 
 void ws2811LedStripInit(ioTag_t ioTag)
 {
-#ifndef USE_RE1_FPGA
+#ifndef USE_BRAINFPV_FPGA
     memset(&ledStripDMABuffer, 0, WS2811_DMA_BUFFER_SIZE);    
     ws2811LedStripHardwareInit(ioTag);
 
@@ -109,7 +109,7 @@ bool isWS2811LedStripReady(void)
     return !ws2811LedDataTransferInProgress;
 }
 
-#ifndef USE_RE1_FPGA
+#ifndef USE_BRAINFPV_FPGA
 STATIC_UNIT_TESTED uint16_t dmaBufferOffset;
 static int16_t ledIndex;
 
@@ -201,8 +201,8 @@ void ws2811UpdateStrip(void)
         }
     }
 
-    RE1FPGA_SetLEDs(led_data, last_active_led + 1);
+    BRAINFPVFPGA_SetLEDs(led_data, last_active_led + 1);
 }
-#endif /* USE_RE1_FPGA */
+#endif /* USE_BRAINFPV_FPGA */
 
 #endif

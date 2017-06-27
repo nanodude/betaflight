@@ -40,10 +40,10 @@ uint32_t gyroSetSampleRate(gyroDev_t *gyro, uint8_t lpf, uint8_t gyroSyncDenomin
         gyroSyncDenominator = 1; // Always full Sampling 1khz
     }
 
-#if defined(BRAINRE1)
+#if defined(BRAINFPV)
     gyroSamplePeriod = 300;
     gyroSyncDenominator = 1; // Always full Sampling 1khz
-#endif /* defined(BRAINRE1) */
+#endif /* defined(BRAINFPV) */
 
     // calculate gyro divider and targetLooptime (expected cycleTime)
     gyro->mpuDividerDrops  = gyroSyncDenominator - 1;

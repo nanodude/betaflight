@@ -63,7 +63,7 @@
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
 #include "ch.h"
-#include "target/BRAINRE1/spectrograph.h"
+#include "brainfpv/spectrograph.h"
 static uint16_t spec_idx = 0;
 extern binary_semaphore_t spectrographDataReadySemaphore;
 extern bool spec_data_processed;
@@ -471,7 +471,7 @@ void gyroUpdate(void)
 
     const bool calibrationComplete = isGyroCalibrationComplete();
     if (calibrationComplete) {
-#if defined(GYRO_USES_SPI) && defined(USE_MPU_DATA_READY_SIGNAL) && !defined(BRAINRE1)
+#if defined(GYRO_USES_SPI) && defined(USE_MPU_DATA_READY_SIGNAL) && !defined(BRAINFPV)
         // SPI-based gyro so can read and update in ISR
         if (gyroConfig->gyro_isr_update) {
             mpuGyroSetIsrUpdate(&gyro.dev, gyroUpdateISR);

@@ -33,7 +33,7 @@
 
 #include "platform.h"
 
-#if defined(USE_RE1_FPGA)
+#if defined(USE_BRAINFPV_FPGA)
 
 #include "fpga_drv.h"
 
@@ -91,17 +91,17 @@
 */
 
 enum re1fpga_register {
-    RE1FPGA_REG_HWREV   = 0x00,
-    RE1FPGA_REG_CFG     = 0x01,
-    RE1FPGA_REG_CTL     = 0x02,
-    RE1FPGA_REG_BLACK   = 0x03,
-    RE1FPGA_REG_WHITE   = 0x04,
-    RE1FPGA_REG_THR     = 0x05,
-    RE1FPGA_REG_XCFG    = 0x06,
-    RE1FPGA_REG_XCFG2   = 0x07,
-    RE1FPGA_REG_IRCFG   = 0x08,
-    RE1FPGA_REG_IRDATA  = 0x09,
-    RE1FPGA_REG_LED     = 0x0F,
+    BRAINFPVFPGA_REG_HWREV   = 0x00,
+    BRAINFPVFPGA_REG_CFG     = 0x01,
+    BRAINFPVFPGA_REG_CTL     = 0x02,
+    BRAINFPVFPGA_REG_BLACK   = 0x03,
+    BRAINFPVFPGA_REG_WHITE   = 0x04,
+    BRAINFPVFPGA_REG_THR     = 0x05,
+    BRAINFPVFPGA_REG_XCFG    = 0x06,
+    BRAINFPVFPGA_REG_XCFG2   = 0x07,
+    BRAINFPVFPGA_REG_IRCFG   = 0x08,
+    BRAINFPVFPGA_REG_IRDATA  = 0x09,
+    BRAINFPVFPGA_REG_LED     = 0x0F,
 };
 
 struct re1_shadow_reg {
@@ -123,34 +123,34 @@ static IO_t re1FPGACresetPin = IO_NONE;
 static IO_t re1FPGAResetPin = IO_NONE;
 
 
-static int32_t RE1FPGA_WriteReg(uint8_t reg, uint8_t data, uint8_t mask);
-static int32_t RE1FPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data);
-static uint8_t RE1FPGA_ReadReg(uint8_t reg);
+static int32_t BRAINFPVFPGA_WriteReg(uint8_t reg, uint8_t data, uint8_t mask);
+static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data);
+static uint8_t BRAINFPVFPGA_ReadReg(uint8_t reg);
 static void update_shadow_regs();
-int32_t RE1FPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
-int32_t RE1FPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes);
+int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
+int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes);
 
 
 /**
  * @brief Initialize the driver
  * @return 0 for success
  */
-int32_t RE1FPGA_Init(bool load_config)
+int32_t BRAINFPVFPGA_Init(bool load_config)
 {
 
-    re1FPGACsPin = IOGetByTag(IO_TAG(RE1FPGA_CS_PIN));
+    re1FPGACsPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CS_PIN));
     IOInit(re1FPGACsPin, OWNER_OSD, 0);
     IOConfigGPIO(re1FPGACsPin, SPI_IO_CS_CFG);
 
-    spiSetDivisor(RE1FPGA_SPI_INSTANCE, RE1FPGA_SPI_DIVISOR);
+    spiSetDivisor(BRAINFPVFPGA_SPI_INSTANCE, BRAINFPVFPGA_SPI_DIVISOR);
 
     if (load_config) {
         /* Configure the CDONE and CRESETB pins */
-        re1FPGACdonePin = IOGetByTag(IO_TAG(RE1FPGA_CDONE_PIN));
+        re1FPGACdonePin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CDONE_PIN));
         IOInit(re1FPGACdonePin, OWNER_OSD, 0);
         IOConfigGPIO(re1FPGACdonePin, IOCFG_IPU_25);
 
-        re1FPGACresetPin = IOGetByTag(IO_TAG(RE1FPGA_CRESET_PIN));
+        re1FPGACresetPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CRESET_PIN));
         IOInit(re1FPGACresetPin, OWNER_OSD, 0);
         IOConfigGPIO(re1FPGACresetPin, IOCFG_OUT_PP);
 
@@ -170,12 +170,12 @@ int32_t RE1FPGA_Init(bool load_config)
     }
 
     /* Configure 16MHz clock output to FPGA */
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(RE1FPGA_CLOCK_PIN)), IOCFG_AF_PP, GPIO_AF_MCO);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(BRAINFPVFPGA_CLOCK_PIN)), IOCFG_AF_PP, GPIO_AF_MCO);
     RCC_MCO1Config(RCC_MCO1Source_HSE, RCC_MCO1Div_1);
     RCC_MCO1Cmd(ENABLE);
 
     /* Configure reset pin */
-    re1FPGAResetPin = IOGetByTag(IO_TAG(RE1FPGA_RESET_PIN));
+    re1FPGAResetPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_RESET_PIN));
     IOInit(re1FPGAResetPin, OWNER_OSD, 0);
     IOConfigGPIO(re1FPGAResetPin, IO_CONFIG(GPIO_Mode_OUT, GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_DOWN));
 
@@ -189,14 +189,14 @@ int32_t RE1FPGA_Init(bool load_config)
     delay(1);
 
     // Initialize registers
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_CFG, 0x00);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_CTL, 0x00);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_BLACK, 35);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_WHITE, 110);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_THR, 120);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_XCFG, 0x08);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_XCFG2, 0x10);
-    RE1FPGA_WriteRegDirect(RE1FPGA_REG_IRCFG, 0x00);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_CFG, 0x00);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_CTL, 0x00);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_BLACK, 35);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_WHITE, 110);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_THR, 120);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG, 0x08);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_IRCFG, 0x00);
 
     // Read all registers into shadow regsiters
     update_shadow_regs();
@@ -208,7 +208,7 @@ int32_t RE1FPGA_Init(bool load_config)
  * @brief Claim the SPI bus for the communications and select this chip
  * @return 0 if successful, -1 for invalid device, -2 if unable to claim bus
  */
-static int32_t RE1FPGA_ClaimBus()
+static int32_t BRAINFPVFPGA_ClaimBus()
 {
     IOLo(re1FPGACsPin);
 
@@ -219,7 +219,7 @@ static int32_t RE1FPGA_ClaimBus()
  * @brief Release the SPI bus for the communications and end the transaction
  * @return 0 if successful
  */
-static int32_t RE1FPGA_ReleaseBus()
+static int32_t BRAINFPVFPGA_ReleaseBus()
 {
     IOHi(re1FPGACsPin);
 
@@ -227,45 +227,45 @@ static int32_t RE1FPGA_ReleaseBus()
 }
 
 /**
- * @brief Writes one byte to the RE1FPGA register
+ * @brief Writes one byte to the BRAINFPVFPGA register
  * \param[in] reg Register address
  * \param[in] data Byte to write
  * @returns 0 when success
  */
-static int32_t RE1FPGA_WriteReg(enum re1fpga_register reg, uint8_t data, uint8_t mask)
+static int32_t BRAINFPVFPGA_WriteReg(enum re1fpga_register reg, uint8_t data, uint8_t mask)
 {
     volatile uint8_t* cur_reg;
 
     switch (reg) {
-    case RE1FPGA_REG_HWREV:
+    case BRAINFPVFPGA_REG_HWREV:
         return -2;
-    case RE1FPGA_REG_CFG:
+    case BRAINFPVFPGA_REG_CFG:
         cur_reg = &shadow_reg.reg_cfg;
         break;
-    case RE1FPGA_REG_CTL:
+    case BRAINFPVFPGA_REG_CTL:
         cur_reg = &shadow_reg.reg_ctl;
         break;
-    case RE1FPGA_REG_BLACK:
+    case BRAINFPVFPGA_REG_BLACK:
         cur_reg = &shadow_reg.reg_black;
         break;
-    case RE1FPGA_REG_WHITE:
+    case BRAINFPVFPGA_REG_WHITE:
         cur_reg = &shadow_reg.reg_white;
         break;
-    case RE1FPGA_REG_THR:
+    case BRAINFPVFPGA_REG_THR:
         cur_reg = &shadow_reg.reg_thr;
         break;
-    case RE1FPGA_REG_XCFG:
+    case BRAINFPVFPGA_REG_XCFG:
         cur_reg = &shadow_reg.reg_xcfg;
         break;
-    case RE1FPGA_REG_XCFG2:
+    case BRAINFPVFPGA_REG_XCFG2:
         cur_reg = &shadow_reg.reg_xcfg2;
         break;
-    case RE1FPGA_REG_IRCFG:
+    case BRAINFPVFPGA_REG_IRCFG:
         cur_reg = &shadow_reg.reg_ircfg;
         break;
 
     default:
-    case RE1FPGA_REG_LED:
+    case BRAINFPVFPGA_REG_LED:
         return -2;
     }
 
@@ -278,39 +278,39 @@ static int32_t RE1FPGA_WriteReg(enum re1fpga_register reg, uint8_t data, uint8_t
 
     *cur_reg = new_data;
 
-    return RE1FPGA_WriteRegDirect(reg, new_data);
+    return BRAINFPVFPGA_WriteRegDirect(reg, new_data);
 }
 
-static int32_t RE1FPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data)
+static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data)
 {
 
-    if (RE1FPGA_ClaimBus() != 0)
+    if (BRAINFPVFPGA_ClaimBus() != 0)
         return -3;
 
-    spiTransferByte(RE1FPGA_SPI_INSTANCE, 0x7f & reg);
-    spiTransferByte(RE1FPGA_SPI_INSTANCE, data);
+    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x7f & reg);
+    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, data);
 
-    RE1FPGA_ReleaseBus();
+    BRAINFPVFPGA_ReleaseBus();
 
     return 0;
 }
 
 /**
- * @brief Read a register from RE1FPGA
+ * @brief Read a register from BRAINFPVFPGA
  * @returns The register value
  * @param reg[in] Register address to be read
  */
-static uint8_t RE1FPGA_ReadReg(enum re1fpga_register reg)
+static uint8_t BRAINFPVFPGA_ReadReg(enum re1fpga_register reg)
 {
     uint8_t data;
     uint8_t out = 0x00;
 
-    RE1FPGA_ClaimBus();
+    BRAINFPVFPGA_ClaimBus();
 
-    spiTransferByte(RE1FPGA_SPI_INSTANCE, 0x80 | reg);
-    spiTransfer(RE1FPGA_SPI_INSTANCE, &data, &out, 1);   // receive response
+    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x80 | reg);
+    spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, &data, &out, 1);   // receive response
 
-    RE1FPGA_ReleaseBus();
+    BRAINFPVFPGA_ReleaseBus();
 
     return data;
 }
@@ -321,21 +321,21 @@ static uint8_t RE1FPGA_ReadReg(enum re1fpga_register reg)
  */
 static void update_shadow_regs(void)
 {
-    shadow_reg.reg_hwrev = RE1FPGA_ReadReg(RE1FPGA_REG_HWREV);
-    shadow_reg.reg_cfg = RE1FPGA_ReadReg(RE1FPGA_REG_CFG);
-    shadow_reg.reg_ctl = RE1FPGA_ReadReg(RE1FPGA_REG_CTL);
-    shadow_reg.reg_black = RE1FPGA_ReadReg(RE1FPGA_REG_BLACK);
-    shadow_reg.reg_white = RE1FPGA_ReadReg(RE1FPGA_REG_WHITE);
-    shadow_reg.reg_thr = RE1FPGA_ReadReg(RE1FPGA_REG_THR);
-    shadow_reg.reg_xcfg = RE1FPGA_ReadReg(RE1FPGA_REG_XCFG);
-    shadow_reg.reg_xcfg2 = RE1FPGA_ReadReg(RE1FPGA_REG_XCFG2);
-    shadow_reg.reg_ircfg = RE1FPGA_ReadReg(RE1FPGA_REG_IRCFG);
+    shadow_reg.reg_hwrev = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_HWREV);
+    shadow_reg.reg_cfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_CFG);
+    shadow_reg.reg_ctl = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_CTL);
+    shadow_reg.reg_black = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_BLACK);
+    shadow_reg.reg_white = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_WHITE);
+    shadow_reg.reg_thr = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_THR);
+    shadow_reg.reg_xcfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_XCFG);
+    shadow_reg.reg_xcfg2 = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_XCFG2);
+    shadow_reg.reg_ircfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_IRCFG);
 }
 
 /**
  * @brief Get the Hardware
  */
-uint8_t RE1FPGA_GetHWRevision()
+uint8_t BRAINFPVFPGA_GetHWRevision()
 {
     return shadow_reg.reg_hwrev;
 }
@@ -344,17 +344,17 @@ uint8_t RE1FPGA_GetHWRevision()
 /**
  * @brief Set programmable LED (WS2812B) colors
  */
-int32_t RE1FPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds)
+int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds)
 {
-    if (RE1FPGA_ClaimBus() != 0)
+    if (BRAINFPVFPGA_ClaimBus() != 0)
         return -1;
 
     n_leds = MIN(n_leds, 1024);
 
-    spiTransferByte(RE1FPGA_SPI_INSTANCE, 0x7f & RE1FPGA_REG_LED);
-    spiTransfer(RE1FPGA_SPI_INSTANCE, NULL, led_data, 3 * n_leds);
+    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x7f & BRAINFPVFPGA_REG_LED);
+    spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, NULL, led_data, 3 * n_leds);
 
-    RE1FPGA_ReleaseBus();
+    BRAINFPVFPGA_ReleaseBus();
 
     return 0;
 }
@@ -363,14 +363,14 @@ int32_t RE1FPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds)
  * @brief Set programmable LED (WS2812B) color
  */
 #define LED_BLOCK_SIZE 16
-int32_t RE1FPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, uint8_t blue)
+int32_t BRAINFPVFPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, uint8_t blue)
 {
 
     uint8_t LED_DATA[LED_BLOCK_SIZE * 3];
 
     n_leds = MIN(n_leds, 1024);
 
-    if (RE1FPGA_ClaimBus() != 0)
+    if (BRAINFPVFPGA_ClaimBus() != 0)
         return -1;
 
     for (int i=0; i<LED_BLOCK_SIZE; i++) {
@@ -379,17 +379,17 @@ int32_t RE1FPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, uint8_t
         LED_DATA[3 * i + 2] = blue;
     }
 
-    spiTransferByte(RE1FPGA_SPI_INSTANCE, 0x7f & RE1FPGA_REG_LED);
+    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x7f & BRAINFPVFPGA_REG_LED);
 
     for (int i=0; i<n_leds/LED_BLOCK_SIZE; i++) {
-        spiTransfer(RE1FPGA_SPI_INSTANCE, NULL, LED_DATA, 3 * LED_BLOCK_SIZE);
+        spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, NULL, LED_DATA, 3 * LED_BLOCK_SIZE);
     }
 
     if (n_leds % LED_BLOCK_SIZE != 0) {
-        spiTransfer(RE1FPGA_SPI_INSTANCE, NULL, LED_DATA, 3 * (n_leds % LED_BLOCK_SIZE));
+        spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, NULL, LED_DATA, 3 * (n_leds % LED_BLOCK_SIZE));
     }
 
-    RE1FPGA_ReleaseBus();
+    BRAINFPVFPGA_ReleaseBus();
 
     return 0;
 }
@@ -397,40 +397,40 @@ int32_t RE1FPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, uint8_t
 /**
  * @brief Set the protocol for the IR transmitter
  */
-int32_t RE1FPGA_SetIRProtocol(enum re1fpga_ir_protocols ir_protocol)
+int32_t BRAINFPVFPGA_SetIRProtocol(enum re1fpga_ir_protocols ir_protocol)
 {
     uint8_t value = 0;
 
     switch (ir_protocol) {
-    case RE1FPGA_IR_PROTOCOL_OFF:
+    case BRAINFPVFPGA_IR_PROTOCOL_OFF:
         value = 0;
         break;
-    case RE1FPGA_IR_PROTOCOL_ILAP:
-    case RE1FPGA_IR_PROTOCOL_TRACKMATE:
+    case BRAINFPVFPGA_IR_PROTOCOL_ILAP:
+    case BRAINFPVFPGA_IR_PROTOCOL_TRACKMATE:
         /* They use the same basic protocol */
         value = 0x01;
         break;
     }
 
-    return RE1FPGA_WriteReg(RE1FPGA_REG_IRCFG, value, 0x0F);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_IRCFG, value, 0x0F);
 }
 
 /**
  * @brief Set IR emitter data
  */
-int32_t RE1FPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes)
+int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes)
 {
     if (n_bytes > 16)
         return - 1;
 
-    if (RE1FPGA_ClaimBus() != 0)
+    if (BRAINFPVFPGA_ClaimBus() != 0)
         return -2;
 
 
-    spiTransferByte(RE1FPGA_SPI_INSTANCE, 0x7f & RE1FPGA_REG_IRDATA);
-    spiTransfer(RE1FPGA_SPI_INSTANCE, NULL, ir_data, n_bytes);
+    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x7f & BRAINFPVFPGA_REG_IRDATA);
+    spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, NULL, ir_data, n_bytes);
 
-    RE1FPGA_ReleaseBus();
+    BRAINFPVFPGA_ReleaseBus();
 
     return 0;
 }
@@ -438,7 +438,7 @@ int32_t RE1FPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes)
 /**
  * @brief Enable / disable the serial RX inverter
  */
-int32_t RE1FPGA_SerialRxInvert(bool invert)
+int32_t BRAINFPVFPGA_SerialRxInvert(bool invert)
 {
     uint8_t data;
     if (invert) {
@@ -447,106 +447,106 @@ int32_t RE1FPGA_SerialRxInvert(bool invert)
     else {
         data = 0x00;
     }
-    return RE1FPGA_WriteReg(RE1FPGA_REG_CFG, data, 0x01);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CFG, data, 0x01);
 }
 
 /**
  * @brief Set MultiPort TX pin mode
  */
-int32_t RE1FPGA_MPTxPinMode(bool bidrectional, bool invert)
+int32_t BRAINFPVFPGA_MPTxPinMode(bool bidrectional, bool invert)
 {
     uint8_t data = 0;
 
     data |= bidrectional << 1;
     data |= invert << 2;
 
-    return RE1FPGA_WriteReg(RE1FPGA_REG_CFG, data, 0x06);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CFG, data, 0x06);
 }
 
 /**
  * @brief Set MultiPort TX pull-up / pull-down resistor
  */
-int32_t RE1FPGA_MPTxPinPullUpDown(bool enable, bool pullup)
+int32_t BRAINFPVFPGA_MPTxPinPullUpDown(bool enable, bool pullup)
 {
     uint8_t data = 0;
 
     data |= enable << 3;
     data |= pullup << 4;
 
-    return RE1FPGA_WriteReg(RE1FPGA_REG_CFG, data, 0x18);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CFG, data, 0x18);
 }
 
 /**
  * @brief Set buzzer type
  */
-int32_t RE1FPGA_SetBuzzerType(enum re1fpga_buzzer_types type)
+int32_t BRAINFPVFPGA_SetBuzzerType(enum re1fpga_buzzer_types type)
 {
     uint8_t data;
-    if (type == RE1FPGA_BUZZER_DC) {
+    if (type == BRAINFPVFPGA_BUZZER_DC) {
         data = 0;
     }
     else {
         data = 255;
     }
-    return RE1FPGA_WriteReg(RE1FPGA_REG_CFG, data, 0x40);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CFG, data, 0x40);
 }
 
 
 /**
  * @brief Enable / disable buzzer
  */
-int32_t RE1FPGA_Buzzer(bool enable)
+int32_t BRAINFPVFPGA_Buzzer(bool enable)
 {
     uint8_t data = enable;
 
-    return RE1FPGA_WriteReg(RE1FPGA_REG_CTL, data, 0x01);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x01);
 }
 
 /**
  * @brief Toggle buzzer
  */
-int32_t RE1FPGA_BuzzerToggle()
+int32_t BRAINFPVFPGA_BuzzerToggle()
 {
     uint8_t data = shadow_reg.reg_ctl ^ 0x01;
-    return RE1FPGA_WriteReg(RE1FPGA_REG_CTL, data, 0x01);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x01);
 }
 
 /**
  * @brief Set the notification LED colors
  */
-int32_t RE1FPGA_SetNotificationLedColor(enum re1fpga_led_colors led_colors)
+int32_t BRAINFPVFPGA_SetNotificationLedColor(enum re1fpga_led_colors led_colors)
 {
     uint8_t value;
 
-    if (led_colors == RE1FPGA_STATUS_BLUE_CUSTOM_GREEN)
+    if (led_colors == BRAINFPVFPGA_STATUS_BLUE_CUSTOM_GREEN)
         value = 0;
     else
         value = 255;
 
-    return RE1FPGA_WriteReg(RE1FPGA_REG_CFG, value, 0x20);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CFG, value, 0x20);
 }
 
 /**
  * @brief Set OSD black and white levels
  */
-void RE1FPGA_SetBwLevels(uint8_t black, uint8_t white)
+void BRAINFPVFPGA_SetBwLevels(uint8_t black, uint8_t white)
 {
-    RE1FPGA_WriteReg(RE1FPGA_REG_BLACK, black, 0xFF);
-    RE1FPGA_WriteReg(RE1FPGA_REG_WHITE, white, 0xFF);
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_BLACK, black, 0xFF);
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_WHITE, white, 0xFF);
 }
 
 /**
  * @brief Set the threshold for the video sync pulse detector
  */
-int32_t RE1FPGA_SetSyncThreshold(uint8_t threshold)
+int32_t BRAINFPVFPGA_SetSyncThreshold(uint8_t threshold)
 {
-    return RE1FPGA_WriteReg(RE1FPGA_REG_THR, threshold, 0xFF);
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_THR, threshold, 0xFF);
 }
 
 /**
  * @brief Set OSD x offset
  */
-void RE1FPGA_SetXOffset(int8_t x_offset)
+void BRAINFPVFPGA_SetXOffset(int8_t x_offset)
 {
     //x_offset += 5;
     if (x_offset >= 7)
@@ -555,31 +555,31 @@ void RE1FPGA_SetXOffset(int8_t x_offset)
         x_offset = -8;
 
     uint8_t value = 8 + x_offset;
-    RE1FPGA_WriteReg(RE1FPGA_REG_XCFG, value, 0x0F);
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_XCFG, value, 0x0F);
 }
 
 /**
  * @brief Set OSD x scale
  */
-void RE1FPGA_SetXScale(uint8_t x_scale)
+void BRAINFPVFPGA_SetXScale(uint8_t x_scale)
 {
     x_scale = (x_scale & 0x0F) << 4;
-    RE1FPGA_WriteReg(RE1FPGA_REG_XCFG, x_scale, 0xF0);
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_XCFG, x_scale, 0xF0);
 }
 
 /**
  * @brief Set 3D mode configuration
  */
-void RE1FPGA_Set3DConfig(bool enabled, uint8_t x_shift_right)
+void BRAINFPVFPGA_Set3DConfig(bool enabled, uint8_t x_shift_right)
 {
     uint8_t cfg;
     uint8_t enabled_data = enabled ? 1 : 0;
 
     cfg = (enabled_data << 6) | (x_shift_right & 0x3F);
-    RE1FPGA_WriteReg(RE1FPGA_REG_XCFG2, cfg, 0xFF);
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_XCFG2, cfg, 0xFF);
 }
 
-#endif /* defined(USE_RE1_FPGA) */
+#endif /* defined(USE_BRAINFPV_FPGA) */
 
 
 

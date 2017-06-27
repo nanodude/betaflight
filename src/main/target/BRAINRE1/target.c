@@ -96,7 +96,7 @@
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
-#include "target/BRAINRE1/fpga_drv.h"
+#include "fpga_drv.h"
 #include "brainfpv/ir_transponder.h"
 
 
@@ -111,27 +111,27 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM2,  IO_TAG(PA15), TIM_Channel_1, TIM_USE_MOTOR, 1, GPIO_AF_TIM2,  DMA1_Stream5, DMA_Channel_3, DMA1_ST5_HANDLER}, // S6_OUT
 };
 
-bool brainre1_settings_updated = true;
+bool brainfpv_settings_updated = true;
 extern master_t masterConfig;
 
 void brainRE1UpdateSettings(void) {
-    RE1FPGA_SetBwLevels(masterConfig.bfOsdConfig.black_level, masterConfig.bfOsdConfig.white_level);
-    RE1FPGA_SetSyncThreshold(masterConfig.bfOsdConfig.sync_threshold);
-    RE1FPGA_SetXOffset(masterConfig.bfOsdConfig.x_offset);
-    RE1FPGA_SetXScale(masterConfig.bfOsdConfig.x_scale);
-    RE1FPGA_Set3DConfig(masterConfig.bfOsdConfig.sbs_3d_enabled, masterConfig.bfOsdConfig.sbs_3d_right_eye_offset);
+    BRAINFPVFPGA_SetBwLevels(masterConfig.bfOsdConfig.black_level, masterConfig.bfOsdConfig.white_level);
+    BRAINFPVFPGA_SetSyncThreshold(masterConfig.bfOsdConfig.sync_threshold);
+    BRAINFPVFPGA_SetXOffset(masterConfig.bfOsdConfig.x_offset);
+    BRAINFPVFPGA_SetXScale(masterConfig.bfOsdConfig.x_scale);
+    BRAINFPVFPGA_Set3DConfig(masterConfig.bfOsdConfig.sbs_3d_enabled, masterConfig.bfOsdConfig.sbs_3d_right_eye_offset);
 
     if (masterConfig.bfOsdConfig.ir_system == 1) {
         uint8_t ir_data[6];
         ir_generate_ilap_packet(masterConfig.bfOsdConfig.ir_ilap_id, ir_data, 6);
-        RE1FPGA_SetIRData(ir_data, 6);
-        RE1FPGA_SetIRProtocol(RE1FPGA_IR_PROTOCOL_ILAP);
+        BRAINFPVFPGA_SetIRData(ir_data, 6);
+        BRAINFPVFPGA_SetIRProtocol(BRAINFPVFPGA_IR_PROTOCOL_ILAP);
     }
 
     if (masterConfig.bfOsdConfig.ir_system == 2) {
         uint8_t ir_data[4];
         ir_generate_trackmate_packet(masterConfig.bfOsdConfig.ir_trackmate_id, ir_data, 6);
-        RE1FPGA_SetIRData(ir_data, 4);
-        RE1FPGA_SetIRProtocol(RE1FPGA_IR_PROTOCOL_TRACKMATE);
+        BRAINFPVFPGA_SetIRData(ir_data, 4);
+        BRAINFPVFPGA_SetIRProtocol(BRAINFPVFPGA_IR_PROTOCOL_TRACKMATE);
     }
 }

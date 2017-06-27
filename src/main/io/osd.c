@@ -503,7 +503,7 @@ void osdResetConfig(osd_profile_t *osdProfile)
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
 {
-#ifndef BRAINRE1
+#ifndef USE_BRAINFPV_OSD
     char x, string_buffer[30];
     BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
     osdDisplayPort = osdDisplayPortToUse;
@@ -541,7 +541,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 #else
     osdDisplayPort = osdDisplayPortToUse;
     cmsDisplayPortRegister(osdDisplayPortToUse);
-#endif /* BRAINRE1 */
+#endif /* USE_BRAINFPV_OSD */
 }
 
 void osdUpdateAlarms(void)
@@ -768,7 +768,7 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif // MAX7456_DMA_CHANNEL_TX
 
-#ifndef BRAINRE1
+#ifndef USE_BRAINFPV_OSD
     // redraw values in buffer
 #ifdef USE_MAX7456
 #define DRAW_FREQ_DENOM 5

@@ -360,11 +360,11 @@ void scheduler(void)
     }
 #if defined(USE_CHIBIOS)
     else {
-#ifdef BRAINRE1
-        extern bool brainre1_settings_updated;
-        if (brainre1_settings_updated) {
+#ifdef BRAINFPV
+        extern bool brainfpv_settings_updated;
+        if (brainfpv_settings_updated) {
             brainRE1UpdateSettings();
-            brainre1_settings_updated = false;
+            brainfpv_settings_updated = false;
         }
 #endif
         // wait for gyro if no tasks are ready

@@ -390,7 +390,7 @@ uint32_t hse_value = HSE_VALUE;
 
 #if defined(STM32F446xx)
 /* PLL division factor for I2S, SAI, SYSTEM and SPDIF: Clock =  PLL_VCO / PLLR */
-#if defined(BRAINRE1)
+#if defined(BRAINRE1) || defined(RADIX)
 #define PLL_R      2
 #define PLL_Q      2
 #else
@@ -402,7 +402,7 @@ uint32_t hse_value = HSE_VALUE;
 #endif /* STM32F446xx */
 
 #if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx)
-#if defined(BRAINRE1)
+#if defined(BRAINRE1) || defined(RADIX)
 #define PLL_N      180
 /* SYSCLK = PLL_VCO / PLL_P */
 #define PLL_P      2
@@ -431,7 +431,7 @@ uint32_t hse_value = HSE_VALUE;
 #define PLL_P      4
 #endif /* STM32F410xx || STM32F411xE */
 
-#if defined(BRAINRE1)
+#if defined(BRAINRE1) || defined(RADIX)
 #define PLLSAI_M      8
 #define PLLSAI_N      192
 #define PLLSAI_P      8
@@ -455,7 +455,7 @@ uint32_t hse_value = HSE_VALUE;
   * @{
   */
 
-#if defined(BRAINRE1)
+#if defined(BRAINRE1) || defined(RADIX)
 uint32_t SystemCoreClock = 180000000;
 #else
 /* core clock is simply a mhz of PLL_N / PLL_P */

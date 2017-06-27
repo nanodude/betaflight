@@ -352,7 +352,7 @@ void resetBeeperConfig(beeperConfig_t *beeperConfig)
     beeperConfig->isOpenDrain = true;
     beeperConfig->isInverted = false;
 #endif
-#ifndef BRAINRE1
+#ifndef USE_BRAINFPV_FPGA
     beeperConfig->ioTag = IO_TAG(BEEPER);
 #endif
 }
@@ -802,7 +802,7 @@ void createDefaultConfig(master_t *config)
 #elif defined(USE_GYRO_SPI_MPU6000) || defined(USE_GYRO_SPI_MPU6500)  || defined(USE_GYRO_SPI_ICM20689)
     config->gyroConfig.gyro_sync_denom = 1;
     config->pidConfig.pid_process_denom = 4;
-#elif defined(BRAINRE1)
+#elif defined(BRAINFPV)
     config->gyroConfig.gyro_sync_denom = 1;
     config->pidConfig.pid_process_denom = 1;
 #else
@@ -1279,7 +1279,7 @@ void validateAndFixGyroConfig(void)
     gyroConfig()->gyro_isr_update = false;
 #endif
 
-#if defined(BRAINRE1)
+#if defined(BRAINFPV)
     samplingTime = 0.0003125f;
 #endif
 

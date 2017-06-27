@@ -22,7 +22,7 @@ typedef struct {
     uint8_t bmi160foc;
     uint8_t altitude_scale;
     uint8_t sticks_display;
-#if defined(USE_BRAINRE1_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
     uint8_t spec_enabled;
 #endif
 } bfOsdConfig_t;
