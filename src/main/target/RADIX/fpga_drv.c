@@ -130,6 +130,9 @@ static void update_shadow_regs();
 int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
 int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes);
 
+#if defined(BRAINFPV_FPGA_INCLUDE_BITSTREAM)
+static int32_t BRAINFPVFPGA_LoadBitstream(void);
+#endif
 
 /**
  * @brief Initialize the driver
@@ -153,7 +156,11 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
         re1FPGACresetPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CRESET_PIN));
         IOInit(re1FPGACresetPin, OWNER_OSD, 0);
         IOConfigGPIO(re1FPGACresetPin, IOCFG_OUT_PP);
-
+#if defined(BRAINFPV_FPGA_INCLUDE_BITSTREAM)
+        if (BRAINFPVFPGA_LoadBitstream() < 0) {
+            return -2;
+        }
+#else
         // CRESETB low for 1ms
         IOLo(re1FPGACresetPin);
         delay(1);
@@ -167,6 +174,7 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
 
         if (!IORead(re1FPGACdonePin))
             return -2;
+#endif
     }
 
     /* Configure 16MHz clock output to FPGA */
@@ -578,6 +586,103 @@ void BRAINFPVFPGA_Set3DConfig(bool enabled, uint8_t x_shift_right)
     cfg = (enabled_data << 6) | (x_shift_right & 0x3F);
     BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_XCFG2, cfg, 0xFF);
 }
+
+#if defined(BRAINFPV_FPGA_INCLUDE_BITSTREAM)
+
+#define MAX_BITSTREAM_SIZE 71256
+
+#define DUMMY_BUFFER_SIZE (200 / 8 + 1)
+
+
+//#include <pios_stringify.h>	/* __stringify */
+
+#define BS_PAYLOAD_FILE /home/martin/data/brain_fpv/products/brainfpv_re1/fpga/code/re1_fpga/final_bitsreams/re1fpga_bitmap_v1.bin
+
+/* Indirect stringification.  Doing two levels allows the parameter to be a
+ * macro itself.  For example, compile with -DFOO=bar, __stringify(FOO)
+ * converts to "bar".
+ *
+ * Copied from linux kernel:
+ *    http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/include/linux/stringify.h
+ */
+#define __stringify_1(x...)     #x
+#define __stringify(x...)       __stringify_1(x)
+
+
+asm(
+	".section .rodata\n"
+
+	".global _bs_payload_start\n"
+	"_bs_payload_start:\n"
+	".incbin \"" __stringify(BS_PAYLOAD_FILE) "\"\n"
+	".global _bs_payload_end\n"
+	"_bs_payload_end:\n"
+
+	".global _bs_payload_size\n"
+	"_bs_payload_size:\n"
+	".word _bs_payload_end - _bs_payload_start\n"
+	".previous\n"
+);
+
+/* The ADDRESSES of the _bu_payload_* symbols are the important data */
+extern const uint32_t _bs_payload_start;
+extern const uint32_t _bs_payload_end;
+extern const uint32_t _bs_payload_size;
+
+
+static int32_t BRAINFPVFPGA_LoadBitstream()
+{
+    int32_t retval = 0;
+
+    // Drive CSN line low
+    BRAINFPVFPGA_ClaimBus();
+
+    // CRESETB low for 1ms
+    IOLo(re1FPGACresetPin);
+    delay(1);
+    IOHi(re1FPGACresetPin);
+
+    // Wait for 1ms
+    delay(1);
+
+    // Send bitstream file
+    uint8_t b;
+    uint8_t *send_buffer = (uint8_t *)_bs_payload_start;
+
+    /* Make sure the RXNE flag is cleared by reading the DR register */
+    b = BRAINFPVFPGA_SPI_INSTANCE->DR;
+
+    for (int i=0; i < MAX_BITSTREAM_SIZE + 20; i++) {
+        /* get the byte to send */
+        b = (i < MAX_BITSTREAM_SIZE) ? *(send_buffer++) : 0x00;
+
+        /* Start the transfer */
+        BRAINFPVFPGA_SPI_INSTANCE->DR = b;
+
+        /* Wait until the TXE goes high */
+        while (!(BRAINFPVFPGA_SPI_INSTANCE->SR & SPI_I2S_FLAG_TXE));
+    }
+
+    /* Wait for SPI transfer to have fully completed */
+    while (BRAINFPVFPGA_SPI_INSTANCE->SR & SPI_I2S_FLAG_BSY);
+
+    // Sample CDONE pin
+    for (int i=0; i<100; i++) {
+        if (IORead(re1FPGACdonePin))
+            break;
+        delay(1);
+    }
+
+    if (!IORead(re1FPGACdonePin))
+        retval = -2;
+        
+
+    BRAINFPVFPGA_ReleaseBus();
+
+    return retval;
+}
+
+#endif /* defined(PIOS_INCLUDE_RE1_FPGA_BITSTREAM) */
 
 #endif /* defined(USE_BRAINFPV_FPGA) */
 
