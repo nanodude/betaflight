@@ -71,7 +71,9 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
     else {
         if ((uartPort->USARTx == USART6) && (uartPort->port.options & SERIAL_BIDIR)) {
             // non-inverted bi-directional mode with pullup
-            RE1FPGA_MPTxPinMode(true, false);
+            // on RE1, non-inverted b-directional mode is not supported using onlu Tx
+            // pin, so we disable the inveter and user needs to wire Rx and Tx together
+            RE1FPGA_MPTxPinMode(false, false);
             RE1FPGA_MPTxPinPullUpDown(true, true);
         }
     }
@@ -121,9 +123,19 @@ static void uartReconfigure(uartPort_t *uartPort)
 
     usartConfigurePinInversion(uartPort);
 
-    if(uartPort->port.options & SERIAL_BIDIR)
+    if(uartPort->port.options & SERIAL_BIDIR) {
+#ifdef USE_RE1_FPGA
+        if ((uartPort->USARTx == USART6) && ! (uartPort->port.options & SERIAL_INVERTED)) {
+            // non-inverted bi-directional mode is not supported on RE1 UART6
+            USART_HalfDuplexCmd(uartPort->USARTx, DISABLE);
+        }
+        else {
+            USART_HalfDuplexCmd(uartPort->USARTx, ENABLE);
+        }
+#else
         USART_HalfDuplexCmd(uartPort->USARTx, ENABLE);
-    else
+#endif
+    }else
         USART_HalfDuplexCmd(uartPort->USARTx, DISABLE);
 
     USART_Cmd(uartPort->USARTx, ENABLE);
