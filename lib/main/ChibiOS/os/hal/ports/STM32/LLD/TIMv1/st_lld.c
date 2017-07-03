@@ -79,7 +79,8 @@
 #define STM32_TIM3_IS_USED
 #endif
 
-#define ST_HANDLER                          STM32_TIM3_HANDLER
+#define ST_HANDLER                          TIM3_IRQHandler
+#define ST_IRQ                              TIM3_IRQn
 #define ST_NUMBER                           STM32_TIM3_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM3(FALSE)
@@ -102,7 +103,8 @@
 #define STM32_TIM4_IS_USED
 #endif
 
-#define ST_HANDLER                          STM32_TIM4_HANDLER
+#define ST_HANDLER                          TIM4_IRQHandler
+#define ST_IRQ                              TIM4_IRQn
 #define ST_NUMBER                           STM32_TIM4_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM4(FALSE)
@@ -244,7 +246,7 @@ OSAL_IRQ_HANDLER(SysTick_Handler) {
  * @isr
  */
 //OSAL_IRQ_HANDLER(ST_HANDLER) {
-void TIM3_IRQHandler(void) {
+void ST_HANDLER(void) {
   OSAL_IRQ_PROLOGUE();
 
   /* Note, under rare circumstances an interrupt can remain latched even if
@@ -295,7 +297,7 @@ void st_lld_init(void) {
   /* IRQ enabled.*/
   //nvicEnableVector(ST_NUMBER, STM32_ST_IRQ_PRIORITY);
   NVIC_InitTypeDef NVIC_InitStructure;
-  NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannel = ST_IRQ;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_CHIBIOS);
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_CHIBIOS);
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;

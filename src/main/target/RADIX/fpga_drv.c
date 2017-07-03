@@ -126,7 +126,6 @@ static IO_t re1FPGAResetPin = IO_NONE;
 static int32_t BRAINFPVFPGA_WriteReg(uint8_t reg, uint8_t data, uint8_t mask);
 static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data);
 static uint8_t BRAINFPVFPGA_ReadReg(uint8_t reg);
-static void update_shadow_regs();
 int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
 int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes);
 
@@ -188,7 +187,7 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     IOConfigGPIO(re1FPGAResetPin, IO_CONFIG(GPIO_Mode_OUT, GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_DOWN));
 
     // Give the PLL some time to stabilize
-    delay(10);
+    delay(1);
 
     // Reset the FPGA
     IOHi(re1FPGAResetPin);
@@ -201,13 +200,10 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_CTL, 0x00);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_BLACK, 35);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_WHITE, 110);
-    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_THR, 120);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_THR, 30);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG, 0x08);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_IRCFG, 0x00);
-
-    // Read all registers into shadow regsiters
-    update_shadow_regs();
 
     return 0;
 }
@@ -229,6 +225,9 @@ static int32_t BRAINFPVFPGA_ClaimBus()
  */
 static int32_t BRAINFPVFPGA_ReleaseBus()
 {
+    // wait for SPI to be done
+    while (spiIsBusBusy(BRAINFPVFPGA_SPI_INSTANCE)) {};
+
     IOHi(re1FPGACsPin);
 
     return 0;
@@ -279,7 +278,6 @@ static int32_t BRAINFPVFPGA_WriteReg(enum re1fpga_register reg, uint8_t data, ui
 
     uint8_t new_data = (*cur_reg & ~mask) | (data & mask);
 
-
     if (new_data == *cur_reg) {
         return 0;
     }
@@ -299,6 +297,36 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
     spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, data);
 
     BRAINFPVFPGA_ReleaseBus();
+
+    switch (reg) {
+        case BRAINFPVFPGA_REG_LED:
+        case BRAINFPVFPGA_REG_HWREV:
+            break;
+        case BRAINFPVFPGA_REG_CFG:
+            shadow_reg.reg_cfg = data;
+            break;
+        case BRAINFPVFPGA_REG_CTL:
+            shadow_reg.reg_ctl = data;
+            break;
+        case BRAINFPVFPGA_REG_BLACK:
+            shadow_reg.reg_black = data;
+            break;
+        case BRAINFPVFPGA_REG_WHITE:
+            shadow_reg.reg_white = data;
+            break;
+        case BRAINFPVFPGA_REG_THR:
+            shadow_reg.reg_thr = data;
+            break;
+        case BRAINFPVFPGA_REG_XCFG:
+            shadow_reg.reg_xcfg = data;
+            break;
+        case BRAINFPVFPGA_REG_XCFG2:
+            shadow_reg.reg_xcfg2 = data;
+            break;
+        case BRAINFPVFPGA_REG_IRCFG:
+            shadow_reg.reg_ircfg = data;
+            break;
+    }
 
     return 0;
 }
@@ -321,23 +349,6 @@ static uint8_t BRAINFPVFPGA_ReadReg(enum re1fpga_register reg)
     BRAINFPVFPGA_ReleaseBus();
 
     return data;
-}
-
-
-/**
- * @brief Read all registers and update shadow registers
- */
-static void update_shadow_regs(void)
-{
-    shadow_reg.reg_hwrev = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_HWREV);
-    shadow_reg.reg_cfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_CFG);
-    shadow_reg.reg_ctl = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_CTL);
-    shadow_reg.reg_black = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_BLACK);
-    shadow_reg.reg_white = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_WHITE);
-    shadow_reg.reg_thr = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_THR);
-    shadow_reg.reg_xcfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_XCFG);
-    shadow_reg.reg_xcfg2 = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_XCFG2);
-    shadow_reg.reg_ircfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_IRCFG);
 }
 
 /**
@@ -596,7 +607,7 @@ void BRAINFPVFPGA_Set3DConfig(bool enabled, uint8_t x_shift_right)
 
 //#include <pios_stringify.h>	/* __stringify */
 
-#define BS_PAYLOAD_FILE /home/martin/data/brain_fpv/products/brainfpv_re1/fpga/code/re1_fpga/final_bitsreams/re1fpga_bitmap_v1.bin
+#define BS_PAYLOAD_FILE /home/martin/data/brain_fpv/product_dev/micro_re1/fpga/code/re1_fpga/re1_fpga_Implmnt/sbt/outputs/bitmap/re1fpga_bitmap.bin
 
 /* Indirect stringification.  Doing two levels allows the parameter to be a
  * macro itself.  For example, compile with -DFOO=bar, __stringify(FOO)
@@ -647,7 +658,7 @@ static int32_t BRAINFPVFPGA_LoadBitstream()
 
     // Send bitstream file
     uint8_t b;
-    uint8_t *send_buffer = (uint8_t *)_bs_payload_start;
+    uint8_t *send_buffer = (uint8_t *)&_bs_payload_start;
 
     /* Make sure the RXNE flag is cleared by reading the DR register */
     b = BRAINFPVFPGA_SPI_INSTANCE->DR;
@@ -675,14 +686,13 @@ static int32_t BRAINFPVFPGA_LoadBitstream()
 
     if (!IORead(re1FPGACdonePin))
         retval = -2;
-        
 
     BRAINFPVFPGA_ReleaseBus();
 
     return retval;
 }
 
-#endif /* defined(PIOS_INCLUDE_RE1_FPGA_BITSTREAM) */
+#endif /* defined(BRAINFPV_FPGA_INCLUDE_BITSTREAM) */
 
 #endif /* defined(USE_BRAINFPV_FPGA) */
 

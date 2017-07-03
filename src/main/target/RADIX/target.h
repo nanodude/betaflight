@@ -26,9 +26,7 @@
 #define USBD_PRODUCT_STRING     "BrainFPV RADIX"
 
 #define LED0                    PB13
-#define LED1                    PC8
 #define LED0_INVERTED
-#define LED1_INVERTED
 
 #define BEEPER
 #define LED_STRIP
@@ -36,22 +34,15 @@
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
 
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_FIRST_SECTOR     4
-#define M25P16_SPI_SHARED
-#define M25P16_CS_PIN           PB15
-#define M25P16_SPI_INSTANCE     SPI3
-
 #define USE_BRAINFPV_FPGA
 #define BRAINFPV_FPGA_INCLUDE_BITSTREAM
 #define BRAINFPVFPGA_SPI_INSTANCE SPI3
 #define BRAINFPVFPGA_SPI_DIVISOR  8
 #define BRAINFPVFPGA_CS_PIN       PC15
-#define BRAINFPVFPGA_CDONE_PIN    PB0
+#define BRAINFPVFPGA_CDONE_PIN    PB12
 #define BRAINFPVFPGA_CRESET_PIN   PB1
 #define BRAINFPVFPGA_CLOCK_PIN    PA8
-#define BRAINFPVFPGA_RESET_PIN    PB10
+#define BRAINFPVFPGA_RESET_PIN    PB15
 
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (16564455)
 
@@ -67,6 +58,10 @@
 #define VIDEO_QSPI_IO1_PIN   PC10
 #define VIDEO_VSYNC          PB5
 #define VIDEO_HSYNC          PC2
+#define BRAINFPV_OSD_SYNC_TH_DEFAULT 22
+#define BRAINFPV_OSD_SYNC_TH_MIN 10
+#define BRAINFPV_OSD_SYNC_TH_MAX 40
+
 
 #define VTX_CONTROL
 #define VTX_SMARTAUDIO
@@ -104,14 +99,18 @@
 
 #define USE_UART3
 #define UART3_RX_PIN            PC5
-#define UART3_TX_PIN            NONE
+#define UART3_TX_PIN            PB10
+
+#define USE_UART4
+#define UART4_RX_PIN            PA1
+#define UART4_TX_PIN            PA0
 
 #define USE_UART6
 #undef USE_UART6_TX_DMA
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART3, USART6
+#define SERIAL_PORT_COUNT       5 //VCP, USART1,  USART3, USART4, USART6
 
 #define USE_SPI
 
@@ -136,22 +135,12 @@
 #define VBAT_ADC_PIN            PC0
 #define RSSI_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC1
-#define VBAT_SCALE_DEFAULT      66
-#define CURRENT_SCALE_DEFAULT   250
+#define VBAT_SCALE_DEFAULT      110
+#define CURRENT_SCALE_DEFAULT   200
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_BLACKBOX)
+#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER )
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-
-// #define LED_STRIP
-// #define WS2811_PIN                      PA0
-// #define WS2811_TIMER                    TIM5
-// #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
-// #define WS2811_DMA_STREAM               DMA1_Stream2
-// #define WS2811_DMA_IT                   DMA_IT_TCIF2
-// #define WS2811_DMA_CHANNEL              DMA_Channel_6
-// #define WS2811_TIMER_CHANNEL            TIM_Channel_1
-
 
 #define SPEKTRUM_BIND
 // PPM input
@@ -165,7 +154,7 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define USE_DSHOT
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
 
 bool brainfpv_settings_updated;
 void brainFPVUpdateSettings(void);

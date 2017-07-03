@@ -803,8 +803,8 @@ const clivalue_t valueTable[] = {
 #endif
 
 #ifdef USE_BRAINFPV_OSD
-    { "brainfpv_osd_sync_thresh",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sync_threshold, .config.minmax = { 110, 130 } },
-    { "brainfpv_osd_white_level",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.white_level, .config.minmax = { 100, 120 } },
+    { "brainfpv_osd_sync_thresh",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.sync_threshold, .config.minmax = { BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX } },
+    { "brainfpv_osd_white_level",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.white_level, .config.minmax = { 100, 255 } },
     { "brainfpv_osd_black_level",   VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.black_level, .config.minmax = { 15, 40 } },
     { "brainfpv_osd_x_offset",      VAR_INT8   | MASTER_VALUE, &masterConfig.bfOsdConfig.x_offset, .config.minmax = { -8, 7 } },
     { "brainfpv_osd_x_scale",       VAR_UINT8  | MASTER_VALUE, &masterConfig.bfOsdConfig.x_scale, .config.minmax = { 0, 15 } },

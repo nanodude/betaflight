@@ -283,7 +283,7 @@ void osdMain(void) {
 
 void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
 {
-    bfOsdConfig->sync_threshold = 120;
+    bfOsdConfig->sync_threshold = BRAINFPV_OSD_SYNC_TH_DEFAULT;
     bfOsdConfig->white_level    = 110;
     bfOsdConfig->black_level    = 20;
     bfOsdConfig->x_offset       = 0;

@@ -353,7 +353,7 @@ void init(void)
 #endif
 
 #ifdef USE_BRAINFPV_FPGA
-    BRAINFPVFPGA_Init(false);
+    BRAINFPVFPGA_Init(true);
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
