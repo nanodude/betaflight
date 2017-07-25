@@ -321,18 +321,15 @@ uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, po
     if (options & SERIAL_BIDIR) {
 #ifdef USE_BRAINFPV_FPGA
         IOInit(tx, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
-        if (options & SERIAL_INVERTED) {
+        IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
+#ifdef BRAINRE1
+        // hack: enable normal serial for UART6
+        if ((uart->port.USARTx == USART6)) {
             IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
+            IOInit(rx, OWNER_SERIAL_RX, RESOURCE_INDEX(device));
+            IOConfigGPIOAF(rx, IOCFG_AF_PP_UP, uart->af);
         }
-        else {
-            // hack: enable normal serial for UART6
-            if ((uart->port.USARTx == USART6)) {
-                IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
-                IOInit(rx, OWNER_SERIAL_RX, RESOURCE_INDEX(device));
-                IOConfigGPIOAF(rx, IOCFG_AF_PP_UP, uart->af);
-            } else
-                IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
-        }
+#endif
 #else
         IOInit(tx, OWNER_SERIAL_TX, RESOURCE_INDEX(device));
         if (options & SERIAL_BIDIR_PP)

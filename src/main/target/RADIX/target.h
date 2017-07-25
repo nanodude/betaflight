@@ -28,6 +28,8 @@
 #define LED0                    PB13
 #define LED0_INVERTED
 
+#define LED1                    NONE
+
 #define BEEPER
 #define LED_STRIP
 
@@ -132,9 +134,9 @@
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
-#define VBAT_ADC_PIN            PC0
+#define VBAT_ADC_PIN            PC1
 #define RSSI_ADC_PIN            PC3
-#define CURRENT_METER_ADC_PIN   PC1
+#define CURRENT_METER_ADC_PIN   PC0
 #define VBAT_SCALE_DEFAULT      110
 #define CURRENT_SCALE_DEFAULT   200
 

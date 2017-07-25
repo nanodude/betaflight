@@ -66,12 +66,18 @@
 *                                        CFG[4]: MultiPort TX pullup/down
 *                                                0: pull-down
 *                                                1: pull-up
-*                                        CFG[5]: LEDCFG 0: (status: blue, custom: green)
-*                                                       0: (status: green, custom: blue)
+*                                        CFG[5]: LEDCFG 0: status: blue custom: green
+*                                                       1: status: green custom: blue
 *                                        CFG[6]: 0: BUZZER DC drive
 *                                                1: BUZZER 4kHz drive
+*                                        CFG[7]: Serial RX bidirectional mode
+*                                                0: normal
+*                                                1: bi-directional
 * 0x02     CTL    R/W   1       0x00     CTL[0]: BUZZER 0: off, 1: on
-*                                        CTL[1]: LED custom: 0: off, 1: on
+*                                        CTL[1]: Custom LED: 0: off, 1: on
+*                                        CTL[2]: Alarm LED: 0: off, 1: on
+*                                        CTL[3]: GPIO0 0: off, 1: on
+*                                        CTL[4]: GPIO1 0: off, 1: on
 * 0x03     BLACK  R/W   1       XXX      OSD black level
 * 0x04     WHITE  R/W   1       XXX      OSD white level
 * 0x05     THR    R/W   1       XXX      OSD sync detect threshold
@@ -470,6 +476,21 @@ int32_t BRAINFPVFPGA_SerialRxInvert(bool invert)
 }
 
 /**
+ * @brief Enable / disable the serial RX bi-directional mode
+ */
+int32_t BRAINFPVFPGA_SerialRxBidirectional(bool bidirectional)
+{
+    uint8_t data;
+    if (bidirectional) {
+        data = 0x80;
+    }
+    else {
+        data = 0x00;
+    }
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CFG, data, 0x80);
+}
+
+/**
  * @brief Set MultiPort TX pin mode
  */
 int32_t BRAINFPVFPGA_MPTxPinMode(bool bidrectional, bool invert)
@@ -529,6 +550,47 @@ int32_t BRAINFPVFPGA_BuzzerToggle()
     uint8_t data = shadow_reg.reg_ctl ^ 0x01;
     return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x01);
 }
+
+/**
+ * @brief Enable / disable alarm LED
+ */
+int32_t BRAINFPVFPGA_AlarmLED(bool enable)
+{
+    uint8_t data = 0;
+
+    if (enable)
+        data = 0x04;
+
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x04);
+}
+
+/**
+ * @brief Toggle Alarm LED
+ */
+int32_t BRAINFPVFPGA_AlarmLEDToggle()
+{
+    uint8_t data = shadow_reg.reg_ctl ^ 0x04;
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x04);
+}
+
+/**
+ * @brief Set GPIO output
+ */
+int32_t BRAINFPVFPGA_SetGPIO(uint8_t gpio, bool enable)
+{
+    uint8_t data = 0;
+
+    if (gpio > 1)
+        return -1;
+
+    uint8_t mask = 0x08 << gpio;
+
+    if (enable)
+        data = mask;
+
+    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, mask);
+}
+
 
 /**
  * @brief Set the notification LED colors
@@ -607,7 +669,7 @@ void BRAINFPVFPGA_Set3DConfig(bool enabled, uint8_t x_shift_right)
 
 //#include <pios_stringify.h>	/* __stringify */
 
-#define BS_PAYLOAD_FILE /home/martin/data/brain_fpv/product_dev/micro_re1/fpga/code/re1_fpga/re1_fpga_Implmnt/sbt/outputs/bitmap/re1fpga_bitmap.bin
+#define BS_PAYLOAD_FILE /home/martin/data/brain_fpv/product_dev/radix_fc/fpga/code/re1_fpga/re1_fpga_Implmnt/sbt/outputs/bitmap/re1fpga_bitmap.bin
 
 /* Indirect stringification.  Doing two levels allows the parameter to be a
  * macro itself.  For example, compile with -DFOO=bar, __stringify(FOO)

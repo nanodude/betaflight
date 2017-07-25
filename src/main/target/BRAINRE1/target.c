@@ -114,7 +114,7 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 bool brainfpv_settings_updated = true;
 extern master_t masterConfig;
 
-void brainRE1UpdateSettings(void) {
+void brainFPVUpdateSettings(void) {
     BRAINFPVFPGA_SetBwLevels(masterConfig.bfOsdConfig.black_level, masterConfig.bfOsdConfig.white_level);
     BRAINFPVFPGA_SetSyncThreshold(masterConfig.bfOsdConfig.sync_threshold);
     BRAINFPVFPGA_SetXOffset(masterConfig.bfOsdConfig.x_offset);

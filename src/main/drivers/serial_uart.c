@@ -56,6 +56,11 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
     if (inverted) {
         if (uartPort->USARTx == USART3) {
             BRAINFPVFPGA_SerialRxInvert(true);
+#ifdef RADIX
+            if (uartPort->port.options & SERIAL_BIDIR) {
+                BRAINFPVFPGA_SerialRxBidirectional(true);
+            }
+#endif
         }
         if (uartPort->USARTx == USART6) {
             if (uartPort->port.options & SERIAL_BIDIR) {
@@ -69,6 +74,11 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
         }
     }
     else {
+#ifdef RADIX
+        if ((uartPort->USARTx == USART3) && (uartPort->port.options & SERIAL_BIDIR)) {
+            BRAINFPVFPGA_SerialRxBidirectional(true);
+        }
+#endif
         if ((uartPort->USARTx == USART6) && (uartPort->port.options & SERIAL_BIDIR)) {
             // non-inverted bi-directional mode with pullup
 #ifdef BRAINRE1
@@ -129,7 +139,7 @@ static void uartReconfigure(uartPort_t *uartPort)
     usartConfigurePinInversion(uartPort);
 
     if(uartPort->port.options & SERIAL_BIDIR) {
-#ifdef USE_RE1_FPGA
+#ifdef BRAINRE1
         if ((uartPort->USARTx == USART6) && ! (uartPort->port.options & SERIAL_INVERTED)) {
             // non-inverted bi-directional mode is not supported on RE1 UART6
             USART_HalfDuplexCmd(uartPort->USARTx, DISABLE);

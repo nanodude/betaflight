@@ -363,7 +363,7 @@ void scheduler(void)
 #ifdef BRAINFPV
         extern bool brainfpv_settings_updated;
         if (brainfpv_settings_updated) {
-            brainRE1UpdateSettings();
+            brainFPVUpdateSettings();
             brainfpv_settings_updated = false;
         }
 #endif
