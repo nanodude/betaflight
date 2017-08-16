@@ -28,7 +28,7 @@ __process_stack_size__  = 0x0400;
 MEMORY
 {
     FLASH_CONFIG (r): ORIGIN = 0x08004000, LENGTH = 16K
-    FLASH (rx)      : ORIGIN = 0x08008000, LENGTH = 480K
+    FLASH (rx)      : ORIGIN = 0x08020000, LENGTH = 384K
     RAM (rwx)       : ORIGIN = 0x20000000, LENGTH = 128K
     MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
     ram1            : ORIGIN = 0x00000000, LENGTH = 0
