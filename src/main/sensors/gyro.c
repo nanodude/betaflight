@@ -315,7 +315,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev)
 
 static bool gyroInitSensor(gyroSensor_t *gyroSensor)
 {
-#if defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU3050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20601) || defined(USE_GYRO_SPI_ICM20689)
+#if defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU3050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20601) || defined(USE_GYRO_SPI_ICM20689) || defined(USE_GYRO_SPI_BMI160)
 
 #if defined(MPU_INT_EXTI)
     gyroSensor->gyroDev.mpuIntExtiTag =  IO_TAG(MPU_INT_EXTI);
@@ -331,6 +331,7 @@ static bool gyroInitSensor(gyroSensor_t *gyroSensor)
 #else
     gyroSensor->gyroDev.bus.busdev_u.spi.csnPin = IO_NONE; // set cnsPin to IO_NONE so mpuDetect will set it according to value defined in target.h
 #endif // USE_DUAL_GYRO
+
     mpuDetect(&gyroSensor->gyroDev);
     mpuResetFn = gyroSensor->gyroDev.mpuConfiguration.resetFn; // must be set after mpuDetect
 #endif
