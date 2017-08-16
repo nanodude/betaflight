@@ -17,29 +17,34 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <stdbool.h>
 
-#if FLASH_SIZE <= 128
-#define MAX_PROFILE_COUNT 2
-#else
-#define MAX_PROFILE_COUNT 3
+#include "config/parameter_group.h"
+
+#include "drivers/adc.h"
+#include "drivers/flash.h"
+#include "drivers/rx_pwm.h"
+#include "drivers/sdcard.h"
+#include "drivers/serial.h"
+#include "drivers/bus_i2c.h"
+#include "drivers/sound_beeper.h"
+#include "drivers/vcd.h"
+
+#if defined(USE_BRAINFPV_OSD)
+#include "brainfpv/brainfpv_osd.h"
 #endif
-#define MAX_RATEPROFILES 3
-#define MAX_NAME_LENGTH 16
 
 typedef enum {
     FEATURE_RX_PPM = 1 << 0,
-    FEATURE_VBAT = 1 << 1,
     FEATURE_INFLIGHT_ACC_CAL = 1 << 2,
     FEATURE_RX_SERIAL = 1 << 3,
     FEATURE_MOTOR_STOP = 1 << 4,
     FEATURE_SERVO_TILT = 1 << 5,
     FEATURE_SOFTSERIAL = 1 << 6,
     FEATURE_GPS = 1 << 7,
-    FEATURE_FAILSAFE = 1 << 8,
     FEATURE_SONAR = 1 << 9,
     FEATURE_TELEMETRY = 1 << 10,
-    FEATURE_CURRENT_METER = 1 << 11,
     FEATURE_3D = 1 << 12,
     FEATURE_RX_PARALLEL_PWM = 1 << 13,
     FEATURE_RX_MSP = 1 << 14,
@@ -47,17 +52,54 @@ typedef enum {
     FEATURE_LED_STRIP = 1 << 16,
     FEATURE_DASHBOARD = 1 << 17,
     FEATURE_OSD = 1 << 18,
-    FEATURE_BLACKBOX = 1 << 19,
     FEATURE_CHANNEL_FORWARDING = 1 << 20,
     FEATURE_TRANSPONDER = 1 << 21,
     FEATURE_AIRMODE = 1 << 22,
-    FEATURE_SDCARD = 1 << 23,
-    FEATURE_VTX = 1 << 24,
     FEATURE_RX_SPI = 1 << 25,
     FEATURE_SOFTSPI = 1 << 26,
     FEATURE_ESC_SENSOR = 1 << 27,
     FEATURE_ANTI_GRAVITY = 1 << 28,
+    FEATURE_DYNAMIC_FILTER = 1 << 29,
 } features_e;
+
+#define MAX_NAME_LENGTH 16
+typedef struct pilotConfig_s {
+    char name[MAX_NAME_LENGTH + 1];
+} pilotConfig_t;
+
+#ifndef USE_OSD_SLAVE
+typedef struct systemConfig_s {
+    uint8_t pidProfileIndex;
+    uint8_t activeRateProfile;
+    uint8_t debug_mode;
+    uint8_t task_statistics;
+#if defined(STM32F4) && !defined(DISABLE_OVERCLOCK)
+    uint8_t cpu_overclock;
+#endif
+    char boardIdentifier[sizeof(TARGET_BOARD_IDENTIFIER) + 1];
+} systemConfig_t;
+#endif
+
+#ifdef USE_OSD_SLAVE
+typedef struct systemConfig_s {
+    uint8_t debug_mode;
+    uint8_t task_statistics;
+    char boardIdentifier[sizeof(TARGET_BOARD_IDENTIFIER) + 1];
+} systemConfig_t;
+#endif
+
+PG_DECLARE(pilotConfig_t, pilotConfig);
+PG_DECLARE(systemConfig_t, systemConfig);
+PG_DECLARE(adcConfig_t, adcConfig);
+PG_DECLARE(beeperDevConfig_t, beeperDevConfig);
+PG_DECLARE(flashConfig_t, flashConfig);
+PG_DECLARE(ppmConfig_t, ppmConfig);
+PG_DECLARE(pwmConfig_t, pwmConfig);
+PG_DECLARE(vcdProfile_t, vcdProfile);
+PG_DECLARE(sdcardConfig_t, sdcardConfig);
+
+struct pidProfile_s;
+extern struct pidProfile_s *currentPidProfile;
 
 void beeperOffSet(uint32_t mask);
 void beeperOffSetAll(uint8_t beeperCount);
@@ -68,9 +110,10 @@ void setBeeperOffMask(uint32_t mask);
 uint32_t getPreferredBeeperOffMask(void);
 void setPreferredBeeperOffMask(uint32_t mask);
 
-void copyCurrentProfileToProfileSlot(uint8_t profileSlotIndex);
-
+void initEEPROM(void);
 void resetEEPROM(void);
+void readEEPROM(void);
+void writeEEPROM();
 void ensureEEPROMContainsValidData(void);
 
 void saveConfigAndNotify(void);
@@ -78,16 +121,18 @@ void validateAndFixConfig(void);
 void validateAndFixGyroConfig(void);
 void activateConfig(void);
 
-uint8_t getCurrentProfile(void);
-void changeProfile(uint8_t profileIndex);
-void setProfile(uint8_t profileIndex);
+uint8_t getCurrentPidProfileIndex(void);
+void changePidProfile(uint8_t pidProfileIndex);
+struct pidProfile_s;
+void resetPidProfile(struct pidProfile_s *profile);
 
-uint8_t getCurrentControlRateProfile(void);
+uint8_t getCurrentControlRateProfileIndex(void);
 void changeControlRateProfile(uint8_t profileIndex);
+
 bool canSoftwareSerialBeUsed(void);
 
 uint16_t getCurrentMinthrottle(void);
-struct master_s;
 
-void targetConfiguration(struct master_s *config);
-void targetValidateConfiguration(struct master_s *config);
+void resetConfigs(void);
+void targetConfiguration(void);
+void targetValidateConfiguration(void);

@@ -62,6 +62,10 @@ _estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
 _Min_Heap_Size = 0;      /* required amount of heap  */
 _Min_Stack_Size = 0x800; /* required amount of stack */
 
+/* Base address where the config is stored. */
+__config_start = ORIGIN(FLASH_CONFIG);
+__config_end = ORIGIN(FLASH_CONFIG) + LENGTH(FLASH_CONFIG);
+
 SECTIONS
 {
     . = 0;
@@ -127,6 +131,21 @@ SECTIONS
         . = ALIGN(8);
     } > FLASH
 
+    .pg_registry :
+    {
+        PROVIDE_HIDDEN (__pg_registry_start = .);
+        KEEP (*(.pg_registry))
+        KEEP (*(SORT(.pg_registry.*)))
+        PROVIDE_HIDDEN (__pg_registry_end = .);
+    } >FLASH
+
+    .pg_resetdata :
+    {
+        PROVIDE_HIDDEN (__pg_resetdata_start = .);
+        KEEP (*(.pg_resetdata))
+        PROVIDE_HIDDEN (__pg_resetdata_end = .);
+    } >FLASH
+    
     /* Legacy symbol, not used anywhere.*/
     . = ALIGN(4);
     PROVIDE(_etext = .);

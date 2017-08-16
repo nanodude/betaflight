@@ -22,19 +22,20 @@
 
 #include "platform.h"
 
-#include "build/version.h"
-
 #ifdef CMS
 
-#include "drivers/system.h"
-
-#include "config/config_profile.h"
-#include "config/config_master.h"
-#include "config/feature.h"
+#include "build/version.h"
 
 #include "cms/cms.h"
 #include "cms/cms_types.h"
 #include "cms/cms_menu_ledstrip.h"
+
+#include "config/feature.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "fc/config.h"
+
 
 #ifdef LED_STRIP
 

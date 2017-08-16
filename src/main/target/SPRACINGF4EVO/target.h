@@ -26,12 +26,12 @@
 
 #define USBD_PRODUCT_STRING     "SP Racing F4 NEO"
 
-#define LED0                    PA0
+#define LED0_PIN                PA0
 
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_USART2     PB2
+#define INVERTER_PIN_UART2      PB2
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC13
@@ -84,11 +84,11 @@
 #define UART5_TX_PIN            PC12
 #define UART5_RX_PIN            PD2
 
-// TODO
-// #define USE_ESCSERIAL
-// #define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define USE_ESCSERIAL
+#define ESCSERIAL_TIMER_TX_PIN  PA3  // (HARDARE=0,PPM)
 
 #define USE_I2C
+#define USE_I2C_DEVICE_1
 #define I2C_DEVICE              (I2CDEV_1)
 #if (SPRACINGF4EVO_REV >= 2)
     #define I2C1_SCL                PB8
@@ -118,12 +118,17 @@
 #define SPI3_MISO_PIN           PB4  // NC
 #define SPI3_MOSI_PIN           PB5  // NC
 
+#define VTX_RTC6705
+#define VTX_RTC6705_OPTIONAL    // SPI3 on an F4 EVO may be used for RTC6705 VTX control.
+
+#define RTC6705_CS_PIN          SPI3_NSS_PIN
+#define RTC6705_SPI_INSTANCE    SPI3
+
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
 
 #define SDCARD_DETECT_INVERTED
-
 #define SDCARD_DETECT_PIN                   PC14
+
 #define SDCARD_SPI_INSTANCE                 SPI2
 #define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
 
@@ -152,8 +157,11 @@
 // PC4 - NC - Free for ADC12_IN14 / VTX CS
 // PC5 - NC - Free for ADC12_IN15 / VTX Enable / OSD VSYNC
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 
+#define OSD
+#define USE_OSD_OVER_MSP_DISPLAYPORT
+#define USE_MSP_CURRENT_METER
 
 #define LED_STRIP
 #define TRANSPONDER
@@ -161,15 +169,10 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
-#define DEFAULT_FEATURES        (FEATURE_TRANSPONDER | FEATURE_BLACKBOX | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_LED_STRIP)
+#define DEFAULT_FEATURES        (FEATURE_TRANSPONDER | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP)
 #define SERIALRX_UART           SERIAL_PORT_USART2
-#define TELEMETRY_UART          SERIAL_PORT_USART5
+#define TELEMETRY_UART          SERIAL_PORT_UART5
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-
-
-#define SPEKTRUM_BIND
-// USART3
-#define BIND_PIN                UART2_RX_PIN
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

@@ -22,10 +22,10 @@
 
 #include "platform.h"
 
-#include "accgyro_mpu.h"
-#include "exti.h"
-#include "nvic.h"
-#include "system.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/exti.h"
+#include "drivers/nvic.h"
+#include "drivers/system.h"
 
 
 #define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
@@ -33,8 +33,8 @@ void SystemClock_Config(void);
 
 void systemReset(void)
 {
-    if (mpuReset) {
-        mpuReset();
+    if (mpuResetFn) {
+        mpuResetFn();
     }
 
     __disable_irq();
@@ -43,8 +43,8 @@ void systemReset(void)
 
 void systemResetToBootloader(void)
 {
-    if (mpuReset) {
-        mpuReset();
+    if (mpuResetFn) {
+        mpuResetFn();
     }
 
     (*(__IO uint32_t *) (BKPSRAM_BASE + 4)) = 0xDEADBEEF;   // flag that will be readable after reboot
@@ -149,7 +149,7 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
 
 bool isMPUSoftReset(void)
 {
-    if (RCC->CSR & RCC_CSR_SFTRSTF)
+    if (cachedRccCsrValue & RCC_CSR_SFTRSTF)
         return true;
     else
         return false;
@@ -164,7 +164,7 @@ void systemInit(void)
     // Configure NVIC preempt/priority groups
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITY_GROUPING);
 
-    // cache RCC->CSR value to use it in isMPUSoftreset() and others
+    // cache RCC->CSR value to use it in isMPUSoftReset() and others
     cachedRccCsrValue = RCC->CSR;
 
     /* Accounts for OP Bootloader, set the Vector Table base address as specified in .ld file */

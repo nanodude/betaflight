@@ -19,6 +19,8 @@
 
 #include "common/time.h"
 
+#include "config/parameter_group.h"
+
 #define LAT 0
 #define LON 1
 
@@ -28,8 +30,6 @@ typedef enum {
     GPS_NMEA = 0,
     GPS_UBLOX
 } gpsProvider_e;
-
-#define GPS_PROVIDER_MAX GPS_UBLOX
 
 typedef enum {
     SBAS_AUTO = 0,
@@ -68,11 +68,28 @@ typedef struct gpsConfig_s {
     gpsAutoBaud_e autoBaud;
 } gpsConfig_t;
 
+PG_DECLARE(gpsConfig_t, gpsConfig);
+
 typedef struct gpsCoordinateDDDMMmmmm_s {
     int16_t dddmm;
     int16_t mmmm;
 } gpsCoordinateDDDMMmmmm_t;
 
+/* LLH Location in NEU axis system */
+typedef struct gpsLocation_s {
+    int32_t lat;                    // latitude * 1e+7
+    int32_t lon;                    // longitude * 1e+7
+    uint16_t alt;                   // altitude in 0.1m
+} gpsLocation_t;
+
+typedef struct gpsSolutionData_s {
+    gpsLocation_t llh;
+    uint16_t GPS_altitude;          // altitude in 0.1m
+    uint16_t groundSpeed;           // speed in 0.1m/s
+    uint16_t groundCourse;          // degrees * 10
+    uint16_t hdop;                  // generic HDOP value (*100)
+    uint8_t numSat;
+} gpsSolutionData_t;
 
 typedef enum {
     GPS_MESSAGE_STATE_IDLE = 0,
@@ -82,8 +99,6 @@ typedef enum {
 } gpsMessageState_e;
 
 typedef struct gpsData_s {
-    uint8_t state;                  // GPS thread state. Used for detecting cable disconnects and configuring attached devices
-    uint8_t baudrateIndex;          // index into auto-detecting or current baudrate
     uint32_t errors;                // gps error counter - crc error/lost of data/sync etc..
     uint32_t timeouts;
     uint32_t lastMessage;           // last time valid GPS data was received (millis)
@@ -91,6 +106,8 @@ typedef struct gpsData_s {
 
     uint32_t state_position;        // incremental variable for loops
     uint32_t state_ts;              // timestamp for last state_position increment
+    uint8_t state;                  // GPS thread state. Used for detecting cable disconnects and configuring attached devices
+    uint8_t baudrateIndex;          // index into auto-detecting or current baudrate
     gpsMessageState_e messageState;
 } gpsData_t;
 
@@ -98,16 +115,11 @@ typedef struct gpsData_s {
 extern char gpsPacketLog[GPS_PACKET_LOG_ENTRY_COUNT];
 
 extern gpsData_t gpsData;
-extern int32_t GPS_coord[2];               // LAT/LON
+extern gpsSolutionData_t gpsSol;
 
-extern uint8_t GPS_numSat;
-extern uint16_t GPS_hdop;                  // GPS signal quality
 extern uint8_t GPS_update;                 // it's a binary toogle to distinct a GPS position update
 extern uint32_t GPS_packetCount;
 extern uint32_t GPS_svInfoReceivedCount;
-extern uint16_t GPS_altitude;              // altitude in 0.1m
-extern uint16_t GPS_speed;                 // speed in 0.1m/s
-extern uint16_t GPS_ground_course;         // degrees * 10
 extern uint8_t GPS_numCh;                  // Number of channels
 extern uint8_t GPS_svinfo_chn[16];         // Channel number
 extern uint8_t GPS_svinfo_svid[16];        // Satellite ID
@@ -117,8 +129,7 @@ extern uint8_t GPS_svinfo_cno[16];         // Carrier to Noise Ratio (Signal Str
 #define GPS_DBHZ_MIN 0
 #define GPS_DBHZ_MAX 55
 
-struct serialConfig_s;
-void gpsInit(struct serialConfig_s *serialConfig, gpsConfig_t *initialGpsConfig);
+void gpsInit(void);
 void gpsUpdate(timeUs_t currentTimeUs);
 bool gpsNewFrame(uint8_t c);
 struct serialPort_s;

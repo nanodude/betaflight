@@ -17,9 +17,9 @@
 
 #define TARGET_BOARD_IDENTIFIER "CC3D" // CopterControl 3D
 
-#define LED0                    PB3
+#define LED0_PIN                PB3
 
-#define INVERTER_PIN_USART1     PB2 // PB2 (BOOT1) used as inverter select GPIO
+#define INVERTER_PIN_UART1      PB2 // PB2 (BOOT1) used as inverter select GPIO
 
 #define BEEPER                  PA15
 #define BEEPER_OPT              PA2
@@ -55,6 +55,19 @@
 // MPU6000 interrupts
 #define USE_MPU_DATA_READY_SIGNAL
 
+//#define USE_I2C
+//#define I2C_DEVICE (I2CDEV_2) // Flex port - SCL/PB10, SDA/PB11
+
+// External I2C BARO
+//#define BARO
+//#define USE_BARO_MS5611
+//#define USE_BARO_BMP085
+//#define USE_BARO_BMP280
+
+// External I2C MAG
+//#define MAG
+//#define USE_MAG_HMC5883
+
 #define USE_VCP
 #define USE_UART1
 #define USE_UART3
@@ -80,17 +93,12 @@
 #define VBAT_ADC_PIN            PA0
 #define RSSI_ADC_PIN            PB0
 
-#define SPEKTRUM_BIND
-// USART3, PB11 (Flexport)
-#define BIND_PIN   PB11
-
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 //#define SONAR
 //#define SONAR_ECHO_PIN          PB0
 //#define SONAR_TRIGGER_PIN       PB5
 
-#undef GPS
 #undef MAG
 
 #ifdef CC3D_OPBL
@@ -98,7 +106,6 @@
 //#undef USE_SERVOS
 #undef BARO
 #undef SONAR
-#undef LED_STRIP
 #undef USE_SERIAL_4WAY_BLHELI_INTERFACE
 //#undef USE_SERIALRX_SPEKTRUM   // SRXL, DSM2 and DSMX protocol
 //#undef USE_SERIALRX_SBUS       // Frsky and Futaba receivers
@@ -107,8 +114,10 @@
 #undef USE_SERIALRX_SUMD       // Graupner Hott protocol
 #undef USE_SERIALRX_SUMH       // Graupner legacy protocol
 #undef USE_SERIALRX_XBUS       // JR
+#undef LED_STRIP
 #endif
 
+//#undef LED_STRIP
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 
 // IO - from schematics

@@ -18,17 +18,16 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "FDF4"
-#define CONFIG_START_FLASH_ADDRESS (0x08080000) //0x08080000 to 0x080A0000 (FLASH_Sector_8)
 
 #define USBD_PRODUCT_STRING  "FishDroneF4"
 
-#define LED0                    PC13
-#define LED1                    PC14
+#define LED0_PIN                PC13
+#define LED1_PIN                PC14
 
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_USART6 PC8
+#define INVERTER_PIN_UART6      PC8
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC4
@@ -72,7 +71,7 @@
 #define SERIAL_PORT_COUNT       6 // VCP, USART1, USART3, USART6, SOFTSERIAL x 2
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PB0  // (HARDARE=0,PPM)
 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
@@ -117,7 +116,8 @@
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 
 // *************** RTC6705 *************************
-#define USE_RTC6705
+#define VTX_RTC6705
+#define VTX_RTC6705SOFTSPI
 #define RTC6705_SPILE_PIN       PB3
 #define RTC6705_SPICLK_PIN      PB4
 #define RTC6705_SPIDATA_PIN     PB5
@@ -128,21 +128,15 @@
 #define RSSI_ADC_PIN            PC1
 
 // *************** FEATURES ************************
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_OSD | FEATURE_BLACKBOX | FEATURE_VTX)
+#define DEFAULT_FEATURES        (FEATURE_OSD)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART3
 
 // *************** Others **************************
-#define DISPLAY
-#define LED_STRIP
-#define OSD
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
-#define USE_ESC_TELEMETRY
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

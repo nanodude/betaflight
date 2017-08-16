@@ -17,20 +17,21 @@
 
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "YPF4"
-
-#define CONFIG_START_FLASH_ADDRESS (0x08080000) //0x08080000 to 0x080A0000 (FLASH_Sector_8)
+#define TARGET_CONFIG
 
 #define USBD_PRODUCT_STRING     "YupiF4"
 
-#define LED0                    PB6
-#define LED1                    PB4
-#define LED2                    PB5
+#define USE_HARDWARE_REVISION_DETECTION
+
+#define LED0_PIN                PB6
+#define LED1_PIN                PB4
+#define LED2_PIN                PB5
 
 #define BEEPER                  PC9
-//#define BEEPER_INVERTED
+#define BEEPER_OPT              PB14
+#define BEEPER_PWM_HZ           3150 // Beeper PWM frequency in Hz
 
-#define INVERTER_PIN_USART6     PB15
-
+#define INVERTER_PIN_UART6      PB15
 
 // Gyro interrupt
 #define USE_EXTI
@@ -38,16 +39,16 @@
 #define MPU_INT_EXTI            PC4
 
 //ICM 20689
-#define ICM20689_CS_PIN          PA4
-#define ICM20689_SPI_INSTANCE    SPI1
+#define ICM20689_CS_PIN         PA4
+#define ICM20689_SPI_INSTANCE   SPI1
 
 #define ACC
 #define USE_ACC_SPI_ICM20689
-#define ACC_ICM20689_ALIGN       CW90_DEG
+#define ACC_ICM20689_ALIGN      CW90_DEG
 
 #define GYRO
 #define USE_GYRO_SPI_ICM20689
-#define GYRO_ICM20689_ALIGN      CW90_DEG
+#define GYRO_ICM20689_ALIGN     CW90_DEG
 
 // MPU 6500
 #define MPU6500_CS_PIN          PA4
@@ -65,8 +66,6 @@
 
 
 #define USE_VCP
-//#define VBUS_SENSING_PIN        PA8
-//#define VBUS_SENSING_ENABLED
 
 // UART Ports
 #define USE_UART1
@@ -82,12 +81,15 @@
 #define UART6_TX_PIN            PC6
 
 #define USE_SOFTSERIAL1
+#define SOFTSERIAL1_RX_PIN      PB0 // PWM5
+#define SOFTSERIAL1_TX_PIN      PB1 // PWM7
+
 #define USE_SOFTSERIAL2
 
 #define SERIAL_PORT_COUNT       6 // VCP, UART1, UART3, UART6, SOFTSERIAL x 2
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PC8  // (HARDARE=0,PPM)
 
 // SD Card
 #define USE_SDCARD
@@ -107,7 +109,6 @@
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 
-
 // SPI Ports
 #define USE_SPI
 
@@ -116,13 +117,6 @@
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
-
-/*
-#define USE_SPI_DEVICE_2 //Free
-#define SPI2_NSS_PIN            PB12
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PC2
-*/
 
 #define USE_SPI_DEVICE_3 //dataslash - SD Card
 #define SPI3_NSS_PIN            PB3
@@ -138,25 +132,18 @@
 #define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
 #define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
 
-
-#define USE_I2C
-#define I2C_DEVICE (I2CDEV_1) // SCL PB8 - SDA PB9
-
 // ADC inputs
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
-#define VBAT_ADC_PIN            PC1
 #define RSSI_ADC_GPIO_PIN       PC0
-
-#define USE_ESC_TELEMETRY
-#define LED_STRIP
+#define VBAT_ADC_PIN            PC1
+#define CURRENT_METER_ADC_PIN   PC2
 
 // Default configuration
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define DEFAULT_FEATURES        FEATURE_BLACKBOX
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
+#define DEFAULT_FEATURES        (FEATURE_OSD)
 
 // Target IO and timers
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -166,5 +153,5 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USABLE_TIMER_CHANNEL_COUNT 7
-#define USED_TIMERS             (TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8))
+#define USABLE_TIMER_CHANNEL_COUNT 10
+#define USED_TIMERS             (TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(12))

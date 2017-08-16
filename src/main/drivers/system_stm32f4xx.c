@@ -20,10 +20,10 @@
 
 #include "platform.h"
 
-#include "accgyro_mpu.h"
-#include "exti.h"
-#include "nvic.h"
-#include "system.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/exti.h"
+#include "drivers/nvic.h"
+#include "drivers/system.h"
 
 
 #define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
@@ -31,8 +31,8 @@ void SetSysClock(void);
 
 void systemReset(void)
 {
-    if (mpuReset) {
-        mpuReset();
+    if (mpuResetFn) {
+        mpuResetFn();
     }
 
     __disable_irq();
@@ -41,8 +41,8 @@ void systemReset(void)
 
 void systemResetToBootloader(void)
 {
-    if (mpuReset) {
-        mpuReset();
+    if (mpuResetFn) {
+        mpuResetFn();
     }
 
     *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F4XX
@@ -152,7 +152,7 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
 
 bool isMPUSoftReset(void)
 {
-    if (RCC->CSR & RCC_CSR_SFTRSTF)
+    if (cachedRccCsrValue & RCC_CSR_SFTRSTF)
         return true;
     else
         return false;
@@ -171,7 +171,7 @@ void systemInit(void)
     // Configure NVIC preempt/priority groups
     NVIC_PriorityGroupConfig(NVIC_PRIORITY_GROUPING);
 
-    // cache RCC->CSR value to use it in isMPUSoftreset() and others
+    // cache RCC->CSR value to use it in isMPUSoftReset() and others
     cachedRccCsrValue = RCC->CSR;
 
     /* Accounts for OP Bootloader, set the Vector Table base address as specified in .ld file */

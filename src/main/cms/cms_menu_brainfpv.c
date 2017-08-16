@@ -42,9 +42,6 @@
 #include "fc/runtime_config.h"
 
 #include "flight/pid.h"
-
-#include "config/config_profile.h"
-#include "config/config_master.h"
 #include "config/feature.h"
 
 #include "brainfpv/video.h"
@@ -52,25 +49,41 @@
 #include "brainfpv/ir_transponder.h"
 #include "brainfpv/brainfpv_osd.h"
 
+bfOsdConfig_t bfOsdConfigCms;
 
-OSD_UINT8_t entryAhiSteps =  {&masterConfig.bfOsdConfig.ahi_steps, 0, 4, 1};
+static long menuBrainFPVOnEnter(void)
+{
+    memcpy(&bfOsdConfigCms, bfOsdConfig(), sizeof(bfOsdConfig_t));
+    return 0;
+}
+
+static long menuBrainFPVOnExit(const OSD_Entry *self)
+{
+    UNUSED(self);
+
+    memcpy(bfOsdConfigMutable(), &bfOsdConfigCms, sizeof(bfOsdConfig_t));
+    return 0;
+}
+
+OSD_UINT8_t entryAhiSteps =  {&bfOsdConfigCms.ahi_steps, 0, 4, 1};
 const char *STICKS_DISPLAY_NAMES[] = {"OFF", "MODE2", "MODE1"};
-OSD_TAB_t entrySticksDisplay = {&masterConfig.bfOsdConfig.sticks_display, 2, &STICKS_DISPLAY_NAMES[0]};
+OSD_TAB_t entrySticksDisplay = {&bfOsdConfigCms.sticks_display, 2, &STICKS_DISPLAY_NAMES[0]};
 const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "BOLD"};
-OSD_TAB_t entryOSDFont = {&masterConfig.bfOsdConfig.font, 2, &FONT_NAMES[0]};
-OSD_UINT8_t entryWhiteLevel =  {&masterConfig.bfOsdConfig.white_level, 100, 120, 1};
-OSD_UINT8_t entryBlackLevel =  {&masterConfig.bfOsdConfig.black_level, 15, 40, 1};
-OSD_UINT8_t entrySyncTh =  {&masterConfig.bfOsdConfig.sync_threshold, BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX, 1};
-OSD_INT8_t entryXoff =  {&masterConfig.bfOsdConfig.x_offset, -8, 7, 1};
-OSD_UINT8_t entryXScale =  {&masterConfig.bfOsdConfig.x_scale, 0, 15, 1};
-OSD_UINT8_t entry3DShift =  {&masterConfig.bfOsdConfig.sbs_3d_right_eye_offset, 10, 40, 1};
+OSD_TAB_t entryOSDFont = {&bfOsdConfigCms.font, 2, &FONT_NAMES[0]};
+OSD_UINT8_t entryWhiteLevel =  {&bfOsdConfigCms.white_level, 100, 120, 1};
+OSD_UINT8_t entryBlackLevel =  {&bfOsdConfigCms.black_level, 15, 40, 1};
+OSD_UINT8_t entrySyncTh =  {&bfOsdConfigCms.sync_threshold, BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX, 1};
+OSD_INT8_t entryXoff =  {&bfOsdConfigCms.x_offset, -8, 7, 1};
+OSD_UINT8_t entryXScale =  {&bfOsdConfigCms.x_scale, 0, 15, 1};
+OSD_UINT8_t entry3DShift =  {&bfOsdConfigCms.sbs_3d_right_eye_offset, 10, 40, 1};
+
 
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
     {"------- OSD --------", OME_Label, NULL, NULL, 0},
     {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
-    {"ALTITUDE SCALE", OME_Bool, NULL, &masterConfig.bfOsdConfig.altitude_scale, 0},
+    {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale, 0},
     {"SHOW STICKS", OME_TAB, NULL, &entrySticksDisplay, 0},
     {"FONT", OME_TAB, NULL, &entryOSDFont, 0},
     {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel, 0},
@@ -78,7 +91,7 @@ OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
     {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh, 0},
     {"OSD X OFF", OME_INT8, NULL, &entryXoff, 0},
     {"OSD X SC", OME_UINT8, NULL, &entryXScale, 0},
-    {"3D MODE", OME_Bool, NULL, &masterConfig.bfOsdConfig.sbs_3d_enabled, 0},
+    {"3D MODE", OME_Bool, NULL, &bfOsdConfigCms.sbs_3d_enabled, 0},
     {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift, 0},
 
     {"BACK", OME_Back, NULL, NULL, 0},
@@ -96,9 +109,9 @@ CMS_Menu cmsx_menuBrainFPVOsd = {
 
 
 const char * IR_NAMES[] = {"OFF", "I-LAP", "TRACKMATE"};
-OSD_TAB_t entryIRSys = {&masterConfig.bfOsdConfig.ir_system, 2, &IR_NAMES[0]};
-OSD_UINT32_t entryIRIlap =  {&masterConfig.bfOsdConfig.ir_ilap_id, 0, 9999999, 1};
-OSD_UINT16_t entryIRTrackmate =  {&masterConfig.bfOsdConfig.ir_trackmate_id, 0, 4095, 1};
+OSD_TAB_t entryIRSys = {&bfOsdConfigCms.ir_system, 2, &IR_NAMES[0]};
+OSD_UINT32_t entryIRIlap =  {&bfOsdConfigCms.ir_ilap_id, 0, 9999999, 1};
+OSD_UINT16_t entryIRTrackmate =  {&bfOsdConfigCms.ir_trackmate_id, 0, 4095, 1};
 
 OSD_Entry cmsx_menuBrainFPVIrEntries[] =
 {
@@ -122,12 +135,12 @@ CMS_Menu cmsx_menuBrainFPVIr = {
 
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
-    {"--- BRAINFPV ---", OME_Label, NULL, NULL},
+    {"--- BRAINFPV ---", OME_Label, NULL, NULL, 0},
     {"OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
 
     {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVIr, 0},
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
-    {"SPECTROGRAPH", OME_Bool, NULL, &masterConfig.bfOsdConfig.spec_enabled, 0},
+    {"SPECTROGRAPH", OME_Bool, NULL, &bfOsdConfigCms.spec_enabled, 0},
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}
@@ -136,8 +149,8 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
 CMS_Menu cmsx_menuBrainFPV = {
     .GUARD_text = "MENUBrainFPV",
     .GUARD_type = OME_MENU,
-    .onEnter = NULL,
-    .onExit = NULL,
+    .onEnter = menuBrainFPVOnEnter,
+    .onExit = menuBrainFPVOnExit,
     .onGlobalExit = NULL,
     .entries = cmsx_menuBrainFPVEntires,
 };

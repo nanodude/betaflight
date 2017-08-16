@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include "drivers/barometer.h"
+#include "config/parameter_group.h"
+#include "drivers/barometer/barometer.h"
 
 typedef enum {
     BARO_DEFAULT = 0,
@@ -30,12 +31,19 @@ typedef enum {
 #define BARO_SAMPLE_COUNT_MAX   48
 
 typedef struct barometerConfig_s {
+    uint8_t baro_bustype;
+    uint8_t baro_spi_device;
+    ioTag_t baro_spi_csn;                   // Also used as XCLR (positive logic) for BMP085
+    uint8_t baro_i2c_device;
+    uint8_t baro_i2c_address;
     uint8_t baro_hardware;                  // Barometer hardware to use
     uint8_t baro_sample_count;              // size of baro filter array
-    float baro_noise_lpf;                   // additional LPF to reduce baro noise
-    float baro_cf_vel;                      // apply Complimentary Filter to keep the calculated velocity based on baro velocity (i.e. near real velocity)
-    float baro_cf_alt;                      // apply CF to use ACC for height estimation
+    uint16_t baro_noise_lpf;                // additional LPF to reduce baro noise
+    uint16_t baro_cf_vel;                   // apply Complimentary Filter to keep the calculated velocity based on baro velocity (i.e. near real velocity)
+    uint16_t baro_cf_alt;                   // apply CF to use ACC for height estimation
 } barometerConfig_t;
+
+PG_DECLARE(barometerConfig_t, barometerConfig);
 
 typedef struct baro_s {
     baroDev_t dev;
@@ -46,7 +54,6 @@ typedef struct baro_s {
 extern baro_t baro;
 
 bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse);
-void useBarometerConfig(const barometerConfig_t *barometerConfigToUse);
 bool isBaroCalibrationComplete(void);
 void baroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 uint32_t baroUpdate(void);

@@ -18,19 +18,15 @@
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "REVN"
 
-#define CONFIG_START_FLASH_ADDRESS (0x08060000) //0x08060000 to 0x08080000 (FLASH_Sector_7)
-
 #define USBD_PRODUCT_STRING "Revo Nano"
 #ifdef OPBL
 #define USBD_SERIALNUMBER_STRING "0x8010000"
 #endif
 
-#define LED0                    PC14
-#define LED1                    PC13
+#define LED0_PIN                PC14
+#define LED1_PIN                PC13
 
 #define BEEPER                  PC13
-
-#define INVERTER_PIN_USART2     PC15 //Sbus on USART 2 of nano.
 
 #define MPU6500_CS_PIN          PB12
 #define MPU6500_SPI_INSTANCE    SPI2
@@ -56,13 +52,14 @@
 #define USE_VCP
 //#define VBUS_SENSING_PIN        PA9
 
-#define USE_UART1
+#define USE_UART1 // Flexi Port
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
 
-#define USE_UART2
+#define USE_UART2 // Main Port
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
+#define INVERTER_PIN_UART2      PC15 //Sbus on USART 2 of nano.
 
 #define USE_SOFTSERIAL1
 #define USE_SOFTSERIAL2
@@ -70,33 +67,25 @@
 #define SERIAL_PORT_COUNT       5
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 
+#define ESCSERIAL_TIMER_TX_PIN  PB10  // (HARDARE=0,PPM)
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_3)
+#define USE_I2C_DEVICE_1        // UART1/FlexiPort (PB6,PB7)
+#define I2C_DEVICE (I2CDEV_1)
+
+#undef LED_STRIP
 
 #define USE_ADC
 #define CURRENT_METER_ADC_PIN   PA7
 #define VBAT_ADC_PIN            PA6
 #define RSSI_ADC_PIN            PA5
 
-#define GPS
-#define BLACKBOX
-#define TELEMETRY
-#define SERIAL_RX
-#define USE_SERVOS
-#define USE_CLI
-
-#define SPEKTRUM_BIND
-// USART2, PA3
-#define BIND_PIN                PA3
-
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
-#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTC         (BIT(13) | BIT(14) | BIT(15))
 
 #define USABLE_TIMER_CHANNEL_COUNT 12
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) )

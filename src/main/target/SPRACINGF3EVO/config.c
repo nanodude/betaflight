@@ -18,11 +18,38 @@
 #include <platform.h>
 
 #ifdef TARGET_CONFIG
-#include "config/config_master.h"
 
-void targetConfiguration(master_t *config)
+#include "common/axis.h"
+
+#include "fc/config.h"
+
+#include "flight/mixer.h"
+#include "flight/pid.h"
+
+
+#if defined(SPRACINGF3MQ)
+#ifdef BRUSHED_MOTORS_PWM_RATE
+#undef BRUSHED_MOTORS_PWM_RATE
+#endif
+
+#define BRUSHED_MOTORS_PWM_RATE 32000           // 32kHz
+#endif
+
+void targetConfiguration(void)
 {
     // Temporary workaround: Disable SDCard DMA by default since it causes errors on this target
-    config->sdcardConfig.useDma = false;
+    sdcardConfigMutable()->useDma = false;
+
+#if defined(SPRACINGF3MQ)
+
+    motorConfigMutable()->dev.motorPwmRate = BRUSHED_MOTORS_PWM_RATE;
+
+    pidProfilesMutable(0)->pid[FD_ROLL].P = 90;
+    pidProfilesMutable(0)->pid[FD_ROLL].I = 44;
+    pidProfilesMutable(0)->pid[FD_ROLL].D = 60;
+    pidProfilesMutable(0)->pid[FD_PITCH].P = 90;
+    pidProfilesMutable(0)->pid[FD_PITCH].I = 44;
+    pidProfilesMutable(0)->pid[FD_PITCH].D = 60;
+#endif
 }
 #endif

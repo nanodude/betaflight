@@ -20,25 +20,44 @@
 
 #include "platform.h"
 
-#ifdef OSD
+#if defined(USE_MAX7456) || defined(USE_BRAINFPV_OSD)
 
 #include "common/utils.h"
 
-#include "config/config_master.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/display.h"
 #include "drivers/max7456.h"
+#include "drivers/vcd.h"
 
-displayPort_t max7456DisplayPort; // Referenced from osd.c
-displayPortProfile_t *max7456DisplayPortProfile;
+#include "io/displayport_max7456.h"
+#include "io/osd.h"
+#include "io/osd_slave.h"
 
-extern uint16_t refreshTimeout;
+displayPort_t max7456DisplayPort;
+
+PG_REGISTER_WITH_RESET_FN(displayPortProfile_t, displayPortProfileMax7456, PG_DISPLAY_PORT_MAX7456_CONFIG, 0);
+
+void pgResetFn_displayPortProfileMax7456(displayPortProfile_t *displayPortProfile)
+{
+    displayPortProfile->colAdjust = 0;
+    displayPortProfile->rowAdjust = 0;
+
+    // Set defaults as per MAX7456 datasheet
+    displayPortProfile->invert = false;
+    displayPortProfile->blackBrightness = 0;
+    displayPortProfile->whiteBrightness = 2;
+}
 
 static int grab(displayPort_t *displayPort)
 {
+    // FIXME this should probably not have a dependency on the OSD or OSD slave code
     UNUSED(displayPort);
+#ifdef OSD
     osdResetAlarms();
-    refreshTimeout = 0;
+    resumeRefreshAt = 0;
+#endif
 
     return 0;
 }
@@ -53,6 +72,10 @@ static int release(displayPort_t *displayPort)
 static int clearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
+
+    max7456Invert(displayPortProfileMax7456()->invert);
+    max7456Brightness(displayPortProfileMax7456()->blackBrightness, displayPortProfileMax7456()->whiteBrightness);
+
     max7456ClearScreen();
 
     return 0;
@@ -72,7 +95,7 @@ static int screenSize(const displayPort_t *displayPort)
     return maxScreenSize;
 }
 
-static int write(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
+static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
 {
     UNUSED(displayPort);
     max7456Write(x, y, s);
@@ -91,19 +114,15 @@ static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c
 static bool isTransferInProgress(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-#ifdef MAX7456_DMA_CHANNEL_TX
-    return max7456DmaInProgres();
-#else
-    return false;
-#endif
+    return max7456DmaInProgress();
 }
 
 static void resync(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     max7456RefreshAll();
-    displayPort->rows = max7456GetRowsCount() + max7456DisplayPortProfile->rowAdjust;
-    displayPort->cols = 30 + max7456DisplayPortProfile->colAdjust;
+    displayPort->rows = max7456GetRowsCount() + displayPortProfileMax7456()->rowAdjust;
+    displayPort->cols = 30 + displayPortProfileMax7456()->colAdjust;
 }
 
 static int heartbeat(displayPort_t *displayPort)
@@ -124,7 +143,7 @@ static const displayPortVTable_t max7456VTable = {
     .clearScreen = clearScreen,
     .drawScreen = drawScreen,
     .screenSize = screenSize,
-    .write = write,
+    .writeString = writeString,
     .writeChar = writeChar,
     .isTransferInProgress = isTransferInProgress,
     .heartbeat = heartbeat,
@@ -132,12 +151,11 @@ static const displayPortVTable_t max7456VTable = {
     .txBytesFree = txBytesFree,
 };
 
-displayPort_t *max7456DisplayPortInit(const vcdProfile_t *vcdProfile, displayPortProfile_t *displayPortProfileToUse)
+displayPort_t *max7456DisplayPortInit(const vcdProfile_t *vcdProfile)
 {
-    max7456DisplayPortProfile = displayPortProfileToUse;
     displayInit(&max7456DisplayPort, &max7456VTable);
     max7456Init(vcdProfile);
     resync(&max7456DisplayPort);
     return &max7456DisplayPort;
 }
-#endif // OSD
+#endif // USE_MAX7456

@@ -19,7 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "AFF3" // AlienFlight F3.
 #define TARGET_CONFIG
-#define TARGET_BUS_INIT
 #define REMAP_TIM17_DMA
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
@@ -29,8 +28,8 @@
 #define BRUSHED_ESC_AUTODETECT
 
 // LED's V1
-#define LED0                    PB4
-#define LED1                    PB5
+#define LED0_PIN                PB4
+#define LED1_PIN                PB5
 
 // LED's V2
 #define LED0_A                  PB8
@@ -78,7 +77,7 @@
 #define AVOID_UART2_FOR_PWM_PPM
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PB15  // (HARDARE=0)
 
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7
@@ -90,44 +89,37 @@
 #define UART3_RX_PIN            PB11
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_2) // SDA (PA10/AF4), SCL (PA9/AF4)
-
+#define USE_I2C_PULLUP
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE              (I2CDEV_2)
 #define I2C2_SCL                PA9
 #define I2C2_SDA                PA10
-
-// SPI3
-// PA15 38 SPI3_NSS
-// PB3  39 SPI3_SCK
-// PB4  40 SPI3_MISO
-// PB5  41 SPI3_MOSI
 
 #define USE_SPI
 #define USE_SPI_DEVICE_3
 
-#define MPU6500_CS_PIN          PA15
+#define SPI3_NSS_PIN            PA15
+#define SPI3_SCK_PIN            PB3
+#define SPI3_MISO_PIN           PB4
+#define SPI3_MOSI_PIN           PB5
+
+#define MPU6500_CS_PIN          SPI3_NSS_PIN
 #define MPU6500_SPI_INSTANCE    SPI3
 
 #define USE_ADC
 
 #define ADC_INSTANCE            ADC2
 #define VBAT_ADC_PIN            PA4
-#define VBAT_SCALE_DEFAULT      20
 
-#define SPEKTRUM_BIND
-// USART2, PA3
-#define BIND_PIN                PA3
+// LED strip configuration.
+#define LED_STRIP
 
-#define HARDWARE_BIND_PLUG
-// Hardware bind plug at PB12 (Pin 25)
 #define BINDPLUG_PIN            PB12
 
 #define DEFAULT_FEATURES        FEATURE_MOTOR_STOP
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
-#define SERIALRX_PROVIDER       SERIALRX_SPEKTRUM2048
 #define SERIALRX_UART           SERIAL_PORT_USART2
 #define RX_CHANNELS_TAER
-
-#define LED_STRIP
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

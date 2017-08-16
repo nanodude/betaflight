@@ -4,9 +4,9 @@
 
 #include <stdint.h>
 #include "brainfpv/video.h"
+#include "config/parameter_group.h"
 
-
-typedef struct {
+typedef struct bfOsdConfig_s {
     uint8_t sync_threshold;
     uint8_t white_level;
     uint8_t black_level;
@@ -27,6 +27,7 @@ typedef struct {
 #endif
 } bfOsdConfig_t;
 
+PG_DECLARE(bfOsdConfig_t, bfOsdConfig);
 
 void brainFpvOsdInit(void);
 void osdMain(void);

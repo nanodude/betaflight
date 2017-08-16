@@ -27,14 +27,14 @@
 
 #include "common/utils.h"
 
-#include "system.h"
-
-#include "nvic.h"
-#include "io.h"
+#include "drivers/nvic.h"
+#include "drivers/io.h"
 #include "timer.h"
 
 #include "pwm_output.h"
 #include "rx_pwm.h"
+
+#include "flight/mixer.h" //!!TODO remove dependency on this
 
 #define DEBUG_PPM_ISR
 
@@ -56,18 +56,18 @@ void pwmICConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t polarity);
 typedef enum {
     INPUT_MODE_PPM,
     INPUT_MODE_PWM
-} pwmInputMode_t;
+} pwmInputMode_e;
 
 typedef struct {
-    pwmInputMode_t mode;
+    pwmInputMode_e mode;
     uint8_t channel; // only used for pwm, ignored by ppm
 
     uint8_t state;
+    uint8_t missedEvents;
+
     captureCompare_t rise;
     captureCompare_t fall;
     captureCompare_t capture;
-
-    uint8_t missedEvents;
 
     const timerHardware_t *timerHardware;
     timerCCHandlerRec_t edgeCb;
@@ -86,13 +86,13 @@ static uint8_t lastPPMFrameCount = 0;
 static uint8_t ppmCountDivisor = 1;
 
 typedef struct ppmDevice_s {
-    uint8_t  pulseIndex;
     //uint32_t previousTime;
     uint32_t currentCapture;
     uint32_t currentTime;
     uint32_t deltaTime;
     uint32_t captures[PWM_PORTS_OR_PPM_CAPTURE_COUNT];
     uint32_t largeCounter;
+    uint8_t  pulseIndex;
     int8_t   numChannels;
     int8_t   numChannelsPrevFrame;
     uint8_t  stableFramesSeenCount;
@@ -101,7 +101,7 @@ typedef struct ppmDevice_s {
     bool     overflowed;
 } ppmDevice_t;
 
-ppmDevice_t ppmDev;
+static ppmDevice_t ppmDev;
 
 #define PPM_IN_MIN_SYNC_PULSE_US    2700    // microseconds
 #define PPM_IN_MIN_CHANNEL_PULSE_US 750     // microseconds
@@ -129,8 +129,8 @@ typedef enum {
 } eventSource_e;
 
 typedef struct ppmISREvent_s {
-    eventSource_e source;
     uint32_t capture;
+    eventSource_e source;
 } ppmISREvent_t;
 
 static ppmISREvent_t ppmEvents[20];
@@ -322,7 +322,7 @@ static void pwmEdgeCallback(timerCCHandlerRec_t *cbRec, captureCompare_t capture
 void pwmICConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t polarity)
 {
     TIM_HandleTypeDef* Handle = timerFindTimerHandle(tim);
-    if(Handle == NULL) return;
+    if (Handle == NULL) return;
 
     TIM_IC_InitTypeDef TIM_ICInitStructure;
 
@@ -337,6 +337,7 @@ void pwmICConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t polarity)
     }
 
     HAL_TIM_IC_ConfigChannel(Handle, &TIM_ICInitStructure, channel);
+    HAL_TIM_IC_Start_IT(Handle,channel);
 }
 #else
 void pwmICConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t polarity)
@@ -384,54 +385,43 @@ void pwmRxInit(const pwmConfig_t *pwmConfig)
         IOInit(io, OWNER_PWMINPUT, RESOURCE_INDEX(channel));
 #ifdef STM32F1
         IOConfigGPIO(io, IOCFG_IPD);
+#elif defined(STM32F7)
+        IOConfigGPIOAF(io, IOCFG_AF_PP, timer->alternateFunction);
 #else
         IOConfigGPIO(io, IOCFG_AF_PP);
 #endif
 
-#if defined(USE_HAL_DRIVER)
-    pwmICConfig(timer->tim, timer->channel, TIM_ICPOLARITY_RISING);
-#else
-    pwmICConfig(timer->tim, timer->channel, TIM_ICPolarity_Rising);
-#endif
-        timerConfigure(timer, (uint16_t)PWM_TIMER_PERIOD, PWM_TIMER_MHZ);
-
+        timerConfigure(timer, (uint16_t)PWM_TIMER_PERIOD, PWM_TIMER_1MHZ);
         timerChCCHandlerInit(&port->edgeCb, pwmEdgeCallback);
         timerChOvrHandlerInit(&port->overflowCb, pwmOverflowCallback);
         timerChConfigCallbacks(timer, &port->edgeCb, &port->overflowCb);
+
+#if defined(USE_HAL_DRIVER)
+        pwmICConfig(timer->tim, timer->channel, TIM_ICPOLARITY_RISING);
+#else
+        pwmICConfig(timer->tim, timer->channel, TIM_ICPolarity_Rising);
+#endif
+
     }
 }
 
 #define UNUSED_PPM_TIMER_REFERENCE 0
 #define FIRST_PWM_PORT 0
 
-void ppmAvoidPWMTimerClash(TIM_TypeDef *pwmTimer, uint8_t pwmProtocol)
+void ppmAvoidPWMTimerClash(TIM_TypeDef *pwmTimer)
 {
     pwmOutputPort_t *motors = pwmGetMotors();
     for (int motorIndex = 0; motorIndex < MAX_SUPPORTED_MOTORS; motorIndex++) {
-        if (!motors[motorIndex].enabled || motors[motorIndex].tim != pwmTimer) {
+        if (!motors[motorIndex].enabled || motors[motorIndex].channel.tim != pwmTimer) {
             continue;
         }
 
-        switch (pwmProtocol)
-        {
-        case PWM_TYPE_ONESHOT125:
-            ppmCountDivisor = ONESHOT125_TIMER_MHZ;
-            break;
-        case PWM_TYPE_ONESHOT42:
-            ppmCountDivisor = ONESHOT42_TIMER_MHZ;
-            break;
-        case PWM_TYPE_MULTISHOT:
-            ppmCountDivisor = MULTISHOT_TIMER_MHZ;
-            break;
-        case PWM_TYPE_BRUSHED:
-            ppmCountDivisor = PWM_BRUSHED_TIMER_MHZ;
-            break;
-        }
+        ppmCountDivisor = timerClock(pwmTimer) / (pwmTimer->PSC + 1);
         return;
     }
 }
 
-void ppmRxInit(const ppmConfig_t *ppmConfig, uint8_t pwmProtocol)
+void ppmRxInit(const ppmConfig_t *ppmConfig)
 {
     ppmResetDevice();
 
@@ -443,7 +433,7 @@ void ppmRxInit(const ppmConfig_t *ppmConfig, uint8_t pwmProtocol)
         return;
     }
 
-    ppmAvoidPWMTimerClash(timer->tim, pwmProtocol);
+    ppmAvoidPWMTimerClash(timer->tim);
 
     port->mode = INPUT_MODE_PPM;
     port->timerHardware = timer;
@@ -452,21 +442,22 @@ void ppmRxInit(const ppmConfig_t *ppmConfig, uint8_t pwmProtocol)
     IOInit(io, OWNER_PPMINPUT, 0);
 #ifdef STM32F1
     IOConfigGPIO(io, IOCFG_IPD);
+#elif defined(STM32F7)
+    IOConfigGPIOAF(io, IOCFG_AF_PP, timer->alternateFunction);
 #else
     IOConfigGPIO(io, IOCFG_AF_PP);
 #endif
+
+    timerConfigure(timer, (uint16_t)PPM_TIMER_PERIOD, PWM_TIMER_1MHZ);
+    timerChCCHandlerInit(&port->edgeCb, ppmEdgeCallback);
+    timerChOvrHandlerInit(&port->overflowCb, ppmOverflowCallback);
+    timerChConfigCallbacks(timer, &port->edgeCb, &port->overflowCb);
 
 #if defined(USE_HAL_DRIVER)
     pwmICConfig(timer->tim, timer->channel, TIM_ICPOLARITY_RISING);
 #else
     pwmICConfig(timer->tim, timer->channel, TIM_ICPolarity_Rising);
 #endif
-
-    timerConfigure(timer, (uint16_t)PPM_TIMER_PERIOD, PWM_TIMER_MHZ);
-
-    timerChCCHandlerInit(&port->edgeCb, ppmEdgeCallback);
-    timerChOvrHandlerInit(&port->overflowCb, ppmOverflowCallback);
-    timerChConfigCallbacks(timer, &port->edgeCb, &port->overflowCb);
 }
 
 uint16_t ppmRead(uint8_t channel)

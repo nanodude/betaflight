@@ -15,8 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// FC configuration
-#define PG_FAILSAFE_CONFIG 1 // strruct OK
+// FC configuration (defined by cleanflight v1)
+#define PG_FAILSAFE_CONFIG 1 // struct OK
 #define PG_BOARD_ALIGNMENT 2 // struct OK
 #define PG_GIMBAL_CONFIG 3 // struct OK
 #define PG_MOTOR_MIXER 4 // two structs mixerConfig_t servoMixerConfig_t
@@ -43,7 +43,7 @@
 #define PG_MOTOR_3D_CONFIG 26 // Cleanflight has motor3DConfig_t, betaflight has flight3DConfig_t with more parameters
 #define PG_LED_STRIP_CONFIG 27 // structs OK
 #define PG_COLOR_CONFIG 28 // part of led strip, structs OK
-#define PG_AIRPLANE_ALT_HOLD_CONFIG 29 // struct OK
+#define PG_AIRPLANE_CONFIG 29 // struct OK
 #define PG_GPS_CONFIG 30 // struct OK
 #define PG_TELEMETRY_CONFIG 31 // betaflight has more and different data in telemetryConfig_t
 #define PG_FRSKY_TELEMETRY_CONFIG 32 // Cleanflight has split data out of PG_TELEMETRY_CONFIG
@@ -51,29 +51,76 @@
 #define PG_NAVIGATION_CONFIG 34 // structs OK
 #define PG_ACCELEROMETER_CONFIG 35 // no accelerometerConfig_t in betaflight
 #define PG_RATE_PROFILE_SELECTION 36 // part of profile in betaflight
-#define PG_ADJUSTMENT_PROFILE 37 // array needs to be made into struct
+//#define PG_ADJUSTMENT_PROFILE 37 // array needs to be made into struct
+#define PG_ADJUSTMENT_RANGE_CONFIG 37
 #define PG_BAROMETER_CONFIG 38 // structs OK
 #define PG_THROTTLE_CORRECTION_CONFIG 39
-#define PG_COMPASS_CONFIGURATION 40 // structs OK
+#define PG_COMPASS_CONFIG 40 // structs OK
 #define PG_MODE_ACTIVATION_PROFILE 41 // array needs to be made into struct
-#define PG_SERVO_PROFILE 42
-#define PG_FAILSAFE_CHANNEL_CONFIG 43 // structs OK
-#define PG_CHANNEL_RANGE_CONFIG 44 // structs OK
+//#define PG_SERVO_PROFILE 42
+#define PG_SERVO_PARAMS 42
+//#define PG_FAILSAFE_CHANNEL_CONFIG 43 // structs OK
+#define PG_RX_FAILSAFE_CHANNEL_CONFIG 43
+//#define PG_CHANNEL_RANGE_CONFIG 44 // structs OK
+#define PG_RX_CHANNEL_RANGE_CONFIG 44
 #define PG_MODE_COLOR_CONFIG 45  // part of led strip, structs OK
 #define PG_SPECIAL_COLOR_CONFIG 46  // part of led strip, structs OK
 #define PG_PILOT_CONFIG 47 // does not exist in betaflight
 #define PG_MSP_SERVER_CONFIG 48 // does not exist in betaflight
-#define PG_VOLTAGE_METER_CONFIG 49 // Cleanflight has voltageMeterConfig_t, betaflight has batteryConfig_t
-#define PG_AMPERAGE_METER_CONFIG 50 // Cleanflight has amperageMeterConfig_t, betaflight has batteryConfig_t
+#define PG_VOLTAGE_METER_CONFIG 49 // renamed from PG_VOLTAGE_METER_CONFIG    // deprecated
+#define PG_AMPERAGE_METER_CONFIG 50 // renamed from PG_AMPERAGE_METER_CONFIG  // deprecated
+#define PG_DEBUG_CONFIG 51 // does not exist in betaflight
+#define PG_SERVO_CONFIG 52
+#define PG_IBUS_TELEMETRY_CONFIG 53 // CF 1.x
+//#define PG_VTX_CONFIG 54 // CF 1.x
 
 // Driver configuration
 #define PG_DRIVER_PWM_RX_CONFIG 100 // does not exist in betaflight
 #define PG_DRIVER_FLASHCHIP_CONFIG 101 // does not exist in betaflight
 
+
+// cleanflight v2 specific parameter group ids start at 256
+#define PG_CURRENT_SENSOR_ADC_CONFIG 256
+#define PG_CURRENT_SENSOR_VIRTUAL_CONFIG 257
+#define PG_VOLTAGE_SENSOR_ADC_CONFIG 258
+#define PG_VTX_RTC6705_CONFIG 259
+
+
+// betaflight specific parameter group ids start at 500
+#define PG_BETAFLIGHT_START 500
+#define PG_MODE_ACTIVATION_OPERATOR_CONFIG 500
+#define PG_OSD_CONFIG 501
+#define PG_BEEPER_CONFIG 502
+#define PG_BEEPER_DEV_CONFIG 503
+#define PG_PID_CONFIG 504
+#define PG_STATUS_LED_CONFIG 505
+#define PG_FLASH_CONFIG 506
+#define PG_PPM_CONFIG 507
+#define PG_PWM_CONFIG 508
+#define PG_SERIAL_PIN_CONFIG 509
+#define PG_ADC_CONFIG 510
+#define PG_SDCARD_CONFIG 511
+#define PG_DISPLAY_PORT_MSP_CONFIG 512
+#define PG_DISPLAY_PORT_MAX7456_CONFIG 513
+#define PG_VCD_CONFIG 514
+#define PG_VTX_CONFIG 515
+#define PG_SONAR_CONFIG 516
+#define PG_ESC_SENSOR_CONFIG 517
+#define PG_I2C_CONFIG 518
+#define PG_DASHBOARD_CONFIG 519
+#define PG_SPI_PIN_CONFIG 520
+#define PG_ESCSERIAL_CONFIG 521
+#define PG_CAMERA_CONTROL_CONFIG 522
+#define PG_FRSKY_D_CONFIG 523
+#define PG_BETAFLIGHT_END 523
+
+
 // OSD configuration (subject to change)
 #define PG_OSD_FONT_CONFIG 2047
 #define PG_OSD_VIDEO_CONFIG 2046
 #define PG_OSD_ELEMENT_CONFIG 2045
+
+#define PG_BRAINFPV_CONFIG 4000
 
 // 4095 is currently the highest number that can be used for a PGN due to the top 4 bits of the 16 bit value being reserved for the version when the PG is stored in an EEPROM.
 #define PG_RESERVED_FOR_TESTING_1 4095

@@ -18,21 +18,19 @@
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "SPK2"
 
-#define CONFIG_START_FLASH_ADDRESS 0x08080000 //0x08080000 to 0x080A0000 (FLASH_Sector_8)
-
 #define USBD_PRODUCT_STRING "Sparky 2.0"
 #ifdef OPBL
     #define USBD_SERIALNUMBER_STRING "0x8020000"
 #endif
 
-#define LED0                    PB5
-#define LED1                    PB4
-#define LED2                    PB6
+#define LED0_PIN                PB5
+#define LED1_PIN                PB4
+#define LED2_PIN                PB6
 
 #define BEEPER                  PC9
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_USART6     PC6
+#define INVERTER_PIN_UART6      PC6
 
 #define USE_ESC_SENSOR
 
@@ -91,13 +89,10 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6 //inverter
 
-#define USE_SOFTSERIAL1
-#define USE_SOFTSERIAL2
-
-#define SERIAL_PORT_COUNT 6
+#define SERIAL_PORT_COUNT 4
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PC7  // (HARDARE=0,PPM)
 
 #define USE_SPI
 
@@ -114,17 +109,18 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
+#define USE_I2C_DEVICE_1
 #define I2C_DEVICE              (I2CDEV_1)
-//#define I2C_DEVICE_EXT          (I2CDEV_2)
 
 #define USE_ADC
-#define VBAT_ADC_PIN            PC3
+#define VBAT_ADC_PIN            PC1
 #define CURRENT_METER_ADC_PIN   PC2
 
-#define DEFAULT_FEATURES        FEATURE_BLACKBOX
+#undef LED_STRIP
+
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-#define SERIALRX_UART           SERIAL_PORT_USART3
+#define SERIALRX_UART           SERIAL_PORT_USART6
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

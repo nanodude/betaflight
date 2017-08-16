@@ -19,18 +19,13 @@
 
 #define TARGET_BOARD_IDENTIFIER "NUC7"
 
-#define CONFIG_START_FLASH_ADDRESS (0x080C0000)
-
 #define USBD_PRODUCT_STRING "NucleoF7"
 
-//#define USE_DSHOT
-//#define USE_ESC_TELEMETRY
+#define LED0_PIN   PB7
+#define LED1_PIN   PB14
 
-#define LED0   PB7
-#define LED1   PB14
-
-//#define BEEPER   PB2
-//#define BEEPER_INVERTED
+#define BEEPER   PA0
+#define BEEPER_INVERTED
 
 #define ACC
 #define USE_FAKE_ACC
@@ -98,6 +93,9 @@
 
 #define SERIAL_PORT_COUNT 10 //VCP, USART2, USART3, UART4, UART5, USART6, USART7, USART8, SOFTSERIAL x 2
 
+#define USE_ESCSERIAL
+#define ESCSERIAL_TIMER_TX_PIN  PB15 // (Hardware=0, PPM)
+
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 #define USE_SPI_DEVICE_4
@@ -115,10 +113,6 @@
 #define USE_SDCARD
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN                   PF14
-#define SDCARD_DETECT_EXTI_LINE             EXTI_Line14
-#define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource14
-#define SDCARD_DETECT_EXTI_PORT_SOURCE      EXTI_PortSourceGPIOF
-#define SDCARD_DETECT_EXTI_IRQn             EXTI9_15_IRQn
 
 #define SDCARD_SPI_INSTANCE                 SPI4
 #define SDCARD_SPI_CS_PIN                   SPI4_NSS_PIN
@@ -127,30 +121,27 @@
 // Divide to under 25MHz for normal operation:
 #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 8 // 27MHz
 
-#define SDCARD_DMA_CHANNEL_TX               DMA2_Stream1
+#define SDCARD_DMA_STREAM_TX_FULL           DMA2_Stream1
+#define SDCARD_DMA_TX                       DMA2
+#define SDCARD_DMA_STREAM_TX                1
+#define SDCARD_DMA_CLK                      LL_AHB1_GRP1_PERIPH_DMA2
+
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA2
 #define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_1)
-#define I2C1_SCL PB8
-#define I2C1_SDA PB9
-
-//#define I2C_DEVICE_EXT (I2CDEV_2)
-
-#define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE                  (I2CDEV_1)
+#define I2C1_SCL                    PB8
+#define I2C1_SDA                    PB9
 
 #define USE_ADC
 #define VBAT_ADC_PIN                PA3
 #define CURRENT_METER_ADC_PIN       PC0
 #define RSSI_ADC_GPIO_PIN           PC3
 
-#define LED_STRIP
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-#define DEFAULT_FEATURES        (FEATURE_BLACKBOX)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
@@ -162,5 +153,6 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 #define TARGET_IO_PORTF 0xffff
+#define TARGET_IO_PORTG 0xffff
 
 #define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9) | TIM_N(10) | TIM_N(11))

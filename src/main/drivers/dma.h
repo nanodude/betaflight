@@ -25,9 +25,9 @@ typedef void (*dmaCallbackHandlerFuncPtr)(struct dmaChannelDescriptor_s *channel
 typedef struct dmaChannelDescriptor_s {
     DMA_TypeDef*                dma;
 #if defined(STM32F4) || defined(STM32F7)
-    DMA_Stream_TypeDef*         stream;
+    DMA_Stream_TypeDef*         ref;
 #else
-    DMA_Channel_TypeDef*        channel;
+    DMA_Channel_TypeDef*        ref;
 #endif
     dmaCallbackHandlerFuncPtr   irqHandlerCallback;
     uint8_t                     flagsShift;
@@ -44,6 +44,7 @@ typedef struct dmaChannelDescriptor_s {
 #endif
 
 #if defined(STM32F4) || defined(STM32F7)
+
 uint32_t dmaFlag_IT_TCIF(const DMA_Stream_TypeDef *stream);
 
 typedef enum {
@@ -71,13 +72,13 @@ typedef enum {
 #define DMA_OUTPUT_INDEX    0
 #define DMA_OUTPUT_STRING   "DMA%d Stream %d:"
 
-#define DEFINE_DMA_CHANNEL(d, s, f, i, r) {.dma = d, .stream = s, .irqHandlerCallback = NULL, .flagsShift = f, .irqN = i, .rcc = r, .userParam = 0, .owner = 0, .resourceIndex = 0 }
+#define DEFINE_DMA_CHANNEL(d, s, f, i, r) {.dma = d, .ref = s, .irqHandlerCallback = NULL, .flagsShift = f, .irqN = i, .rcc = r, .userParam = 0, .owner = 0, .resourceIndex = 0 }
 #define DEFINE_DMA_IRQ_HANDLER(d, s, i) void DMA ## d ## _Stream ## s ## _IRQHandler(void) {\
                                                                 if (dmaDescriptors[i].irqHandlerCallback)\
                                                                     dmaDescriptors[i].irqHandlerCallback(&dmaDescriptors[i]);\
                                                             }
 
-#define DMA_CLEAR_FLAG(d, flag) if(d->flagsShift > 31) d->dma->HIFCR = (flag << (d->flagsShift - 32)); else d->dma->LIFCR = (flag << d->flagsShift)
+#define DMA_CLEAR_FLAG(d, flag) if (d->flagsShift > 31) d->dma->HIFCR = (flag << (d->flagsShift - 32)); else d->dma->LIFCR = (flag << d->flagsShift)
 #define DMA_GET_FLAG_STATUS(d, flag) (d->flagsShift > 31 ? d->dma->HISR & (flag << (d->flagsShift - 32)): d->dma->LISR & (flag << d->flagsShift))
 
 
@@ -115,7 +116,7 @@ typedef enum {
 #define DMA_OUTPUT_INDEX    0
 #define DMA_OUTPUT_STRING   "DMA%d Channel %d:"
 
-#define DEFINE_DMA_CHANNEL(d, c, f, i, r) {.dma = d, .channel = c, .irqHandlerCallback = NULL, .flagsShift = f, .irqN = i, .rcc = r, .userParam = 0, .owner = 0, .resourceIndex = 0 }
+#define DEFINE_DMA_CHANNEL(d, c, f, i, r) {.dma = d, .ref = c, .irqHandlerCallback = NULL, .flagsShift = f, .irqN = i, .rcc = r, .userParam = 0, .owner = 0, .resourceIndex = 0 }
 #define DEFINE_DMA_IRQ_HANDLER(d, c, i) void DMA ## d ## _Channel ## c ## _IRQHandler(void) {\
                                                                         if (dmaDescriptors[i].irqHandlerCallback)\
                                                                             dmaDescriptors[i].irqHandlerCallback(&dmaDescriptors[i]);\

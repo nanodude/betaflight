@@ -31,13 +31,15 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
-#define LED0                    PE8  // Blue LEDs - PE8/PE12
+#define CURRENT_TARGET_CPU_VOLTAGE 3.0
+
+#define LED0_PIN                PE8  // Blue LEDs - PE8/PE12
 #define LED0_INVERTED
-#define LED1                    PE10 // Orange LEDs - PE10/PE14
+#define LED1_PIN                PE10 // Orange LEDs - PE10/PE14
 #define LED1_INVERTED
 
-#define BEEPER                  PE9  // Red LEDs - PE9/PE13
-#define BEEPER_INVERTED
+#define BEEPER                  PD12
+#define BEEPER_PWM_HZ           2000  // Beeper PWM frequency in Hz
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -54,12 +56,11 @@
 //#define SD_CS_PIN               PB12
 //#define SD_SPI_INSTANCE         SPI2
 
-//#define USE_FLASHFS
-//#define USE_FLASH_M25P16
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
 
-//#define M25P16_CS_GPIO          GPIOB
-//#define M25P16_CS_PIN           GPIO_Pin_12
-//#define M25P16_SPI_INSTANCE     SPI2
+#define M25P16_CS_PIN           PB12
+#define M25P16_SPI_INSTANCE     SPI2
 // SPI1
 // PB5  SPI1_MOSI
 // PB4  SPI1_MISO
@@ -123,7 +124,6 @@
 #define CMS
 
 //#define USE_SDCARD
-//#define USE_SDCARD_SPI2
 //
 //#define SDCARD_SPI_INSTANCE     SPI2
 //#define SDCARD_SPI_CS_PIN       PB12
@@ -157,12 +157,13 @@
 #define SERIAL_PORT_COUNT       6
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PB8  // (HARDARE=0,PPM)
 
 #define UART3_TX_PIN            PB10 // PB10 (AF7)
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
 #define USE_I2C
+#define USE_I2C_DEVICE_1
 #define I2C_DEVICE              (I2CDEV_1)
 
 #define USE_ADC
@@ -174,16 +175,13 @@
 
 #define USE_ESC_SENSOR
 
-#define LED_STRIP
-
-#define SPEKTRUM_BIND
-#define BIND_PIN                PA3 // USART2, PA3
-
 #define SONAR
 #define SONAR_TRIGGER_PIN       PB0
 #define SONAR_ECHO_PIN          PB1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+#define MAX_SUPPORTED_MOTORS    12
 
 // IO - 303 in 100pin package
 #define TARGET_IO_PORTA         0xffff

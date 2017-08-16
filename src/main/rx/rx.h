@@ -18,6 +18,7 @@
 #pragma once
 
 #include "common/time.h"
+#include "config/parameter_group.h"
 
 #define STICK_CHANNEL_COUNT 4
 
@@ -36,8 +37,6 @@
 #define DEFAULT_SERVO_MIN 1000
 #define DEFAULT_SERVO_MIDDLE 1500
 #define DEFAULT_SERVO_MAX 2000
-#define DEFAULT_SERVO_MIN_ANGLE 90
-#define DEFAULT_SERVO_MAX_ANGLE 90
 
 typedef enum {
     RX_FRAME_PENDING = 0,
@@ -57,6 +56,7 @@ typedef enum {
     SERIALRX_JETIEXBUS = 8,
     SERIALRX_CRSF = 9,
     SERIALRX_SRXL = 10,
+    SERIALRX_TARGET_CUSTOM = 11,
 } SerialRXType;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          12
@@ -78,7 +78,7 @@ extern const char rcChannelLetters[];
 
 extern int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // interval [1000;2000]
 
-#define MAX_MAPPABLE_RX_INPUTS 8
+#define RX_MAPPABLE_CHANNEL_COUNT 8
 
 #define RSSI_SCALE_MIN 1
 #define RSSI_SCALE_MAX 255
@@ -100,24 +100,30 @@ typedef enum {
 
 #define RX_FAILSAFE_TYPE_COUNT 2
 
-typedef struct rxFailsafeChannelConfiguration_s {
+typedef struct rxFailsafeChannelConfig_s {
     uint8_t mode; // See rxFailsafeChannelMode_e
     uint8_t step;
-} rxFailsafeChannelConfiguration_t;
+} rxFailsafeChannelConfig_t;
 
-typedef struct rxChannelRangeConfiguration_s {
+PG_DECLARE_ARRAY(rxFailsafeChannelConfig_t, MAX_SUPPORTED_RC_CHANNEL_COUNT, rxFailsafeChannelConfigs);
+
+typedef struct rxChannelRangeConfig_s {
     uint16_t min;
     uint16_t max;
-} rxChannelRangeConfiguration_t;
+} rxChannelRangeConfig_t;
+
+PG_DECLARE_ARRAY(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeConfigs);
 
 typedef struct rxConfig_s {
-    uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
+    uint8_t rcmap[RX_MAPPABLE_CHANNEL_COUNT];  // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_provider;              // type of UART-based receiver (0 = spek 10, 1 = spek 11, 2 = sbus). Must be enabled by FEATURE_RX_SERIAL first.
     uint8_t sbus_inversion;                 // default sbus (Futaba, FrSKY) is inverted. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode on F4, ignored for F1 and F3.
     uint8_t rx_spi_protocol;                // type of nrf24 protocol (0 = v202 250kbps). Must be enabled by FEATURE_RX_NRF24 first.
     uint32_t rx_spi_id;
     uint8_t rx_spi_rf_channel_count;
+    ioTag_t spektrum_bind_pin_override_ioTag;
+    ioTag_t spektrum_bind_plug_ioTag;
     uint8_t spektrum_sat_bind;              // number of bind pulses for Spektrum satellite receivers
     uint8_t spektrum_sat_bind_autoreset;    // whenever we will reset (exit) binding mode after hard reboot
     uint8_t rssi_channel;
@@ -130,17 +136,14 @@ typedef struct rxConfig_s {
     uint8_t rcInterpolationChannels;
     uint8_t rcInterpolationInterval;
     uint8_t fpvCamAngleDegrees;             // Camera angle to be scaled into rc commands
-    uint8_t max_aux_channel;
     uint16_t airModeActivateThreshold;      // Throttle setpoint where airmode gets activated
 
     uint16_t rx_min_usec;
     uint16_t rx_max_usec;
-    rxFailsafeChannelConfiguration_t failsafe_channel_configurations[MAX_SUPPORTED_RC_CHANNEL_COUNT];
-
-    rxChannelRangeConfiguration_t channelRanges[NON_AUX_CHANNEL_COUNT];
+    uint8_t max_aux_channel;
 } rxConfig_t;
 
-#define REMAPPABLE_CHANNEL_COUNT (sizeof(((rxConfig_t *)0)->rcmap) / sizeof(((rxConfig_t *)0)->rcmap[0]))
+PG_DECLARE(rxConfig_t, rxConfig);
 
 struct rxRuntimeConfig_s;
 typedef uint16_t (*rcReadRawDataFnPtr)(const struct rxRuntimeConfig_s *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
@@ -155,9 +158,7 @@ typedef struct rxRuntimeConfig_s {
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
 
-struct modeActivationCondition_s;
-void rxInit(const rxConfig_t *rxConfig, const struct modeActivationCondition_s *modeActivationConditions);
-void useRxConfig(const rxConfig_t *rxConfigToUse);
+void rxInit(void);
 bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTimeUs);
 bool rxIsReceivingSignal(void);
 bool rxAreFlightChannelsValid(void);
@@ -166,7 +167,7 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
 void parseRcChannels(const char *input, rxConfig_t *rxConfig);
 
 void updateRSSI(timeUs_t currentTimeUs);
-void resetAllRxChannelRangeConfigurations(rxChannelRangeConfiguration_t *rxChannelRangeConfiguration);
+void resetAllRxChannelRangeConfigurations(rxChannelRangeConfig_t *rxChannelRangeConfig);
 
 void suspendRxSignal(void);
 void resumeRxSignal(void);

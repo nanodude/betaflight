@@ -60,17 +60,17 @@ volatile bool coreProReady = false;
 // BST TimeoutUserCallback
 ///////////////////////////////////////////////////////////////////////////////
 
-uint8_t dataBuffer[DATA_BUFFER_SIZE] = {0};
+uint8_t dataBuffer[BST_BUFFER_SIZE] = {0};
 uint8_t dataBufferPointer = 0;
 uint8_t bstWriteDataLen = 0;
 
 uint32_t micros(void);
 
-uint8_t writeData[DATA_BUFFER_SIZE] = {0};
+uint8_t writeData[BST_BUFFER_SIZE] = {0};
 uint8_t currentWriteBufferPointer = 0;
 bool receiverAddress = false;
 
-uint8_t readData[DATA_BUFFER_SIZE] = {0};
+uint8_t readData[BST_BUFFER_SIZE] = {0};
 uint8_t bufferPointer = 0;
 
 bool cleanflight_data_ready = false;
@@ -80,9 +80,9 @@ uint8_t interruptCounter = 0;
 void bstProcessInCommand(void);
 void I2C_EV_IRQHandler()
 {
-    if(I2C_GetITStatus(BSTx, I2C_IT_ADDR)) {
+    if (I2C_GetITStatus(BSTx, I2C_IT_ADDR)) {
         CRC8 = 0;
-        if(I2C_GetTransferDirection(BSTx) == I2C_Direction_Receiver) {
+        if (I2C_GetTransferDirection(BSTx) == I2C_Direction_Receiver) {
             currentWriteBufferPointer = 0;
             receiverAddress = true;
             I2C_SendData(BSTx, (uint8_t) writeData[currentWriteBufferPointer++]);
@@ -92,11 +92,11 @@ void I2C_EV_IRQHandler()
             bufferPointer = 1;
         }
         I2C_ClearITPendingBit(BSTx, I2C_IT_ADDR);
-    } else if(I2C_GetITStatus(BSTx, I2C_IT_RXNE)) {
+    } else if (I2C_GetITStatus(BSTx, I2C_IT_RXNE)) {
         uint8_t data = I2C_ReceiveData(BSTx);
         readData[bufferPointer] = data;
-        if(bufferPointer > 1) {
-            if(readData[1]+1 == bufferPointer) {
+        if (bufferPointer > 1) {
+            if (readData[1]+1 == bufferPointer) {
                 crc8Cal(0);
                 bstProcessInCommand();
             } else {
@@ -105,21 +105,21 @@ void I2C_EV_IRQHandler()
         }
         bufferPointer++;
         I2C_ClearITPendingBit(BSTx, I2C_IT_RXNE);
-    } else if(I2C_GetITStatus(BSTx, I2C_IT_TXIS)) {
-        if(receiverAddress) {
-            if(currentWriteBufferPointer > 0) {
-                if(!cleanflight_data_ready) {
+    } else if (I2C_GetITStatus(BSTx, I2C_IT_TXIS)) {
+        if (receiverAddress) {
+            if (currentWriteBufferPointer > 0) {
+                if (!cleanflight_data_ready) {
                     I2C_ClearITPendingBit(BSTx, I2C_IT_TXIS);
                     return;
                 }
-                if(interruptCounter < DELAY_SENDING_BYTE) {
+                if (interruptCounter < DELAY_SENDING_BYTE) {
                     interruptCounter++;
                     I2C_ClearITPendingBit(BSTx, I2C_IT_TXIS);
                     return;
                 } else {
                     interruptCounter = 0;
                 }
-                if(writeData[0] == currentWriteBufferPointer) {
+                if (writeData[0] == currentWriteBufferPointer) {
                     receiverAddress = false;
                     crc8Cal(0);
                     I2C_SendData(BSTx, (uint8_t) CRC8);
@@ -129,11 +129,11 @@ void I2C_EV_IRQHandler()
                     I2C_SendData(BSTx, (uint8_t) writeData[currentWriteBufferPointer++]);
                 }
             }
-        } else if(bstWriteDataLen) {
+        } else if (bstWriteDataLen) {
             I2C_SendData(BSTx, (uint8_t) dataBuffer[dataBufferPointer]);
-            if(bstWriteDataLen > 1)
+            if (bstWriteDataLen > 1)
                 dataBufferPointer++;
-            if(dataBufferPointer == bstWriteDataLen) {
+            if (dataBufferPointer == bstWriteDataLen) {
                 I2C_ITConfig(BSTx, I2C_IT_TXI, DISABLE);
                 dataBufferPointer = 0;
                 bstWriteDataLen = 0;
@@ -141,19 +141,19 @@ void I2C_EV_IRQHandler()
         } else {
         }
         I2C_ClearITPendingBit(BSTx, I2C_IT_TXIS);
-    } else if(I2C_GetITStatus(BSTx, I2C_IT_NACKF)) {
-        if(receiverAddress) {
+    } else if (I2C_GetITStatus(BSTx, I2C_IT_NACKF)) {
+        if (receiverAddress) {
             receiverAddress = false;
             I2C_ITConfig(BSTx, I2C_IT_TXI, DISABLE);
         }
         I2C_ClearITPendingBit(BSTx, I2C_IT_NACKF);
-    } else if(I2C_GetITStatus(BSTx, I2C_IT_STOPF)) {
-        if(bstWriteDataLen && dataBufferPointer == bstWriteDataLen) {
+    } else if (I2C_GetITStatus(BSTx, I2C_IT_STOPF)) {
+        if (bstWriteDataLen && dataBufferPointer == bstWriteDataLen) {
             dataBufferPointer = 0;
             bstWriteDataLen = 0;
         }
         I2C_ClearITPendingBit(BSTx, I2C_IT_STOPF);
-    } else if(I2C_GetITStatus(BSTx, I2C_IT_BERR)
+    } else if (I2C_GetITStatus(BSTx, I2C_IT_BERR)
             || I2C_GetITStatus(BSTx, I2C_IT_ARLO)
             || I2C_GetITStatus(BSTx, I2C_IT_OVR)) {
         bstTimeoutUserCallback();
@@ -193,7 +193,7 @@ void bstInitPort(I2C_TypeDef *BSTx/*, uint8_t Address*/)
     GPIO_InitTypeDef GPIO_InitStructure;
     I2C_InitTypeDef BST_InitStructure;
 
-    if(BSTx == I2C1) {
+    if (BSTx == I2C1) {
         RCC_AHBPeriphClockCmd(BST1_SCL_CLK_SOURCE | BST1_SDA_CLK_SOURCE, ENABLE);
         RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
         RCC_I2CCLKConfig(RCC_I2C1CLK_SYSCLK);
@@ -221,7 +221,7 @@ void bstInitPort(I2C_TypeDef *BSTx/*, uint8_t Address*/)
         BST_InitStructure.I2C_Mode = I2C_Mode_I2C;
         BST_InitStructure.I2C_AnalogFilter = I2C_AnalogFilter_Enable;
         BST_InitStructure.I2C_DigitalFilter = 0x00;
-        BST_InitStructure.I2C_OwnAddress1 = CLEANFLIGHT_FC;
+        BST_InitStructure.I2C_OwnAddress1 = I2C_ADDR_CLEANFLIGHT_FC;
         BST_InitStructure.I2C_Ack = I2C_Ack_Enable;
         BST_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
         BST_InitStructure.I2C_Timing = 0x30E0257A; // 100 Khz, 72Mhz Clock, Analog Filter Delay ON, Rise 100, Fall 10.
@@ -241,7 +241,7 @@ void bstInitPort(I2C_TypeDef *BSTx/*, uint8_t Address*/)
         I2C_Cmd(I2C1, ENABLE);
     }
 
-    if(BSTx == I2C2) {
+    if (BSTx == I2C2) {
         RCC_AHBPeriphClockCmd(BST2_SCL_CLK_SOURCE | BST2_SDA_CLK_SOURCE, ENABLE);
         RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2, ENABLE);
         RCC_I2CCLKConfig(RCC_I2C2CLK_SYSCLK);
@@ -269,7 +269,7 @@ void bstInitPort(I2C_TypeDef *BSTx/*, uint8_t Address*/)
         BST_InitStructure.I2C_Mode = I2C_Mode_I2C;
         BST_InitStructure.I2C_AnalogFilter = I2C_AnalogFilter_Enable;
         BST_InitStructure.I2C_DigitalFilter = 0x00;
-        BST_InitStructure.I2C_OwnAddress1 = CLEANFLIGHT_FC;
+        BST_InitStructure.I2C_OwnAddress1 = I2C_ADDR_CLEANFLIGHT_FC;
         BST_InitStructure.I2C_Ack = I2C_Ack_Enable;
         BST_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
         BST_InitStructure.I2C_Timing = 0x30E0257A; // 100 Khz, 72Mhz Clock, Analog Filter Delay ON, Rise 100, Fall 10.
@@ -314,7 +314,7 @@ uint16_t bstGetErrorCounter(void)
 
 bool bstWriteBusy(void)
 {
-    if(bstWriteDataLen)
+    if (bstWriteDataLen)
         return true;
     else
         return false;
@@ -322,14 +322,14 @@ bool bstWriteBusy(void)
 
 bool bstMasterWrite(uint8_t* data)
 {
-    if(bstWriteDataLen==0) {
+    if (bstWriteDataLen==0) {
         CRC8 = 0;
         dataBufferPointer = 0;
         dataBuffer[0] = *data;
         dataBuffer[1] = *(data+1);
         bstWriteDataLen = dataBuffer[1] + 2;
-        for(uint8_t i=2; i<bstWriteDataLen; i++) {
-            if(i==(bstWriteDataLen-1)) {
+        for (uint8_t i=2; i<bstWriteDataLen; i++) {
+            if (i==(bstWriteDataLen-1)) {
                 crc8Cal(0);
                 dataBuffer[i] = CRC8;
             } else {
@@ -346,19 +346,19 @@ void bstMasterWriteLoop(void)
 {
     static uint32_t bstMasterWriteTimeout = 0;
     uint32_t currentTime = micros();
-    if(bstWriteDataLen && dataBufferPointer==0) {
+    if (bstWriteDataLen && dataBufferPointer==0) {
         bool scl_set = false;
-        if(BSTx == I2C1)
+        if (BSTx == I2C1)
             scl_set = BST1_SCL_GPIO->IDR&BST1_SCL_PIN;
         else
             scl_set = BST2_SCL_GPIO->IDR&BST2_SCL_PIN;
-        if(I2C_GetFlagStatus(BSTx, I2C_FLAG_BUSY)==RESET && scl_set) {
+        if (I2C_GetFlagStatus(BSTx, I2C_FLAG_BUSY)==RESET && scl_set) {
             I2C_TransferHandling(BSTx, dataBuffer[dataBufferPointer], dataBuffer[dataBufferPointer+1]+1, I2C_AutoEnd_Mode, I2C_Generate_Start_Write);
             I2C_ITConfig(BSTx, I2C_IT_TXI, ENABLE);
             dataBufferPointer = 1;
             bstMasterWriteTimeout = micros();
         }
-    } else if(currentTime>bstMasterWriteTimeout+BST_SHORT_TIMEOUT) {
+    } else if (currentTime>bstMasterWriteTimeout+BST_SHORT_TIMEOUT) {
         bstTimeoutUserCallback();
     }
 }

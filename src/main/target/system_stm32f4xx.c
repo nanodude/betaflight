@@ -455,9 +455,7 @@ uint32_t hse_value = HSE_VALUE;
   * @{
   */
 
-#if defined(BRAINRE1) || defined(RADIX)
-uint32_t SystemCoreClock = 180000000;
-#else
+#if !defined(BRAINRE1) && !defined(RADIX)
 /* core clock is simply a mhz of PLL_N / PLL_P */
 uint32_t SystemCoreClock = (PLL_N / PLL_P) * 1000000;
 #endif
@@ -493,8 +491,15 @@ static void SystemInit_ExtMemCtl(void);
   * @param  None
   * @retval None
   */
+
+uint32_t SystemCoreClock;
+uint32_t pll_p = PLL_P, pll_n = PLL_N, pll_q = PLL_Q;
+
 void SystemInit(void)
 {
+  /* core clock is simply a mhz of PLL_N / PLL_P */
+  SystemCoreClock = (pll_n / pll_p) * 1000000;
+
   /* FPU settings ------------------------------------------------------------*/
   #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
     SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
@@ -524,7 +529,7 @@ void SystemInit(void)
 
   /* Configure the System clock source, PLL Multiplier and Divider factors,
      AHB/APBx prescalers and Flash settings ----------------------------------*/
-  SetSysClock();
+  //SetSysClock();
 
   /* Configure the Vector Table location add offset address ------------------*/
 #ifdef VECT_TAB_SRAM
@@ -532,6 +537,16 @@ void SystemInit(void)
 #else
   SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
 #endif
+}
+
+void SystemInitOC(void)
+{
+    /* PLL setting for overclocking */
+    pll_n = PLL_N_OC;
+    pll_p = PLL_P_OC;
+    pll_q = PLL_Q_OC;
+
+    SystemInit();
 }
 
 /**
@@ -681,7 +696,7 @@ void SetSysClock(void)
   {
     HSEStatus = RCC->CR & RCC_CR_HSERDY;
     StartUpCounter++;
-  } while((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
+  } while ((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
 
   if ((RCC->CR & RCC_CR_HSERDY) != RESET)
   {
@@ -733,18 +748,18 @@ void SetSysClock(void)
     RCC->CR |= RCC_CR_PLLON;
 
     /* Wait till the main PLL is ready */
-    while((RCC->CR & RCC_CR_PLLRDY) == 0)
+    while ((RCC->CR & RCC_CR_PLLRDY) == 0)
     {
     }
 
 #if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx)
     /* Enable the Over-drive to extend the clock frequency to 180 Mhz */
     PWR->CR |= PWR_CR_ODEN;
-    while((PWR->CSR & PWR_CSR_ODRDY) == 0)
+    while ((PWR->CSR & PWR_CSR_ODRDY) == 0)
     {
     }
     PWR->CR |= PWR_CR_ODSWEN;
-    while((PWR->CSR & PWR_CSR_ODSWRDY) == 0)
+    while ((PWR->CSR & PWR_CSR_ODSWRDY) == 0)
     {
     }
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
@@ -1177,7 +1192,7 @@ void SystemInit_ExtMemCtl(void)
   /* Clock enable command */
   FMC_Bank5_6->SDCMR = 0x00000011;
   tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
-  while((tmpreg != 0) & (timeout-- > 0))
+  while ((tmpreg != 0) & (timeout-- > 0))
   {
     tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
   }
@@ -1188,7 +1203,7 @@ void SystemInit_ExtMemCtl(void)
   /* PALL command */
   FMC_Bank5_6->SDCMR = 0x00000012;
   timeout = 0xFFFF;
-  while((tmpreg != 0) & (timeout-- > 0))
+  while ((tmpreg != 0) & (timeout-- > 0))
   {
   tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
   }
@@ -1196,7 +1211,7 @@ void SystemInit_ExtMemCtl(void)
   /* Auto refresh command */
   FMC_Bank5_6->SDCMR = 0x00000073;
   timeout = 0xFFFF;
-  while((tmpreg != 0) & (timeout-- > 0))
+  while ((tmpreg != 0) & (timeout-- > 0))
   {
   tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
   }
@@ -1204,7 +1219,7 @@ void SystemInit_ExtMemCtl(void)
   /* MRD register program */
   FMC_Bank5_6->SDCMR = 0x00046014;
   timeout = 0xFFFF;
-  while((tmpreg != 0) & (timeout-- > 0))
+  while ((tmpreg != 0) & (timeout-- > 0))
   {
   tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
   }

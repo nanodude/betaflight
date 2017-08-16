@@ -21,10 +21,10 @@
 #define USE_HARDWARE_REVISION_DETECTION
 #define TARGET_CONFIG
 
-#define LED0                    PB3
+#define LED0_PIN                PB3
 #define LED0_INVERTED
 
-#define LED1                    PB4
+#define LED1_PIN                PB4
 #define LED1_INVERTED
 
 #define BEEPER                  PA12
@@ -32,7 +32,6 @@
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC5
-#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
@@ -58,7 +57,7 @@
 #define SERIAL_PORT_COUNT       5
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA0  // (HARDARE=0,PPM)
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -93,23 +92,19 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
 #define VBAT_ADC_PIN            PA4
 #define CURRENT_METER_ADC_PIN   PA5
 #define RSSI_ADC_PIN            PA6
 
-#define LED_STRIP
-
 #define OSD
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
 
-#define USE_SERVOS
-
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
-#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_VBAT | FEATURE_RSSI_ADC)
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_RSSI_ADC | FEATURE_OSD)
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

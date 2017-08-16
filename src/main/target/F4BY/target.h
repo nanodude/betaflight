@@ -18,17 +18,15 @@
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "F4BY"
 
-#define CONFIG_START_FLASH_ADDRESS (0x08080000) //0x08080000 to 0x080A0000 (FLASH_Sector_8)
-
 #define USBD_PRODUCT_STRING     "Swift-Flyer F4BY"
 
-#define LED0                    PE3 // Blue LED
-#define LED1                    PE2 // Red LED
-#define LED2                    PE1 // Blue LED
+#define LED0_PIN                PE3 // Blue LED
+#define LED1_PIN                PE2 // Red LED
+#define LED2_PIN                PE1 // Blue LED
 
 #define BEEPER                  PE5
 
-#define INVERTER_PIN_USART6     PD3
+#define INVERTER_PIN_UART6      PD3
 
 
 
@@ -106,7 +104,7 @@
 #define SERIAL_PORT_COUNT       8 //VCP, UART1, UART2, UART3, UART4, UART6, SOFTSERIAL x 2
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 8 // PWM 9
+#define ESCSERIAL_TIMER_TX_PIN  PA0  // (HARDARE=8)
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -129,26 +127,24 @@
 
 
 #define USE_I2C
+#define USE_I2C_DEVICE_2
 #define I2C_DEVICE              (I2CDEV_2)
 #define USE_I2C_PULLUP
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
 #define VBAT_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC2
 #define RSSI_ADC_PIN            PC1
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_BLACKBOX)
+#undef LED_STRIP
+
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
-#define SPEKTRUM_BIND
-// UART6, PC7
-#define BIND_PIN                PC7
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

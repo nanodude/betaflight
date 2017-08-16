@@ -21,12 +21,11 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
-#define LED0        PB3
+#define LED0_PIN    PB3
 
 #define BEEPER      PC15
 #define BEEPER_INVERTED
 
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 1
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC13
@@ -62,7 +61,7 @@
 #define SERIAL_PORT_COUNT       5
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA0  // (HARDARE=0,PPM)
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -80,7 +79,8 @@
 #define SOFTSERIAL2_TX_PIN      PB1  // PWM 8
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_1) // PB6/SCL, PB7/SDA
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE              (I2CDEV_1)
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5
@@ -88,14 +88,13 @@
 #define M25P16_CS_PIN           PB12
 #define M25P16_SPI_INSTANCE     SPI2
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
 #define ADC_INSTANCE                ADC2
 #define VBAT_ADC_PIN                PA4
 #define CURRENT_METER_ADC_PIN       PA5
 #define RSSI_ADC_PIN                PB2
 
-#define LED_STRIP
 #define WS2811_PIN                      PA8
 #define WS2811_TIMER                    TIM1
 #define WS2811_DMA_CHANNEL              DMA1_Channel2
@@ -105,11 +104,6 @@
 #define WS2811_TIMER_GPIO_AF            GPIO_AF_6
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
-#define DEFAULT_FEATURES        FEATURE_BLACKBOX
-
-#define SPEKTRUM_BIND
-// USART3,
-#define BIND_PIN   PB11
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

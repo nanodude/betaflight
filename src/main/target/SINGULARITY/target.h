@@ -21,7 +21,7 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
-#define LED0                    PB3
+#define LED0_PIN                PB3
 
 #define BEEPER                  PC15
 
@@ -50,7 +50,7 @@
 #define SERIAL_PORT_COUNT 6
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA15  // (HARDARE=0,PPM)
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -65,15 +65,16 @@
 #define SOFTSERIAL1_TX_PIN      PA3
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1) // PB6/SCL, PB7/SDA
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE              (I2CDEV_1)
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1 // PA4, 5, 6, 7
 #define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5
 
-#define VTX
-#define RTC6705_CS_GPIO         GPIOA
-#define RTC6705_CS_PIN          GPIO_Pin_4
+#define VTX_RTC6705
+
+#define RTC6705_CS_PIN          PA4
 #define RTC6705_SPI_INSTANCE    SPI1
 
 #define M25P16_CS_GPIO          GPIOB
@@ -86,17 +87,10 @@
 #define VBAT_ADC_PIN            PB2
 #define VBAT_SCALE_DEFAULT      77
 
-#define LED_STRIP
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_BLACKBOX)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_UART           SERIAL_PORT_USART2
-
-#define SPEKTRUM_BIND
-// USART2, PA15
-#define BIND_PIN                PA15
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

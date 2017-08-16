@@ -17,31 +17,31 @@
 
 #pragma once
 
-#ifdef PLUMF4
+#if defined(PLUMF4)
 #define TARGET_BOARD_IDENTIFIER "PLUM"
 #define USBD_PRODUCT_STRING     "PLUMF4"
 
+#elif defined(KIWIF4V2)
+#define TARGET_BOARD_IDENTIFIER "KIW2"
+#define USBD_PRODUCT_STRING     "KIWIF4V2"
+
 #else
-	
 #define TARGET_BOARD_IDENTIFIER "KIWI"
 #define USBD_PRODUCT_STRING     "KIWIF4"
 
 #endif
-#define CONFIG_START_FLASH_ADDRESS (0x08080000) //0x08080000 to 0x080A0000 (FLASH_Sector_8)
 
-#ifdef PLUMF4
-#define LED0                    PB4
+#if defined(PLUMF4) || defined(KIWIF4V2)
+#define LED0_PIN                PB4
 
 #else
-
-#define LED0                    PB5
-#define LED1                    PB4
-
+#define LED0_PIN                PB5
+#define LED1_PIN                PB4
 #endif
 
 #define BEEPER                  PA8
 
-#define INVERTER_PIN_USART1 PC0 // PC0 used as inverter select GPIO
+#define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -61,9 +61,16 @@
 #define USE_ACC_SPI_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
-#ifdef KIWIF4
+#if defined(KIWIF4) || defined(KIWIF4V2)
 #define OSD
 #define USE_MAX7456
+#endif
+
+#if defined(KIWIF4V2)
+#define MAX7456_SPI_INSTANCE                SPI3
+#define MAX7456_SPI_CS_PIN                  PA15
+
+#else
 #define MAX7456_SPI_INSTANCE                SPI2
 #define MAX7456_SPI_CS_PIN                  PB12
 //#define MAX7456_DMA_CHANNEL_TX              DMA1_Stream5
@@ -71,10 +78,36 @@
 //#define MAX7456_DMA_IRQ_HANDLER_ID          DMA1_ST0_HANDLER
 #endif
 
+#if defined(KIWIF4V2)
+#define USE_SDCARD
+
+
+//#define SDCARD_DETECT_PIN                   PB9
+#define SDCARD_SPI_INSTANCE                 SPI2
+#define SDCARD_SPI_CS_PIN                   PB12
+
+// SPI2 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
+#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
+// Divide to under 25MHz for normal operation:
+#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
+
+
+//#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
+//#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
+//#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
+//#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+
+#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
+#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
+#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
+#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+
+#else
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_CS_PIN           SPI3_NSS_PIN
 #define M25P16_SPI_INSTANCE     SPI3
+#endif
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
@@ -83,7 +116,7 @@
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
-#define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+//#define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -99,9 +132,7 @@
 #define SERIAL_PORT_COUNT       6 //VCP, USART1, USART3, USART6, SOFTSERIAL x 2
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
-
-#define USE_DSHOT
+#define ESCSERIAL_TIMER_TX_PIN  PA3  // (HARDARE=0)
 
 #define USE_SPI
 
@@ -121,30 +152,31 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-
-
-/* #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)  // PB6-SCL, PB7-SDA
+/* 
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE              (I2CDEV_1)
 #define USE_I2C_PULLUP
 #define I2C1_SCL                PB6
-#define I2C1_SDA                PB7 */
+#define I2C1_SDA                PB7 
+*/
+
+#define LED_STRIP
 
 #define USE_ADC
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define VBAT_ADC_PIN            PC1
 #define RSSI_ADC_PIN            PC2
 #define CURRENT_METER_ADC_PIN   PC3
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_BLACKBOX)
+#define CURRENT_METER_SCALE_DEFAULT 444
+#define VBAT_SCALE_DEFAULT          57
+
+#define DEFAULT_FEATURES        (FEATURE_OSD)
+
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-
-#define LED_STRIP
-
-
-#define SPEKTRUM_BIND
-// USART3 Rx, PB11
-#define BIND_PIN                PB11
+#define SERIALRX_UART           SERIAL_PORT_USART1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -155,7 +187,7 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 12
 
-#define USED_TIMERS             ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9) )
+#define USED_TIMERS             ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(9) )
 
 #define CMS
 #define USE_MSP_DISPLAYPORT

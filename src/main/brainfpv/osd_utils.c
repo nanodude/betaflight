@@ -1513,7 +1513,7 @@ void osd_draw_vertical_scale(int v, int range, int halign, int x, int y, int hei
             if (style == 1) {
                 write_hline_outlined(majtick_start, majtick_end, ys, 2, 2, 0, 1);
                 memset(temp, ' ', 10);
-                sprintf(temp, "%d", rv);
+                tfp_sprintf(temp, "%d", rv);
                 text_length = (strlen(temp) + 1) * small_font_char_width; // add 1 for margin
                 if (text_length > max_text_y) {
                     max_text_y = text_length;
@@ -1531,7 +1531,7 @@ void osd_draw_vertical_scale(int v, int range, int halign, int x, int y, int hei
     // Generate the string for the value, as well as calculating its dimensions.
     memset(temp, ' ', 10);
     // my_itoa(v, temp);
-    sprintf(temp, "%02d", v);
+    tfp_sprintf(temp, "%02d", v);
     // TODO: add auto-sizing.
     calc_text_dimensions(temp, font_info, 1, 0, &dim);
     int xx = 0, i = 0;

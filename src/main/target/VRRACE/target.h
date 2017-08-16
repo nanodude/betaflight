@@ -18,16 +18,15 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "VRRA"
-#define CONFIG_START_FLASH_ADDRESS (0x08080000) //0x08080000 to 0x080A0000 (FLASH_Sector_8)
 
 #define USBD_PRODUCT_STRING "VRRACE"
 
-#define LED0 PD14
-#define LED1 PD15
+#define LED0_PIN PD14
+#define LED1_PIN PD15
 #define BEEPER PA0
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_USART6 PD7
+#define INVERTER_PIN_UART6 PD7
 
 #define MPU6500_CS_PIN        PE10
 #define MPU6500_SPI_INSTANCE  SPI2
@@ -61,10 +60,6 @@
 
 /*
 #define SDCARD_DETECT_PIN                   PD2
-#define SDCARD_DETECT_EXTI_LINE             EXTI_Line2
-#define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource2
-#define SDCARD_DETECT_EXTI_PORT_SOURCE      EXTI_PortSourceGPIOD
-#define SDCARD_DETECT_EXTI_IRQn             EXTI2_IRQn
 
 #define SDCARD_SPI_INSTANCE                 SPI3
 #define SDCARD_SPI_CS_PIN                   PB3
@@ -124,7 +119,7 @@
 #define SERIAL_PORT_COUNT 8 //VCP, USART1, USART2, USART3, USART6, SOFTSERIAL x 2
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PE9  // (HARDARE=0,PPM)
 
 
 #define USE_SPI
@@ -145,29 +140,26 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_1)  // PB8-SCL, PB8-SDA
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE              (I2CDEV_1)
 #define USE_I2C_PULLUP
-#define I2C1_SCL             PB8
-#define I2C1_SDA             PB9
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB9
 */
 
 #define USE_ADC
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define VBAT_ADC_PIN                PC0
 #define RSSI_ADC_PIN                PB1
 #define CURRENT_METER_ADC_PIN       PA5
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_SOFTSERIAL | FEATURE_TELEMETRY)
+#undef LED_STRIP
+
+#define DEFAULT_FEATURES        (FEATURE_SOFTSERIAL | FEATURE_TELEMETRY)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
 //#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
-/*
-#define SPEKTRUM_BIND
-// USART3 Rx, PB11
-#define BIND_PIN             PB11
-*/
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

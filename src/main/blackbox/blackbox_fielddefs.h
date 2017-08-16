@@ -42,6 +42,9 @@ typedef enum FlightLogFieldCondition {
 
     FLIGHT_LOG_FIELD_CONDITION_NOT_LOGGING_EVERY_FRAME,
 
+    FLIGHT_LOG_FIELD_CONDITION_ACC,
+    FLIGHT_LOG_FIELD_CONDITION_DEBUG,
+
     FLIGHT_LOG_FIELD_CONDITION_NEVER,
 
     FLIGHT_LOG_FIELD_CONDITION_FIRST = FLIGHT_LOG_FIELD_CONDITION_ALWAYS,
@@ -94,7 +97,8 @@ typedef enum FlightLogFieldEncoding {
     FLIGHT_LOG_FIELD_ENCODING_TAG8_8SVB       = 6,
     FLIGHT_LOG_FIELD_ENCODING_TAG2_3S32       = 7,
     FLIGHT_LOG_FIELD_ENCODING_TAG8_4S16       = 8,
-    FLIGHT_LOG_FIELD_ENCODING_NULL            = 9 // Nothing is written to the file, take value to be zero
+    FLIGHT_LOG_FIELD_ENCODING_NULL            = 9, // Nothing is written to the file, take value to be zero
+    FLIGHT_LOG_FIELD_ENCODING_TAG2_3SVARIABLE = 10
 } FlightLogFieldEncoding;
 
 typedef enum FlightLogFieldSign {
@@ -120,10 +124,10 @@ typedef struct flightLogEvent_flightMode_s { // New Event Data type
 } flightLogEvent_flightMode_t;
 
 typedef struct flightLogEvent_inflightAdjustment_s {
-    uint8_t adjustmentFunction;
-    bool floatFlag;
     int32_t newValue;
     float newFloatValue;
+    uint8_t adjustmentFunction;
+    bool floatFlag;
 } flightLogEvent_inflightAdjustment_t;
 
 typedef struct flightLogEvent_loggingResume_s {
@@ -133,18 +137,11 @@ typedef struct flightLogEvent_loggingResume_s {
 
 #define FLIGHT_LOG_EVENT_INFLIGHT_ADJUSTMENT_FUNCTION_FLOAT_VALUE_FLAG 128
 
-typedef struct flightLogEvent_gtuneCycleResult_s {
-    uint8_t gtuneAxis;
-    int32_t gtuneGyroAVG;
-    int16_t gtuneNewP;
-} flightLogEvent_gtuneCycleResult_t;
-
 typedef union flightLogEventData_u {
     flightLogEvent_syncBeep_t syncBeep;
     flightLogEvent_flightMode_t flightMode; // New event data
     flightLogEvent_inflightAdjustment_t inflightAdjustment;
     flightLogEvent_loggingResume_t loggingResume;
-    flightLogEvent_gtuneCycleResult_t gtuneCycleResult;
 } flightLogEventData_t;
 
 typedef struct flightLogEvent_s {

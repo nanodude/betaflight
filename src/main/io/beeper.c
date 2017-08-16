@@ -17,36 +17,70 @@
 
 #include "stdbool.h"
 #include "stdint.h"
-#include "stdlib.h"
 
 #include <platform.h>
 
 #include "common/utils.h"
 
-#include "drivers/sound_beeper.h"
-#include "drivers/system.h"
-#include "sensors/battery.h"
-#include "sensors/sensors.h"
+#include "config/feature.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
+#include "drivers/sound_beeper.h"
+#include "drivers/time.h"
+#include "drivers/pwm_output.h"
+
+#include "flight/mixer.h"
+
+#include "fc/config.h"
+#include "fc/runtime_config.h"
+
+#include "drivers/io.h"
+#include "drivers/io_def.h"
+#include "io/beeper.h"
 #include "io/statusindicator.h"
-#include "io/vtx.h"
+#include "io/vtx_control.h"
 
 #ifdef GPS
 #include "io/gps.h"
 #endif
 
-#include "fc/config.h"
-#include "fc/runtime_config.h"
+#include "sensors/battery.h"
+#include "sensors/sensors.h"
 
-#include "config/feature.h"
 
-#include "io/beeper.h"
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperDevConfig_t, beeperDevConfig, PG_BEEPER_DEV_CONFIG, 0);
+
+#ifdef BEEPER_INVERTED
+#define IS_OPEN_DRAIN   false
+#define IS_INVERTED     true
+#else
+#define IS_OPEN_DRAIN   true
+#define IS_INVERTED     false
+#endif
+
+#ifdef BEEPER
+#define BEEPER_PIN      BEEPER
+#ifndef BEEPER_PWM_HZ
+#define BEEPER_PWM_HZ   0
+#endif
+#else
+#define BEEPER_PIN      NONE
+#define BEEPER_PWM_HZ   0
+#endif
+
+PG_RESET_TEMPLATE(beeperDevConfig_t, beeperDevConfig,
+    .isOpenDrain = IS_OPEN_DRAIN,
+    .isInverted = IS_INVERTED,
+    .ioTag = IO_TAG(BEEPER_PIN),
+    .frequency = BEEPER_PWM_HZ
+);
 
 #if FLASH_SIZE > 64
 #define BEEPER_NAMES
 #endif
 
-#define MAX_MULTI_BEEPS 20   //size limit for 'beep_multiBeeps[]'
+#define MAX_MULTI_BEEPS 64   //size limit for 'beep_multiBeeps[]'
 
 #define BEEPER_COMMAND_REPEAT 0xFE
 #define BEEPER_COMMAND_STOP   0xFF
@@ -119,11 +153,14 @@ static const uint8_t beep_gyroCalibrated[] = {
 };
 
 // array used for variable # of beeps (reporting GPS sat count, etc)
-static uint8_t beep_multiBeeps[MAX_MULTI_BEEPS + 2];
+static uint8_t beep_multiBeeps[MAX_MULTI_BEEPS + 1];
 
 #define BEEPER_CONFIRMATION_BEEP_DURATION 2
 #define BEEPER_CONFIRMATION_BEEP_GAP_DURATION 20
 
+#define BEEPER_WARNING_BEEP_1_DURATION 20
+#define BEEPER_WARNING_BEEP_2_DURATION 5
+#define BEEPER_WARNING_BEEP_GAP_DURATION 10
 
 // Beeper off = 0 Beeper on = 1
 static uint8_t beeperIsOn = 0;
@@ -171,9 +208,9 @@ typedef struct beeperTableEntry_s {
     { BEEPER_ENTRY(BEEPER_ARMED,                 15, beep_armedBeep,       "ARMED") },
     { BEEPER_ENTRY(BEEPER_SYSTEM_INIT,           16, NULL,                 "SYSTEM_INIT") },
     { BEEPER_ENTRY(BEEPER_USB,                   17, NULL,                 "ON_USB") },
-
-    { BEEPER_ENTRY(BEEPER_ALL,                   18, NULL,                 "ALL") },
-    { BEEPER_ENTRY(BEEPER_PREFERENCE,            19, NULL,                 "PREFERRED") },
+    { BEEPER_ENTRY(BEEPER_BLACKBOX_ERASE,        18, beep_2shortBeeps,     "BLACKBOX_ERASE") },
+    { BEEPER_ENTRY(BEEPER_ALL,                   19, NULL,                 "ALL") },
+    { BEEPER_ENTRY(BEEPER_PREFERENCE,            20, NULL,                 "PREFERRED") },
 };
 
 static const beeperTableEntry_t *currentBeeperEntry = NULL;
@@ -186,7 +223,12 @@ static const beeperTableEntry_t *currentBeeperEntry = NULL;
  */
 void beeper(beeperMode_e mode)
 {
-    if (mode == BEEPER_SILENCE || ((getBeeperOffMask() & (1 << (BEEPER_USB-1))) && (feature(FEATURE_VBAT) && (batteryCellCount == 0)))) {
+    if (
+        mode == BEEPER_SILENCE || (
+            (getBeeperOffMask() & (1 << (BEEPER_USB - 1)))
+            && (batteryConfig()->voltageMeterSource != VOLTAGE_METER_NONE && (getBatteryCellCount() == 0))
+        )
+    ) {
         beeperSilence();
         return;
     }
@@ -234,39 +276,57 @@ void beeperSilence(void)
 
     currentBeeperEntry = NULL;
 }
+
 /*
  * Emits the given number of 20ms beeps (with 200ms spacing).
  * This function returns immediately (does not block).
  */
 void beeperConfirmationBeeps(uint8_t beepCount)
 {
-    int i;
-    int cLimit;
-
-    i = 0;
-    cLimit = beepCount * 2;
-    if(cLimit > MAX_MULTI_BEEPS)
-        cLimit = MAX_MULTI_BEEPS;  //stay within array size
+    uint32_t i = 0;
+    uint32_t cLimit = beepCount * 2;
+    if (cLimit > MAX_MULTI_BEEPS) {
+        cLimit = MAX_MULTI_BEEPS;
+    }
     do {
-        beep_multiBeeps[i++] = BEEPER_CONFIRMATION_BEEP_DURATION;       // 20ms beep
-        beep_multiBeeps[i++] = BEEPER_CONFIRMATION_BEEP_GAP_DURATION;   // 200ms pause
+        beep_multiBeeps[i++] = BEEPER_CONFIRMATION_BEEP_DURATION;
+        beep_multiBeeps[i++] = BEEPER_CONFIRMATION_BEEP_GAP_DURATION;
     } while (i < cLimit);
-    beep_multiBeeps[i] = BEEPER_COMMAND_STOP;     //sequence end
-    beeper(BEEPER_MULTI_BEEPS);    //initiate sequence
+    beep_multiBeeps[i] = BEEPER_COMMAND_STOP;
+
+    beeper(BEEPER_MULTI_BEEPS);
+}
+
+void beeperWarningBeeps(uint8_t beepCount)
+{
+    uint32_t i = 0;
+    uint32_t cLimit = beepCount * 4;
+    if (cLimit >= MAX_MULTI_BEEPS) {
+        cLimit = MAX_MULTI_BEEPS;
+    }
+    do {
+        beep_multiBeeps[i++] = BEEPER_WARNING_BEEP_1_DURATION;
+        beep_multiBeeps[i++] = BEEPER_WARNING_BEEP_GAP_DURATION;
+        beep_multiBeeps[i++] = BEEPER_WARNING_BEEP_2_DURATION;
+        beep_multiBeeps[i++] = BEEPER_WARNING_BEEP_GAP_DURATION;
+    } while (i < cLimit);
+    beep_multiBeeps[i] = BEEPER_COMMAND_STOP;
+
+    beeper(BEEPER_MULTI_BEEPS);
 }
 
 #ifdef GPS
 void beeperGpsStatus(void)
 {
     // if GPS fix then beep out number of satellites
-    if (STATE(GPS_FIX) && GPS_numSat >= 5) {
+    if (STATE(GPS_FIX) && gpsSol.numSat >= 5) {
         uint8_t i = 0;
         do {
             beep_multiBeeps[i++] = 5;
             beep_multiBeeps[i++] = 10;
-        } while (i < MAX_MULTI_BEEPS && GPS_numSat > i / 2);
+        } while (i < MAX_MULTI_BEEPS && gpsSol.numSat > i / 2);
 
-        beep_multiBeeps[i-1] = 50; // extend last pause
+        beep_multiBeeps[i - 1] = 50; // extend last pause
         beep_multiBeeps[i] = BEEPER_COMMAND_STOP;
 
         beeper(BEEPER_MULTI_BEEPS);    //initiate sequence
@@ -303,6 +363,14 @@ void beeperUpdate(timeUs_t currentTimeUs)
     if (beeperNextToggleTime > currentTimeUs) {
         return;
     }
+
+    #ifdef USE_DSHOT
+    if (!ARMING_FLAG(ARMED) && beeperConfig()->dshotForward && currentBeeperEntry->mode == BEEPER_RX_SET) {
+        for (unsigned index = 0; index < getMotorCount(); index++) {
+            pwmWriteDshotCommand(index, DSHOT_CMD_BEEP3);
+        }
+    }
+    #endif
 
     if (!beeperIsOn) {
         beeperIsOn = 1;
@@ -366,6 +434,18 @@ beeperMode_e beeperModeForTableIndex(int idx)
 }
 
 /*
+ * Returns the binary mask for the 'beeperMode_e' value corresponding to a given
+ * beeper-table index, or 0 if the beeperMode is BEEPER_SILENCE.
+ */
+uint32_t beeperModeMaskForTableIndex(int idx)
+{
+    beeperMode_e beeperMode = beeperModeForTableIndex(idx);
+    if (beeperMode == BEEPER_SILENCE)
+        return 0;
+    return 1 << (beeperMode - 1);
+}
+
+/*
  * Returns the name for the given beeper-table index, or NULL if none.
  */
 const char *beeperNameForTableIndex(int idx)
@@ -400,9 +480,11 @@ bool isBeeperOn(void)
 void beeper(beeperMode_e mode) {UNUSED(mode);}
 void beeperSilence(void) {}
 void beeperConfirmationBeeps(uint8_t beepCount) {UNUSED(beepCount);}
+void beeperWarningBeeps(uint8_t beepCount) {UNUSED(beepCount);}
 void beeperUpdate(timeUs_t currentTimeUs) {UNUSED(currentTimeUs);}
 uint32_t getArmingBeepTimeMicros(void) {return 0;}
 beeperMode_e beeperModeForTableIndex(int idx) {UNUSED(idx); return BEEPER_SILENCE;}
+uint32_t beeperModeMaskForTableIndex(int idx) {UNUSED(idx); return 0;}
 const char *beeperNameForTableIndex(int idx) {UNUSED(idx); return NULL;}
 int beeperTableEntryCount(void) {return 0;}
 bool isBeeperOn(void) {return false;}

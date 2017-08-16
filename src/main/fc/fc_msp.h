@@ -20,4 +20,8 @@
 #include "msp/msp.h"
 
 void mspFcInit(void);
+void mspOsdSlaveInit(void);
 mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn);
+void mspFcProcessReply(mspPacket_t *reply);
+
+void mspSerialProcessStreamSchedule(void);

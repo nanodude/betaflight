@@ -17,12 +17,18 @@
 
 #pragma once
 
+#define SCHEDULER_DELAY_LIMIT 1
+#define TASK_GYROPID_DESIRED_PERIOD 100
+
 #define CMS
 #define CMS_MAX_DEVICE 4
+#define USE_FAKE_GYRO
+#define BEEPER
+#define BLACKBOX
 #define MAG
 #define BARO
 #define GPS
-#define DISPLAY
+#define USE_DASHBOARD
 #define SERIAL_RX
 #define USE_RX_MSP
 #define USE_SERIALRX_CRSF       // Team Black Sheep Crossfire protocol
@@ -56,13 +62,18 @@
 
 #define SERIAL_PORT_COUNT 8
 
-#define MAX_SIMULTANEOUS_ADJUSTMENT_COUNT 6
+#define DEFAULT_AUX_CHANNEL_COUNT       MAX_AUX_CHANNEL_COUNT
+#define MAX_SIMULTANEOUS_ADJUSTMENT_COUNT 6  // needed for unittest
 
 #define TARGET_BOARD_IDENTIFIER "TEST"
+
+#define DEFAULT_BLACKBOX_DEVICE     BLACKBOX_DEVICE_SERIAL
 
 #define LED_STRIP_TIMER 1
 #define SOFTSERIAL_1_TIMER 2
 #define SOFTSERIAL_2_TIMER 3
+
+#define USABLE_TIMER_CHANNEL_COUNT 0
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

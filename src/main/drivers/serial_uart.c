@@ -17,301 +17,29 @@
 
 /*
  * Authors:
+ * jflyper - Refactoring, cleanup and made pin-configurable
  * Dominic Clifton - Serial port abstraction, Separation of common STM32 code for cleanflight, various cleanups.
  * Hamasaki/Timecop - Initial baseflight code
 */
+
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "platform.h"
 
 #include "build/build_config.h"
+#include "build/atomic.h"
 
 #include "common/utils.h"
-#include "gpio.h"
-#include "inverter.h"
 
-#include "serial.h"
-#include "serial_uart.h"
-#include "serial_uart_impl.h"
+#include "drivers/dma.h"
+#include "drivers/inverter.h"
+#include "drivers/nvic.h"
+#include "drivers/rcc.h"
 
-#ifdef USE_BRAINFPV_FPGA
-#include "fpga_drv.h"
-#endif
-
-static void usartConfigurePinInversion(uartPort_t *uartPort) {
-#if !defined(USE_INVERTER) && !defined(STM32F303xC) && !defined(USE_BRAINFPV_FPGA)
-    UNUSED(uartPort);
-#else
-    bool inverted = uartPort->port.options & SERIAL_INVERTED;
-
-#ifdef USE_INVERTER
-    if (inverted) {
-        // Enable hardware inverter if available.
-        enableInverter(uartPort->USARTx, true);
-    }
-#endif
-
-#ifdef USE_BRAINFPV_FPGA
-    if (inverted) {
-        if (uartPort->USARTx == USART3) {
-            BRAINFPVFPGA_SerialRxInvert(true);
-#ifdef RADIX
-            if (uartPort->port.options & SERIAL_BIDIR) {
-                BRAINFPVFPGA_SerialRxBidirectional(true);
-            }
-#endif
-        }
-        if (uartPort->USARTx == USART6) {
-            if (uartPort->port.options & SERIAL_BIDIR) {
-                // inverted bi-directional mode with pull-down
-                BRAINFPVFPGA_MPTxPinMode(true, true);
-                BRAINFPVFPGA_MPTxPinPullUpDown(true, false);
-            }
-            else {
-                BRAINFPVFPGA_MPTxPinMode(false, true);
-            }
-        }
-    }
-    else {
-#ifdef RADIX
-        if ((uartPort->USARTx == USART3) && (uartPort->port.options & SERIAL_BIDIR)) {
-            BRAINFPVFPGA_SerialRxBidirectional(true);
-        }
-#endif
-        if ((uartPort->USARTx == USART6) && (uartPort->port.options & SERIAL_BIDIR)) {
-            // non-inverted bi-directional mode with pullup
-#ifdef BRAINRE1
-            // on RE1, non-inverted b-directional mode is not supported using onlu Tx
-            // pin, so we disable the inveter and user needs to wire Rx and Tx together
-            RE1FPGA_MPTxPinMode(false, false);
-            RE1FPGA_MPTxPinPullUpDown(true, true);
-#else
-            BRAINFPVFPGA_MPTxPinMode(true, false);
-            BRAINFPVFPGA_MPTxPinPullUpDown(true, true);
-#endif
-        }
-    }
-#endif
-
-#ifdef STM32F303xC
-    uint32_t inversionPins = 0;
-
-    if (uartPort->port.mode & MODE_TX) {
-        inversionPins |= USART_InvPin_Tx;
-    }
-    if (uartPort->port.mode & MODE_RX) {
-        inversionPins |= USART_InvPin_Rx;
-    }
-
-    USART_InvPinCmd(uartPort->USARTx, inversionPins, inverted ? ENABLE : DISABLE);
-#endif
-#endif
-}
-
-static void uartReconfigure(uartPort_t *uartPort)
-{
-    USART_InitTypeDef USART_InitStructure;
-    USART_Cmd(uartPort->USARTx, DISABLE);
-
-    USART_InitStructure.USART_BaudRate = uartPort->port.baudRate;
-
-    // according to the stm32 documentation wordlen has to be 9 for parity bits
-    // this does not seem to matter for rx but will give bad data on tx!
-    if (uartPort->port.options & SERIAL_PARITY_EVEN) {
-        USART_InitStructure.USART_WordLength = USART_WordLength_9b;
-    } else {
-        USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-    }
-
-    USART_InitStructure.USART_StopBits = (uartPort->port.options & SERIAL_STOPBITS_2) ? USART_StopBits_2 : USART_StopBits_1;
-    USART_InitStructure.USART_Parity   = (uartPort->port.options & SERIAL_PARITY_EVEN) ? USART_Parity_Even : USART_Parity_No;
-
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = 0;
-    if (uartPort->port.mode & MODE_RX)
-        USART_InitStructure.USART_Mode |= USART_Mode_Rx;
-    if (uartPort->port.mode & MODE_TX)
-        USART_InitStructure.USART_Mode |= USART_Mode_Tx;
-
-    USART_Init(uartPort->USARTx, &USART_InitStructure);
-
-    usartConfigurePinInversion(uartPort);
-
-    if(uartPort->port.options & SERIAL_BIDIR) {
-#ifdef BRAINRE1
-        if ((uartPort->USARTx == USART6) && ! (uartPort->port.options & SERIAL_INVERTED)) {
-            // non-inverted bi-directional mode is not supported on RE1 UART6
-            USART_HalfDuplexCmd(uartPort->USARTx, DISABLE);
-        }
-        else {
-            USART_HalfDuplexCmd(uartPort->USARTx, ENABLE);
-        }
-#else
-        USART_HalfDuplexCmd(uartPort->USARTx, ENABLE);
-#endif
-    }else
-        USART_HalfDuplexCmd(uartPort->USARTx, DISABLE);
-
-    USART_Cmd(uartPort->USARTx, ENABLE);
-}
-
-serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback, uint32_t baudRate, portMode_t mode, portOptions_t options)
-{
-    uartPort_t *s = NULL;
-
-    if (false) {
-#ifdef USE_UART1
-    } else if (USARTx == USART1) {
-        s = serialUART1(baudRate, mode, options);
-#endif
-#ifdef USE_UART2
-    } else if (USARTx == USART2) {
-        s = serialUART2(baudRate, mode, options);
-#endif
-#ifdef USE_UART3
-    } else if (USARTx == USART3) {
-        s = serialUART3(baudRate, mode, options);
-#endif
-#ifdef USE_UART4
-    } else if (USARTx == UART4) {
-        s = serialUART4(baudRate, mode, options);
-#endif
-#ifdef USE_UART5
-    } else if (USARTx == UART5) {
-        s = serialUART5(baudRate, mode, options);
-#endif
-#ifdef USE_UART6
-    } else if (USARTx == USART6) {
-        s = serialUART6(baudRate, mode, options);
-#endif
-
-    } else {
-        return (serialPort_t *)s;
-    }
-    s->txDMAEmpty = true;
-
-    // common serial initialisation code should move to serialPort::init()
-    s->port.rxBufferHead = s->port.rxBufferTail = 0;
-    s->port.txBufferHead = s->port.txBufferTail = 0;
-    // callback works for IRQ-based RX ONLY
-    s->port.rxCallback = rxCallback;
-    s->port.mode = mode;
-    s->port.baudRate = baudRate;
-    s->port.options = options;
-
-    uartReconfigure(s);
-
-    // Receive DMA or IRQ
-    DMA_InitTypeDef DMA_InitStructure;
-    if (mode & MODE_RX) {
-#ifdef STM32F4
-        if (s->rxDMAStream) {
-            DMA_StructInit(&DMA_InitStructure);
-            DMA_InitStructure.DMA_PeripheralBaseAddr = s->rxDMAPeripheralBaseAddr;
-            DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
-            DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-            DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-            DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable ;
-            DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull ;
-            DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single ;
-            DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-#else
-        if (s->rxDMAChannel) {
-            DMA_StructInit(&DMA_InitStructure);
-            DMA_InitStructure.DMA_PeripheralBaseAddr = s->rxDMAPeripheralBaseAddr;
-            DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
-            DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-            DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-            DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-#endif
-            DMA_InitStructure.DMA_BufferSize = s->port.rxBufferSize;
-
-#ifdef STM32F4
-            DMA_InitStructure.DMA_Channel = s->rxDMAChannel;
-            DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-            DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-            DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)s->port.rxBuffer;
-            DMA_DeInit(s->rxDMAStream);
-            DMA_Init(s->rxDMAStream, &DMA_InitStructure);
-            DMA_Cmd(s->rxDMAStream, ENABLE);
-            USART_DMACmd(s->USARTx, USART_DMAReq_Rx, ENABLE);
-            s->rxDMAPos = DMA_GetCurrDataCounter(s->rxDMAStream);
-#else
-            DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-            DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-            DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)s->port.rxBuffer;
-            DMA_DeInit(s->rxDMAChannel);
-            DMA_Init(s->rxDMAChannel, &DMA_InitStructure);
-            DMA_Cmd(s->rxDMAChannel, ENABLE);
-            USART_DMACmd(s->USARTx, USART_DMAReq_Rx, ENABLE);
-            s->rxDMAPos = DMA_GetCurrDataCounter(s->rxDMAChannel);
-#endif
-        } else {
-            USART_ClearITPendingBit(s->USARTx, USART_IT_RXNE);
-            USART_ITConfig(s->USARTx, USART_IT_RXNE, ENABLE);
-        }
-    }
-
-    // Transmit DMA or IRQ
-    if (mode & MODE_TX) {
-#ifdef STM32F4
-        if (s->txDMAStream) {
-            DMA_StructInit(&DMA_InitStructure);
-            DMA_InitStructure.DMA_PeripheralBaseAddr = s->txDMAPeripheralBaseAddr;
-            DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
-            DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-            DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-            DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable ;
-            DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull ;
-            DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single ;
-            DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-#else
-        if (s->txDMAChannel) {
-            DMA_StructInit(&DMA_InitStructure);
-            DMA_InitStructure.DMA_PeripheralBaseAddr = s->txDMAPeripheralBaseAddr;
-            DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
-            DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-            DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-            DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-#endif
-            DMA_InitStructure.DMA_BufferSize = s->port.txBufferSize;
-
-#ifdef STM32F4
-            DMA_InitStructure.DMA_Channel = s->txDMAChannel;
-            DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-            DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-            DMA_DeInit(s->txDMAStream);
-            DMA_Init(s->txDMAStream, &DMA_InitStructure);
-            DMA_ITConfig(s->txDMAStream, DMA_IT_TC | DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
-            DMA_SetCurrDataCounter(s->txDMAStream, 0);
-#else
-            DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-            DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-            DMA_DeInit(s->txDMAChannel);
-            DMA_Init(s->txDMAChannel, &DMA_InitStructure);
-            DMA_ITConfig(s->txDMAChannel, DMA_IT_TC, ENABLE);
-            DMA_SetCurrDataCounter(s->txDMAChannel, 0);
-            s->txDMAChannel->CNDTR = 0;
-#endif
-            USART_DMACmd(s->USARTx, USART_DMAReq_Tx, ENABLE);
-        } else {
-            USART_ITConfig(s->USARTx, USART_IT_TXE, ENABLE);
-        }
-    }
-
-    USART_Cmd(s->USARTx, ENABLE);
-
-    return (serialPort_t *)s;
-}
+#include "drivers/serial.h"
+#include "drivers/serial_uart.h"
+#include "drivers/serial_uart_impl.h"
 
 void uartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
@@ -320,41 +48,94 @@ void uartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
     uartReconfigure(uartPort);
 }
 
-void uartSetMode(serialPort_t *instance, portMode_t mode)
+void uartSetMode(serialPort_t *instance, portMode_e mode)
 {
     uartPort_t *uartPort = (uartPort_t *)instance;
     uartPort->port.mode = mode;
     uartReconfigure(uartPort);
 }
 
-void uartStartTxDMA(uartPort_t *s)
+void uartTryStartTxDMA(uartPort_t *s)
 {
+    // uartTryStartTxDMA must be protected, since it is called from
+    // uartWrite and handleUsartTxDma (an ISR).
+
+    ATOMIC_BLOCK(NVIC_PRIO_SERIALUART_TXDMA) {
 #ifdef STM32F4
-    DMA_Cmd(s->txDMAStream, DISABLE);
-    DMA_MemoryTargetConfig(s->txDMAStream, (uint32_t)&s->port.txBuffer[s->port.txBufferTail], DMA_Memory_0);
-    //s->txDMAStream->M0AR = (uint32_t)&s->port.txBuffer[s->port.txBufferTail];
-    if (s->port.txBufferHead > s->port.txBufferTail) {
-        s->txDMAStream->NDTR = s->port.txBufferHead - s->port.txBufferTail;
-        s->port.txBufferTail = s->port.txBufferHead;
-    }
-    else {
-        s->txDMAStream->NDTR = s->port.txBufferSize - s->port.txBufferTail;
-        s->port.txBufferTail = 0;
-    }
-    s->txDMAEmpty = false;
-    DMA_Cmd(s->txDMAStream, ENABLE);
+        if (s->txDMAStream->CR & 1) {
+            // DMA is already in progress
+            return;
+        }
+
+        // For F4 (and F1), there are cases that NDTR (CNDTR for F1) is non-zero upon TC interrupt.
+        // We couldn't find out the root cause, so mask the case here.
+
+        if (s->txDMAStream->NDTR) {
+            // Possible premature TC case.
+            goto reenable;
+        }
+
+        // DMA_Cmd(s->txDMAStream, DISABLE); // XXX It's already disabled.
+
+        if (s->port.txBufferHead == s->port.txBufferTail) {
+            // No more data to transmit.
+            s->txDMAEmpty = true;
+            return;
+        }
+
+        // Start a new transaction.
+
+        DMA_MemoryTargetConfig(s->txDMAStream, (uint32_t)&s->port.txBuffer[s->port.txBufferTail], DMA_Memory_0);
+        //s->txDMAStream->M0AR = (uint32_t)&s->port.txBuffer[s->port.txBufferTail];
+        if (s->port.txBufferHead > s->port.txBufferTail) {
+            s->txDMAStream->NDTR = s->port.txBufferHead - s->port.txBufferTail;
+            s->port.txBufferTail = s->port.txBufferHead;
+        }
+        else {
+            s->txDMAStream->NDTR = s->port.txBufferSize - s->port.txBufferTail;
+            s->port.txBufferTail = 0;
+        }
+        s->txDMAEmpty = false;
+
+    reenable:
+        DMA_Cmd(s->txDMAStream, ENABLE);
 #else
-    s->txDMAChannel->CMAR = (uint32_t)&s->port.txBuffer[s->port.txBufferTail];
-    if (s->port.txBufferHead > s->port.txBufferTail) {
-        s->txDMAChannel->CNDTR = s->port.txBufferHead - s->port.txBufferTail;
-        s->port.txBufferTail = s->port.txBufferHead;
-    } else {
-        s->txDMAChannel->CNDTR = s->port.txBufferSize - s->port.txBufferTail;
-        s->port.txBufferTail = 0;
-    }
-    s->txDMAEmpty = false;
-    DMA_Cmd(s->txDMAChannel, ENABLE);
+        if (s->txDMAChannel->CCR & 1) {
+            // DMA is already in progress
+            return;
+        }
+
+        // For F1 (and F4), there are cases that CNDTR (NDTR for F4) is non-zero upon TC interrupt.
+        // We couldn't find out the root cause, so mask the case here.
+        // F3 is not confirmed to be vulnerable, but not excluded as a safety.
+
+        if (s->txDMAChannel->CNDTR) {
+            // Possible premature TC case.
+            goto reenable;
+        }
+
+        if (s->port.txBufferHead == s->port.txBufferTail) {
+            // No more data to transmit.
+            s->txDMAEmpty = true;
+            return;
+        }
+
+        // Start a new transaction.
+
+        s->txDMAChannel->CMAR = (uint32_t)&s->port.txBuffer[s->port.txBufferTail];
+        if (s->port.txBufferHead > s->port.txBufferTail) {
+            s->txDMAChannel->CNDTR = s->port.txBufferHead - s->port.txBufferTail;
+            s->port.txBufferTail = s->port.txBufferHead;
+        } else {
+            s->txDMAChannel->CNDTR = s->port.txBufferSize - s->port.txBufferTail;
+            s->port.txBufferTail = 0;
+        }
+        s->txDMAEmpty = false;
+
+    reenable:
+        DMA_Cmd(s->txDMAChannel, ENABLE);
 #endif
+    }
 }
 
 uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance)
@@ -473,13 +254,12 @@ void uartWrite(serialPort_t *instance, uint8_t ch)
     }
 
 #ifdef STM32F4
-    if (s->txDMAStream) {
-        if (!(s->txDMAStream->CR & 1))
+    if (s->txDMAStream)
 #else
-    if (s->txDMAChannel) {
-        if (!(s->txDMAChannel->CCR & 1))
+    if (s->txDMAChannel)
 #endif
-            uartStartTxDMA(s);
+    {
+        uartTryStartTxDMA(s); 
     } else {
         USART_ITConfig(s->USARTx, USART_IT_TXE, ENABLE);
     }
@@ -499,3 +279,75 @@ const struct serialPortVTable uartVTable[] = {
         .endWrite = NULL,
     }
 };
+
+#ifdef USE_UART1
+// USART1 Rx/Tx IRQ Handler
+void USART1_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_1]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART2
+// USART2 Rx/Tx IRQ Handler
+void USART2_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_2]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART3
+// USART3 Rx/Tx IRQ Handler
+void USART3_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_3]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART4
+// UART4 Rx/Tx IRQ Handler
+void UART4_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_4]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART5
+// UART5 Rx/Tx IRQ Handler
+void UART5_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_5]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART6
+// USART6 Rx/Tx IRQ Handler
+void USART6_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_6]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART7
+// UART7 Rx/Tx IRQ Handler
+void UART7_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_7]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART8
+// UART8 Rx/Tx IRQ Handler
+void UART8_IRQHandler(void)
+{
+    uartPort_t *s = &(uartDevmap[UARTDEV_8]->port);
+    uartIrqHandler(s);
+}
+#endif

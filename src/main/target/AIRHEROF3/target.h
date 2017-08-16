@@ -22,8 +22,8 @@
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
 #define CONFIG_PREFER_ACC_ON
 
-#define LED0                    PB3
-#define LED1                    PB4
+#define LED0_PIN                PB3
+#define LED1_PIN                PB4
 
 #define BEEPER                  PA12
 #define BEEPER_INVERTED
@@ -61,7 +61,7 @@
 #define SERIAL_PORT_COUNT       5
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA0  // (HARDARE=0,PPM)
 
 #define SOFTSERIAL1_RX_PIN      PA6  // PWM 5
 #define SOFTSERIAL1_TX_PIN      PA7  // PWM 6
@@ -78,24 +78,15 @@
 #define UART3_TX_PIN            PB10 // PB10 (AF7)
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
 #define VBAT_ADC_PIN            PA4
 
-#define LED_STRIP
-
-#define GPS
-
-#define DEFAULT_FEATURES        FEATURE_VBAT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
 #define RX_CHANNELS_TAER
-
-#define SPEKTRUM_BIND
-// USART3,
-#define BIND_PIN                PB11
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

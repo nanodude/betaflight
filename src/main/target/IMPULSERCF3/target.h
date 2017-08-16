@@ -21,17 +21,14 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
-#define LED0                    PB7
+#define LED0_PIN                PB7
 
 #define BEEPER                  PC15
 
 #define USABLE_TIMER_CHANNEL_COUNT 8
 
-#define USB_IO
-
 #define USE_EXTI
 #define MPU_INT_EXTI            PC13
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 1
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
@@ -60,7 +57,7 @@
 #define SERIAL_PORT_COUNT 6
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA15  // (HARDARE=0,PPM)
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -82,24 +79,17 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_INSTANCE    SPI1
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
 #define ADC_INSTANCE            ADC1
 #define CURRENT_METER_ADC_PIN   PA0
 #define RSSI_ADC_PIN            PA1
 #define VBAT_ADC_PIN            PA2
 
-#define LED_STRIP
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_BLACKBOX)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_UART           SERIAL_PORT_USART2
-
-#define SPEKTRUM_BIND
-// USART2, PA15
-#define BIND_PIN                PA15
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

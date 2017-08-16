@@ -22,8 +22,8 @@
 
 #define BRUSHED_ESC_AUTODETECT
 
-#define LED0                    PB3
-#define LED1                    PB4
+#define LED0_PIN                PB3
+#define LED1_PIN                PB4
 
 #define BEEPER                  PA12
 
@@ -53,7 +53,8 @@
 #define UART3_TX_PIN            PB10
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_2)
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE              (I2CDEV_2)
 
 #define USE_ADC
 #define CURRENT_METER_ADC_PIN   PB1
@@ -61,17 +62,8 @@
 #define RSSI_ADC_PIN            PA1
 #define EXTERNAL1_ADC_PIN       PA5
 
-
-#define LED_STRIP
-
-#undef GPS
-
-#define SPEKTRUM_BIND
-// USART2, PA3
-#define BIND_PIN                PA3
-
-#define HARDWARE_BIND_PLUG
-// Hardware bind plug at PB5 (Pin 41)
+#define USE_SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND_PLUG
 #define BINDPLUG_PIN            PB5
 
 #define DEFAULT_FEATURES        FEATURE_MOTOR_STOP

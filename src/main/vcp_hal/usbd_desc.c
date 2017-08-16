@@ -98,7 +98,7 @@ __ALIGN_BEGIN uint8_t USBD_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END = {
   USB_DESC_TYPE_DEVICE,       /* bDescriptorType */
   0x00,                       /* bcdUSB */
   0x02,
-  0x00,                       /* bDeviceClass */
+  0x02,                       /* bDeviceClass */
   0x00,                       /* bDeviceSubClass */
   0x00,                       /* bDeviceProtocol */
   USB_MAX_EP0_SIZE,           /* bMaxPacketSize */
@@ -174,7 +174,7 @@ uint8_t *USBD_VCP_LangIDStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_VCP_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
-  if(speed == USBD_SPEED_HIGH)
+  if (speed == USBD_SPEED_HIGH)
   {
     USBD_GetString((uint8_t *)USBD_PRODUCT_HS_STRING, USBD_StrDesc, length);
   }
@@ -223,7 +223,7 @@ uint8_t *USBD_VCP_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_VCP_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
-  if(speed == USBD_SPEED_HIGH)
+  if (speed == USBD_SPEED_HIGH)
   {
     USBD_GetString((uint8_t *)USBD_CONFIGURATION_HS_STRING, USBD_StrDesc, length);
   }
@@ -242,7 +242,7 @@ uint8_t *USBD_VCP_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_VCP_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
-  if(speed == USBD_SPEED_HIGH)
+  if (speed == USBD_SPEED_HIGH)
   {
     USBD_GetString((uint8_t *)USBD_INTERFACE_HS_STRING, USBD_StrDesc, length);
   }
@@ -286,9 +286,9 @@ static void IntToUnicode (uint32_t value , uint8_t *pbuf , uint8_t len)
 {
   uint8_t idx = 0;
 
-  for( idx = 0; idx < len; idx ++)
+  for ( idx = 0; idx < len; idx ++)
   {
-    if( ((value >> 28)) < 0xA )
+    if ( ((value >> 28)) < 0xA )
     {
       pbuf[ 2* idx] = (value >> 28) + '0';
     }

@@ -17,27 +17,16 @@
 
 #pragma once
 
-#define MAX_SUPPORTED_MOTORS 12
+#include "platform.h"
+
+#include "config/parameter_group.h"
+#include "drivers/pwm_output_counts.h"
+#include "drivers/io_types.h"
+#include "drivers/pwm_output.h"
 
 #define QUAD_MOTOR_COUNT 4
-
-/*
-  DshotSettingRequest (KISS24). Spin direction, 3d and save Settings reqire 10 requests.. and the TLM Byte must always be high if 1-47 are used to send settings
-  0 = stop
-  1-5: beep
-  6: ESC info request (FW Version and SN sent over the tlm wire)
-  7: spin direction 1
-  8: spin direction 2
-  9: 3d mode off
-  10: 3d mode on
-  11: ESC settings request (saved settings over the TLM wire)
-  12: save Settings
-
-  3D Mode:
-  0 = stop
-  48   (low) - 1047 (high) -> positive direction
-  1048 (low) - 2047 (high) -> negative direction
-*/
+#define BRUSHED_MOTORS_PWM_RATE 16000
+#define BRUSHLESS_MOTORS_PWM_RATE 480
 
 // Digital protocol has fixed values
 #define DSHOT_DISARM_COMMAND      0
@@ -85,6 +74,8 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
+PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
+
 // Custom mixer configuration
 typedef struct mixer_s {
     uint8_t motorCount;
@@ -94,52 +85,47 @@ typedef struct mixer_s {
 
 typedef struct mixerConfig_s {
     uint8_t mixerMode;
-    int8_t yaw_motor_direction;
+    bool yaw_motors_reversed;
 } mixerConfig_t;
 
-typedef struct flight3DConfig_s {
-    uint16_t deadband3d_low;                // min 3d value
-    uint16_t deadband3d_high;               // max 3d value
-    uint16_t neutral3d;                     // center 3d value
-    uint16_t deadband3d_throttle;           // default throttle deadband from MIDRC
-} flight3DConfig_t;
+PG_DECLARE(mixerConfig_t, mixerConfig);
 
-typedef struct airplaneConfig_s {
-    int8_t fixedwing_althold_dir;           // +1 or -1 for pitch/althold gain. later check if need more than just sign
-} airplaneConfig_t;
+typedef struct motorConfig_s {
+    motorDevConfig_t dev;
+    uint16_t digitalIdleOffsetValue;        // Idle value for DShot protocol, full motor output = 10000
+    uint16_t minthrottle;                   // Set the minimum throttle command sent to the ESC (Electronic Speed Controller). This is the minimum value that allow motors to run at a idle speed.
+    uint16_t maxthrottle;                   // This is the maximum value for the ESCs at full power this value can be increased up to 2000
+    uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
+} motorConfig_t;
+
+PG_DECLARE(motorConfig_t, motorConfig);
 
 #define CHANNEL_FORWARDING_DISABLED (uint8_t)0xFF
 
-extern const mixer_t mixers[];
-extern int16_t motor[MAX_SUPPORTED_MOTORS];
-extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
+#define ALL_MOTORS 255
 
-struct motorConfig_s;
+extern const mixer_t mixers[];
+extern float motor[MAX_SUPPORTED_MOTORS];
+extern float motor_disarmed[MAX_SUPPORTED_MOTORS];
 struct rxConfig_s;
 
 uint8_t getMotorCount();
 float getMotorMixRange();
-
-void mixerUseConfigs(
-        flight3DConfig_t *flight3DConfigToUse,
-        struct motorConfig_s *motorConfigToUse,
-        mixerConfig_t *mixerConfigToUse,
-        airplaneConfig_t *airplaneConfigToUse,
-        struct rxConfig_s *rxConfigToUse);
+bool mixerIsOutputSaturated(int axis, float errorRate);
 
 void mixerLoadMix(int index, motorMixer_t *customMixers);
-void mixerInit(mixerMode_e mixerMode, motorMixer_t *customMotorMixers);
+void mixerInit(mixerMode_e mixerMode);
+struct pidProfile_s;
+void pidInitMixer(const struct pidProfile_s *pidProfile);
 
 void mixerConfigureOutput(void);
 
 void mixerResetDisarmedMotors(void);
-struct pidProfile_s;
-void mixTable(struct pidProfile_s *pidProfile);
+void mixTable(uint8_t vbatPidCompensation);
 void syncMotors(bool enabled);
 void writeMotors(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
 
-bool isMotorProtocolDshot(void);
-uint16_t convertExternalToMotor(uint16_t externalValue);
-uint16_t convertMotorToExternal(uint16_t motorValue);
+float convertExternalToMotor(uint16_t externalValue);
+uint16_t convertMotorToExternal(float motorValue);

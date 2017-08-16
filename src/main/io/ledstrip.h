@@ -19,6 +19,7 @@
 
 #include "common/color.h"
 #include "common/time.h"
+#include "config/parameter_group.h"
 #include "drivers/io_types.h"
 
 #define LED_MAX_STRIP_LENGTH           32
@@ -115,7 +116,7 @@ typedef enum {
     LED_OVERLAY_THROTTLE,
     LED_OVERLAY_LARSON_SCANNER,
     LED_OVERLAY_BLINK,
-    LED_OVERLAY_LANDING_FLASH,
+    LED_OVERLAY_VTX,
     LED_OVERLAY_INDICATOR,
     LED_OVERLAY_WARNING
 } ledOverlayId_e;
@@ -147,9 +148,10 @@ typedef struct ledStripConfig_s {
     ioTag_t ioTag;
 } ledStripConfig_t;
 
-ledConfig_t *ledConfigs;
+PG_DECLARE(ledStripConfig_t, ledStripConfig);
+
 hsvColor_t *colors;
-modeColorIndexes_t *modeColors;
+const modeColorIndexes_t *modeColors;
 specialColorIndexes_t specialColors;
 
 #define LF(name) LED_FUNCTION_ ## name
@@ -180,7 +182,7 @@ bool parseLedStripConfig(int ledIndex, const char *config);
 void generateLedConfig(ledConfig_t *ledConfig, char *ledConfigBuffer, size_t bufferSize);
 void reevaluateLedConfig(void);
 
-void ledStripInit(ledStripConfig_t *ledStripConfig);
+void ledStripInit(void);
 void ledStripEnable(void);
 void ledStripUpdate(timeUs_t currentTimeUs);
 
@@ -190,4 +192,3 @@ void applyDefaultLedStripConfig(ledConfig_t *ledConfig);
 void applyDefaultColors(hsvColor_t *colors);
 void applyDefaultModeColors(modeColorIndexes_t *modeColors);
 void applyDefaultSpecialColors(specialColorIndexes_t *specialColors);
-

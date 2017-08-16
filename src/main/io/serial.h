@@ -17,6 +17,10 @@
 
 #pragma once
 
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "config/parameter_group.h"
 #include "drivers/serial.h"
 
 typedef enum {
@@ -40,6 +44,7 @@ typedef enum {
     FUNCTION_VTX_SMARTAUDIO      = (1 << 11), // 2048
     FUNCTION_TELEMETRY_IBUS      = (1 << 12), // 4096
     FUNCTION_VTX_TRAMP           = (1 << 13), // 8192
+    FUNCTION_RCSPLIT             = (1 << 14), // 16384
 } serialPortFunction_e;
 
 typedef enum {
@@ -69,8 +74,8 @@ typedef enum {
     SERIAL_PORT_USART1 = 0,
     SERIAL_PORT_USART2,
     SERIAL_PORT_USART3,
-    SERIAL_PORT_USART4,
-    SERIAL_PORT_USART5,
+    SERIAL_PORT_UART4,
+    SERIAL_PORT_UART5,
     SERIAL_PORT_USART6,
     SERIAL_PORT_USART7,
     SERIAL_PORT_USART8,
@@ -81,15 +86,17 @@ typedef enum {
 
 extern const serialPortIdentifier_e serialPortIdentifiers[SERIAL_PORT_COUNT];
 
-#define SERIAL_PORT_IDENTIFIER_TO_RESOURCE_INDEX(x) (((x) <= SERIAL_PORT_USART8) ? (x) : (RESOURCE_SOFT_OFFSET + ((x) - SERIAL_PORT_SOFTSERIAL1)))
+#define SERIAL_PORT_IDENTIFIER_TO_INDEX(x) (((x) <= SERIAL_PORT_USART8) ? (x) : (RESOURCE_SOFT_OFFSET + ((x) - SERIAL_PORT_SOFTSERIAL1)))
+
+#define SERIAL_PORT_IDENTIFIER_TO_UARTDEV(x) ((x) - SERIAL_PORT_USART1 + UARTDEV_1)
 
 //
 // runtime
 //
 typedef struct serialPortUsage_s {
-    serialPortIdentifier_e identifier;
     serialPort_t *serialPort;
     serialPortFunction_e function;
+    serialPortIdentifier_e identifier;
 } serialPortUsage_t;
 
 serialPort_t *findSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction);
@@ -113,24 +120,27 @@ typedef struct serialConfig_s {
     uint8_t reboot_character;               // which byte is used to reboot. Default 'R', could be changed carefully to something else.
 } serialConfig_t;
 
+PG_DECLARE(serialConfig_t, serialConfig);
+
 typedef void serialConsumer(uint8_t);
 
 //
 // configuration
 //
-void serialInit(serialConfig_t *initialSerialConfig, bool softserialEnabled, serialPortIdentifier_e serialPortToDisable);
+void serialInit(bool softserialEnabled, serialPortIdentifier_e serialPortToDisable);
 void serialRemovePort(serialPortIdentifier_e identifier);
 uint8_t serialGetAvailablePortCount(void);
 bool serialIsPortAvailable(serialPortIdentifier_e identifier);
-bool isSerialConfigValid(serialConfig_t *serialConfig);
+bool isSerialConfigValid(const serialConfig_t *serialConfig);
 serialPortConfig_t *serialFindPortConfiguration(serialPortIdentifier_e identifier);
 bool doesConfigurationUsePort(serialPortIdentifier_e portIdentifier);
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function);
 serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function);
 
-portSharing_e determinePortSharing(serialPortConfig_t *portConfig, serialPortFunction_e function);
-bool isSerialPortShared(serialPortConfig_t *portConfig, uint16_t functionMask, serialPortFunction_e sharedWithFunction);
+portSharing_e determinePortSharing(const serialPortConfig_t *portConfig, serialPortFunction_e function);
+bool isSerialPortShared(const serialPortConfig_t *portConfig, uint16_t functionMask, serialPortFunction_e sharedWithFunction);
 
+void pgResetFn_serialConfig(serialConfig_t *serialConfig); //!!TODO remove need for this
 serialPortUsage_t *findSerialPortUsageByIdentifier(serialPortIdentifier_e identifier);
 int findSerialPortIndexByIdentifier(serialPortIdentifier_e identifier);
 //
@@ -141,8 +151,8 @@ serialPort_t *openSerialPort(
     serialPortFunction_e function,
     serialReceiveCallbackPtr rxCallback,
     uint32_t baudrate,
-    portMode_t mode,
-    portOptions_t options
+    portMode_e mode,
+    portOptions_e options
 );
 void closeSerialPort(serialPort_t *serialPort);
 

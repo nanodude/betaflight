@@ -23,15 +23,18 @@
 
 #include "platform.h"
 
+#include "build/build_config.h"
 #include "build/debug.h"
 
 #include "scheduler/scheduler.h"
+
+#include "config/config_unittest.h"
 
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
 
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 
 #if defined(USE_CHIBIOS)
@@ -60,10 +63,11 @@ uint16_t averageSystemLoadPercent = 0;
 
 
 static int taskQueuePos = 0;
-static int taskQueueSize = 0;
+STATIC_UNIT_TESTED int taskQueueSize = 0;
+
 // No need for a linked list for the queue, since items are only inserted at startup
 
-static cfTask_t* taskQueueArray[TASK_COUNT + 1]; // extra item for NULL pointer at end of queue
+STATIC_UNIT_TESTED cfTask_t* taskQueueArray[TASK_COUNT + 1]; // extra item for NULL pointer at end of queue
 
 void queueClear(void)
 {
@@ -154,6 +158,10 @@ void taskSystem(timeUs_t currentTimeUs)
         totalWaitingTasksSamples = 0;
         totalWaitingTasks = 0;
     }
+
+#if defined(SIMULATOR_BUILD)
+    averageSystemLoadPercent = 0;
+#endif
 #endif
 }
 
@@ -207,7 +215,7 @@ void setTaskEnabled(cfTaskId_e taskId, bool enabled)
     }
 }
 
-uint32_t getTaskDeltaTime(cfTaskId_e taskId)
+timeDelta_t getTaskDeltaTime(cfTaskId_e taskId)
 {
     if (taskId == TASK_SELF) {
         return currentTask->taskLatestDeltaTime;
@@ -235,7 +243,7 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId)
     } else if (taskId < TASK_COUNT) {
         cfTasks[taskId].movingSumExecutionTime = 0;
         cfTasks[taskId].totalExecutionTime = 0;
-        cfTasks[taskId].totalExecutionTime = 0;
+        cfTasks[taskId].maxExecutionTime = 0;
     }
 #endif
 }
@@ -253,17 +261,14 @@ void scheduler(void)
     const timeUs_t currentTimeUs = micros();
 
     // Check for realtime tasks
-    timeUs_t timeToNextRealtimeTask = TIMEUS_MAX;
+    bool outsideRealtimeGuardInterval = true;
     for (const cfTask_t *task = queueFirst(); task != NULL && task->staticPriority >= TASK_PRIORITY_REALTIME; task = queueNext()) {
         const timeUs_t nextExecuteAt = task->lastExecutedAt + task->desiredPeriod;
-        if ((int32_t)(currentTimeUs - nextExecuteAt) >= 0) {
-            timeToNextRealtimeTask = 0;
-        } else {
-            const timeUs_t newTimeInterval = nextExecuteAt - currentTimeUs;
-            timeToNextRealtimeTask = MIN(timeToNextRealtimeTask, newTimeInterval);
+        if ((timeDelta_t)(currentTimeUs - nextExecuteAt) >= 0) {
+            outsideRealtimeGuardInterval = false;
+            break;
         }
     }
-    const bool outsideRealtimeGuardInterval = (timeToNextRealtimeTask > 0);
 
     // The task to be invoked
     cfTask_t *selectedTask = NULL;
@@ -358,6 +363,7 @@ void scheduler(void)
         DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs);
 #endif
     }
+
 #if defined(USE_CHIBIOS)
     else {
 #ifdef BRAINFPV
@@ -373,4 +379,6 @@ void scheduler(void)
         }
     }
 #endif
+
+    GET_SCHEDULER_LOCALS();
 }

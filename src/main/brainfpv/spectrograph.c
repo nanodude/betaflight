@@ -14,13 +14,10 @@
 #include "common/printf.h"
 #include "common/typeconversion.h"
 
-#include "drivers/gpio.h"
 #include "drivers/sensor.h"
 #include "drivers/system.h"
 #include "drivers/serial.h"
-#include "drivers/compass.h"
 #include "drivers/timer.h"
-#include "drivers/accgyro.h"
 #include "drivers/light_led.h"
 #include "drivers/light_ws2811strip.h"
 #include "drivers/sound_beeper.h"
@@ -48,13 +45,9 @@
 #include "telemetry/telemetry.h"
 
 #include "flight/mixer.h"
-#include "flight/altitudehold.h"
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/navigation.h"
-
-#include "config/config_profile.h"
-#include "config/config_master.h"
 
 #include "brainfpv/spectrograph.h"
 
@@ -265,7 +258,7 @@ void spectrographDraw(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height,
     write_string(AXIS_NAMES[axis], x0 + width, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, FONT_OUTLINED8X8);
 
     for (int i=0; i<5; i++) {
-        sprintf(tmp_str, "%d", i * SPEC_MAX_FREQ / 4);
+        tfp_sprintf(tmp_str, "%d", i * SPEC_MAX_FREQ / 4);
         write_string(tmp_str, x0 + i * width / 4, y0 + 2, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }
 
@@ -281,24 +274,24 @@ void spectrographDraw(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height,
         write_pixel_lm(x0 + i, y0 -this_height + 1, 1, 1);
         write_pixel_lm(x0 + i, y0 -this_height - 1, 1, 1);
     }
-    sprintf(tmp_str, "%d", (int)max_rpy[axis] / SPEC_FFT_LENGTH);
+    tfp_sprintf(tmp_str, "%d", (int)max_rpy[axis] / SPEC_FFT_LENGTH);
     write_string(tmp_str, x0, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     chMtxUnlock(&fftOutputMtx);
 
-    if (masterConfig.gyroConfig.gyro_soft_notch_hz_1) {
-        uint16_t pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_hz_1 * width) / SPEC_MAX_FREQ;
+    if (gyroConfig()->gyro_soft_notch_hz_1) {
+        uint16_t pos = x0 + (gyroConfig()->gyro_soft_notch_hz_1 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
-        pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_cutoff_1 * width) / SPEC_MAX_FREQ;
+        pos = x0 + (gyroConfig()->gyro_soft_notch_cutoff_1 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }
 
-    if (masterConfig.gyroConfig.gyro_soft_notch_hz_2) {
-        uint16_t pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_hz_2 * width) / SPEC_MAX_FREQ;
+    if (gyroConfig()->gyro_soft_notch_hz_2) {
+        uint16_t pos = x0 + (gyroConfig()->gyro_soft_notch_hz_2 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
-        pos = x0 + (masterConfig.gyroConfig.gyro_soft_notch_cutoff_2 * width) / SPEC_MAX_FREQ;
+        pos = x0 + (gyroConfig()->gyro_soft_notch_cutoff_2 * width) / SPEC_MAX_FREQ;
         write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
         write_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }

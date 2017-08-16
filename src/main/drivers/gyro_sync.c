@@ -10,16 +10,21 @@
 
 #include "platform.h"
 
-#include "sensor.h"
-#include "accgyro.h"
-#include "gyro_sync.h"
+#include "drivers/sensor.h"
+#include "drivers/accgyro/accgyro.h"
+#include "drivers/gyro_sync.h"
 
 
 bool gyroSyncCheckUpdate(gyroDev_t *gyro)
 {
-    if (!gyro->intStatus)
-        return false;
-    return gyro->intStatus(gyro);
+    bool ret;
+    if (gyro->dataReady) {
+        ret = true;
+        gyro->dataReady= false;
+    } else {
+        ret = false;
+    }
+    return ret;
 }
 
 uint32_t gyroSetSampleRate(gyroDev_t *gyro, uint8_t lpf, uint8_t gyroSyncDenominator, bool gyro_use_32khz)
@@ -31,8 +36,13 @@ uint32_t gyroSetSampleRate(gyroDev_t *gyro, uint8_t lpf, uint8_t gyroSyncDenomin
             gyro->gyroRateKHz = GYRO_RATE_32_kHz;
             gyroSamplePeriod = 31.5f;
         } else {
+#ifdef USE_ACCGYRO_BMI160
+            gyro->gyroRateKHz = GYRO_RATE_3200_Hz;
+            gyroSamplePeriod = 312.0f;
+#else
             gyro->gyroRateKHz = GYRO_RATE_8_kHz;
             gyroSamplePeriod = 125.0f;
+#endif
         }
     } else {
         gyro->gyroRateKHz = GYRO_RATE_1_kHz;

@@ -20,34 +20,31 @@
 
 #include "platform.h"
 
-#include "system.h"
-#include "io.h"
+#include "drivers/io.h"
 
 #include "sound_beeper.h"
+#include "pwm_output.h"
 
 #ifdef USE_BRAINFPV_FPGA
 #include "fpga_drv.h"
 #endif
 
-#ifdef BEEPER
-
 #ifndef USE_BRAINFPV_FPGA
 static IO_t beeperIO = DEFIO_IO(NONE);
 static bool beeperInverted = false;
-#endif
-
+static uint16_t beeperFrequency = 0;
 #endif
 
 void systemBeep(bool onoff)
 {
-#ifndef BEEPER
-    UNUSED(onoff);
-#else
 #ifndef USE_BRAINFPV_FPGA
-    IOWrite(beeperIO, beeperInverted ? onoff : !onoff);
+    if (beeperFrequency == 0) {
+        IOWrite(beeperIO, beeperInverted ? onoff : !onoff);
+    } else {
+        pwmWriteBeeper(onoff);
+    }
 #else
     BRAINFPVFPGA_Buzzer(onoff);
-#endif
 #endif
 }
 
@@ -55,29 +52,38 @@ void systemBeepToggle(void)
 {
 #ifdef BEEPER
 #ifndef USE_BRAINFPV_FPGA
-    IOToggle(beeperIO);
+    if (beeperFrequency == 0) {
+        IOToggle(beeperIO);
+    } else {
+        pwmToggleBeeper();
+    }
 #else
      BRAINFPVFPGA_BuzzerToggle();
 #endif
 #endif
 }
 
-void beeperInit(const beeperConfig_t *config)
+void beeperInit(const beeperDevConfig_t *config)
 {
-#ifndef BEEPER
+#ifdef USE_BRAINFPV_FPGA
     UNUSED(config);
 #else
-#ifndef USE_BRAINFPV_FPGA
-    beeperIO = IOGetByTag(config->ioTag);
-    beeperInverted = config->isInverted;
-
-    if (beeperIO) {
-        IOInit(beeperIO, OWNER_BEEPER, 0);
-        IOConfigGPIO(beeperIO, config->isOpenDrain ? IOCFG_OUT_OD : IOCFG_OUT_PP);
+#ifdef BEEPER
+    beeperFrequency = config->frequency;
+    if (beeperFrequency == 0) {
+        beeperIO = IOGetByTag(config->ioTag);
+        beeperInverted = config->isInverted;
+        if (beeperIO) {
+            IOInit(beeperIO, OWNER_BEEPER, 0);
+            IOConfigGPIO(beeperIO, config->isOpenDrain ? IOCFG_OUT_OD : IOCFG_OUT_PP);
+        }
+        systemBeep(false);
+    } else {
+        const ioTag_t beeperTag = config->ioTag;
+        beeperPwmInit(beeperTag, beeperFrequency);
     }
 #else
     UNUSED(config);
 #endif
-    systemBeep(false);
 #endif
 }

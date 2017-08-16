@@ -21,25 +21,23 @@
 #define TARGET_VALIDATECONFIG
 #define TARGET_PREINIT
 
-#define CONFIG_START_FLASH_ADDRESS (0x08080000) //0x08080000 to 0x080A0000 (FLASH_Sector_8)
-
 #define USBD_PRODUCT_STRING     "BlueJayF4"
 
 #define USE_HARDWARE_REVISION_DETECTION
 #define HW_PIN                  PB2
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 
-#define LED0                    PB6
-#define LED1                    PB5
-#define LED2                    PB4
+#define LED0_PIN                PB6
+#define LED1_PIN                PB5
+#define LED2_PIN                PB4
 
 #define BEEPER                  PC1
 #define BEEPER_OPT              PB7
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_USART6     PB15
-//#define INVERTER_PIN_USART1     PC9
+#define INVERTER_PIN_UART6      PB15
+//#define INVERTER_PIN_UART1     PC9
 
 #define UART1_INVERTER          PC9
 
@@ -62,8 +60,10 @@
 #define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW0_DEG
 
-//#define MAG
+#define MAG
+#define USE_MAG_HMC5883
 //#define USE_MAG_AK8963
+#define HMC5883_I2C_INSTANCE    I2CDEV_1
 
 #define BARO
 #define USE_BARO_MS5611
@@ -121,7 +121,7 @@
 #define SERIAL_PORT_COUNT       6
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PC7  // (HARDARE=0,PPM)
 
 #define USE_SPI
 
@@ -132,38 +132,34 @@
 #define SPI1_MOSI_PIN           PA7
 
 #define USE_SPI_DEVICE_3
-#define SPI3_NSS_PIN            PB3
+#define SPI3_NSS_PIN            PB7
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
+#define USE_I2C_DEVICE_1
 #define I2C_DEVICE              (I2CDEV_1)
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB9
 #define USE_I2C_PULLUP
 
 #define USE_ADC
 #define VBAT_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC2
 
-#define USE_ESC_SENSOR
-#define LED_STRIP
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-#define DEFAULT_FEATURES        FEATURE_BLACKBOX
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define SPEKTRUM_BIND
-#define BIND_PIN                PB11
-
 #define TARGET_IO_PORTA             0xffff
 #define TARGET_IO_PORTB             0xffff
 #define TARGET_IO_PORTC             0xffff
 #define TARGET_IO_PORTD             (BIT(2))
 
-#define USABLE_TIMER_CHANNEL_COUNT     7
+#define USABLE_TIMER_CHANNEL_COUNT     8
 #define USED_TIMERS                   ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(9) )

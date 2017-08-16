@@ -18,13 +18,12 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "MOTO" // MotoLab
-#define USE_CLI
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
 #define TARGET_CONFIG
 
-#define LED0                    PB5 // Blue LEDs - PB5
-//#define LED1                    PB9 // Green LEDs - PB9
+#define LED0_PIN                PB5 // Blue LEDs - PB5
+//#define LED1_PIN                PB9 // Green LEDs - PB9
 
 #define BEEPER                  PA0
 #define BEEPER_INVERTED
@@ -32,7 +31,6 @@
 // MPU6050 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PA15
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
@@ -65,7 +63,7 @@
 #define SERIAL_PORT_COUNT       6
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA4  // (HARDARE=0)
 
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7
@@ -77,6 +75,7 @@
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
 #define USE_I2C
+#define USE_I2C_DEVICE_2
 #define I2C_DEVICE              (I2CDEV_2)
 #define I2C2_SCL                PA9
 #define I2C2_SDA                PA10
@@ -87,25 +86,17 @@
 #define M25P16_CS_PIN           PB12
 #define M25P16_SPI_INSTANCE     SPI2
 
-#define SENSORS_SET             (SENSOR_ACC)
-
-#undef GPS
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
 #define VBAT_ADC_PIN            PA5
 //#define CURRENT_METER_ADC_PIN   PA5
 #define RSSI_ADC_PIN            PB2
 
-#define LED_STRIP
 #define USE_ESC_SENSOR
-
-#define SPEKTRUM_BIND
-// USART2, PB4
-#define BIND_PIN                PB4
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

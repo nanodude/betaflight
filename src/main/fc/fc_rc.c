@@ -28,21 +28,26 @@
 #include "common/utils.h"
 #include "common/filter.h"
 
+#include "config/feature.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "fc/config.h"
-#include "fc/rc_controls.h"
-#include "fc/runtime_config.h"
-#include "fc/fc_rc.h"
+#include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
+#include "fc/fc_rc.h"
+#include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
+#include "fc/runtime_config.h"
 
 #include "rx/rx.h"
 
 #include "scheduler/scheduler.h"
 
+#include "flight/failsafe.h"
+#include "flight/imu.h"
 #include "flight/pid.h"
-
-#include "config/config_profile.h"
-#include "config/config_master.h"
-#include "config/feature.h"
+#include "flight/mixer.h"
 
 static float setpointRate[3], rcDeflection[3], rcDeflectionAbs[3];
 static float throttlePIDAttenuation;
@@ -134,7 +139,7 @@ static void scaleRcCommandToFpvCamAngle(void) {
     static float cosFactor = 1.0;
     static float sinFactor = 0.0;
 
-    if (lastFpvCamAngleDegrees != rxConfig()->fpvCamAngleDegrees){
+    if (lastFpvCamAngleDegrees != rxConfig()->fpvCamAngleDegrees) {
         lastFpvCamAngleDegrees = rxConfig()->fpvCamAngleDegrees;
         cosFactor = cos_approx(rxConfig()->fpvCamAngleDegrees * RAD);
         sinFactor = sin_approx(rxConfig()->fpvCamAngleDegrees * RAD);
@@ -154,7 +159,7 @@ static void scaleRcCommandToFpvCamAngle(void) {
     static int16_t rcCommandThrottlePrevious[THROTTLE_BUFFER_MAX];
     const int rxRefreshRateMs = rxRefreshRate / 1000;
     const int indexMax = constrain(THROTTLE_DELTA_MS / rxRefreshRateMs, 1, THROTTLE_BUFFER_MAX);
-    const int16_t throttleVelocityThreshold = (feature(FEATURE_3D)) ? currentProfile->pidProfile.itermThrottleThreshold / 2 : currentProfile->pidProfile.itermThrottleThreshold;
+    const int16_t throttleVelocityThreshold = (feature(FEATURE_3D)) ? currentPidProfile->itermThrottleThreshold / 2 : currentPidProfile->itermThrottleThreshold;
 
     rcCommandThrottlePrevious[index++] = rcCommand[THROTTLE];
     if (index >= indexMax)
@@ -162,19 +167,19 @@ static void scaleRcCommandToFpvCamAngle(void) {
 
     const int16_t rcCommandSpeed = rcCommand[THROTTLE] - rcCommandThrottlePrevious[index];
 
-    if(ABS(rcCommandSpeed) > throttleVelocityThreshold)
-        pidSetItermAccelerator(currentProfile->pidProfile.itermAcceleratorGain);
+    if (ABS(rcCommandSpeed) > throttleVelocityThreshold)
+        pidSetItermAccelerator(CONVERT_PARAMETER_TO_FLOAT(currentPidProfile->itermAcceleratorGain));
     else
         pidSetItermAccelerator(1.0f);
 }
 
 void processRcCommand(void)
 {
-    static int16_t lastCommand[4] = { 0, 0, 0, 0 };
-    static int16_t deltaRC[4] = { 0, 0, 0, 0 };
-    static int16_t factor, rcInterpolationFactor;
+    static float rcCommandInterp[4] = { 0, 0, 0, 0 };
+    static float rcStepSize[4] = { 0, 0, 0, 0 };
+    static int16_t rcInterpolationStepCount;
     static uint16_t currentRxRefreshRate;
-    const uint8_t interpolationChannels = rxConfig()->rcInterpolationChannels + 2;
+    const uint8_t interpolationChannels = rxConfig()->rcInterpolationChannels + 2; //"RP", "RPY", "RPYT"
     uint16_t rxRefreshRate;
     bool readyToCalculateRate = false;
     uint8_t readyToCalculateRateAxisCnt = 0;
@@ -186,9 +191,9 @@ void processRcCommand(void)
         }
     }
 
-    if (rxConfig()->rcInterpolation || flightModeFlags) {
+    if (rxConfig()->rcInterpolation) {
          // Set RC refresh rate for sampling and channels to filter
-        switch(rxConfig()->rcInterpolation) {
+        switch (rxConfig()->rcInterpolation) {
             case(RC_SMOOTHING_AUTO):
                 rxRefreshRate = currentRxRefreshRate + 1000; // Add slight overhead to prevent ramps
                 break;
@@ -201,36 +206,34 @@ void processRcCommand(void)
                 rxRefreshRate = rxGetRefreshRate();
         }
 
-        if (isRXDataNew) {
-            rcInterpolationFactor = rxRefreshRate / targetPidLooptime + 1;
-
-            if (debugMode == DEBUG_RC_INTERPOLATION) {
-                for(int axis = 0; axis < 2; axis++) debug[axis] = rcCommand[axis];
-                debug[3] = rxRefreshRate;
-            }
+        if (isRXDataNew && rxRefreshRate > 0) {
+            rcInterpolationStepCount = rxRefreshRate / targetPidLooptime;
 
             for (int channel=ROLL; channel < interpolationChannels; channel++) {
-                deltaRC[channel] = rcCommand[channel] -  (lastCommand[channel] - deltaRC[channel] * factor / rcInterpolationFactor);
-                lastCommand[channel] = rcCommand[channel];
+                rcStepSize[channel] = (rcCommand[channel] - rcCommandInterp[channel]) / (float)rcInterpolationStepCount;
             }
 
-            factor = rcInterpolationFactor - 1;
+            if (debugMode == DEBUG_RC_INTERPOLATION) {
+                debug[0] = lrintf(rcCommand[0]);
+                debug[1] = lrintf(getTaskDeltaTime(TASK_RX) / 1000);
+                //debug[1] = lrintf(rcCommandInterp[0]);
+                //debug[1] = lrintf(rcStepSize[0]*100);
+            }
         } else {
-            factor--;
+            rcInterpolationStepCount--;
         }
 
         // Interpolate steps of rcCommand
-        if (factor > 0) {
+        if (rcInterpolationStepCount > 0) {
             for (int channel=ROLL; channel < interpolationChannels; channel++) {
-                rcCommand[channel] = lastCommand[channel] - deltaRC[channel] * factor/rcInterpolationFactor;
-                readyToCalculateRateAxisCnt = MAX(channel,FD_YAW); // throttle channel doesn't require rate calculation
-                readyToCalculateRate = true;
+                rcCommandInterp[channel] += rcStepSize[channel];
+                rcCommand[channel] = rcCommandInterp[channel];
+                readyToCalculateRateAxisCnt = MAX(channel, FD_YAW); // throttle channel doesn't require rate calculation
             }
-        } else {
-            factor = 0;
+            readyToCalculateRate = true;
         }
     } else {
-        factor = 0; // reset factor in case of level modes flip flopping
+        rcInterpolationStepCount = 0; // reset factor in case of level modes flip flopping
     }
 
     if (readyToCalculateRate || isRXDataNew) {
@@ -240,6 +243,10 @@ void processRcCommand(void)
         for (int axis = 0; axis <= readyToCalculateRateAxisCnt; axis++)
             calculateSetpointRate(axis);
 
+        if (debugMode == DEBUG_RC_INTERPOLATION) {
+            debug[2] = rcInterpolationStepCount;
+            debug[3] = setpointRate[0];
+        }
         // Scaling of AngleRate to camera angle (Mixing Roll and Yaw)
         if (rxConfig()->fpvCamAngleDegrees && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && !FLIGHT_MODE(HEADFREE_MODE))
             scaleRcCommandToFpvCamAngle();
@@ -281,7 +288,7 @@ void updateRcCommands(void)
             } else {
                 tmp = 0;
             }
-            rcCommand[axis] = tmp * -rcControlsConfig()->yaw_control_direction;
+            rcCommand[axis] = tmp * -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
         }
         if (rcData[axis] < rxConfig()->midrc) {
             rcCommand[axis] = -rcCommand[axis];
@@ -299,7 +306,7 @@ void updateRcCommands(void)
 
     rcCommand[THROTTLE] = rcLookupThrottle(tmp);
 
-    if (feature(FEATURE_3D) && IS_RC_MODE_ACTIVE(BOX3DDISABLESWITCH) && !failsafeIsActive()) {
+    if (feature(FEATURE_3D) && IS_RC_MODE_ACTIVE(BOX3DDISABLE) && !failsafeIsActive()) {
         fix12_t throttleScaler = qConstruct(rcCommand[THROTTLE] - 1000, 1000);
         rcCommand[THROTTLE] = rxConfig()->midrc + qMultiply(throttleScaler, PWM_RANGE_MAX - rxConfig()->midrc);
     }
@@ -308,7 +315,7 @@ void updateRcCommands(void)
         const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
         const float cosDiff = cos_approx(radDiff);
         const float sinDiff = sin_approx(radDiff);
-        const int16_t rcCommand_PITCH = rcCommand[PITCH] * cosDiff + rcCommand[ROLL] * sinDiff;
+        const float rcCommand_PITCH = rcCommand[PITCH] * cosDiff + rcCommand[ROLL] * sinDiff;
         rcCommand[ROLL] = rcCommand[ROLL] * cosDiff - rcCommand[PITCH] * sinDiff;
         rcCommand[PITCH] = rcCommand_PITCH;
     }

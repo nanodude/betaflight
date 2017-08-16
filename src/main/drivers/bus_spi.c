@@ -17,89 +17,58 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <platform.h>
 
-#include "bus_spi.h"
-#include "exti.h"
-#include "io.h"
-#include "io_impl.h"
-#include "rcc.h"
+#ifdef USE_SPI
 
-/* for F30x processors */
-#if defined(STM32F303xC)
-#ifndef GPIO_AF_SPI1
-#define GPIO_AF_SPI1    GPIO_AF_5
-#endif
-#ifndef GPIO_AF_SPI2
-#define GPIO_AF_SPI2    GPIO_AF_5
-#endif
-#ifndef GPIO_AF_SPI3
-#define GPIO_AF_SPI3    GPIO_AF_6
-#endif
-#endif
+#include "drivers/bus.h"
+#include "drivers/bus_spi.h"
+#include "drivers/bus_spi_impl.h"
+#include "drivers/exti.h"
+#include "drivers/io.h"
+#include "drivers/rcc.h"
 
-#ifndef SPI1_SCK_PIN
-#define SPI1_NSS_PIN    PA4
-#define SPI1_SCK_PIN    PA5
-#define SPI1_MISO_PIN   PA6
-#define SPI1_MOSI_PIN   PA7
-#endif
-
-#ifndef SPI2_SCK_PIN
-#define SPI2_NSS_PIN    PB12
-#define SPI2_SCK_PIN    PB13
-#define SPI2_MISO_PIN   PB14
-#define SPI2_MOSI_PIN   PB15
-#endif
-
-#ifndef SPI3_SCK_PIN
-#define SPI3_NSS_PIN    PA15
-#define SPI3_SCK_PIN    PB3
-#define SPI3_MISO_PIN   PB4
-#define SPI3_MOSI_PIN   PB5
-#endif
-
-#ifndef SPI1_NSS_PIN
-#define SPI1_NSS_PIN NONE
-#endif
-#ifndef SPI2_NSS_PIN
-#define SPI2_NSS_PIN NONE
-#endif
-#ifndef SPI3_NSS_PIN
-#define SPI3_NSS_PIN NONE
-#endif
-
-static spiDevice_t spiHardwareMap[] = {
-#if defined(STM32F1)
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = 0, false },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = 0, false },
-#else
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, false },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, false },
-#endif
-#if defined(STM32F3) || defined(STM32F4)
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, false }
-#endif
-};
+spiDevice_t spiDevice[SPIDEV_COUNT];
 
 SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
 {
+#ifdef USE_SPI_DEVICE_1
     if (instance == SPI1)
         return SPIDEV_1;
+#endif
 
+#ifdef USE_SPI_DEVICE_2
     if (instance == SPI2)
         return SPIDEV_2;
+#endif
 
+#ifdef USE_SPI_DEVICE_3
     if (instance == SPI3)
         return SPIDEV_3;
+#endif
+
+#ifdef USE_SPI_DEVICE_4
+    if (instance == SPI4)
+        return SPIDEV_4;
+#endif
 
     return SPIINVALID;
 }
 
+SPI_TypeDef *spiInstanceByDevice(SPIDevice device)
+{
+    if (device >= SPIDEV_COUNT) {
+        return NULL;
+    }
+
+    return spiDevice[device].dev;
+}
+
 void spiInitDevice(SPIDevice device)
 {
-    spiDevice_t *spi = &(spiHardwareMap[device]);
+    spiDevice_t *spi = &(spiDevice[device]);
 
 #ifdef SDCARD_SPI_INSTANCE
     if (spi->dev == SDCARD_SPI_INSTANCE) {
@@ -124,21 +93,11 @@ void spiInitDevice(SPIDevice device)
     IOConfigGPIOAF(IOGetByTag(spi->sck),  SPI_IO_AF_CFG, spi->af);
     IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_CFG, spi->af);
     IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->af);
-
-    if (spi->nss) {
-        IOInit(IOGetByTag(spi->nss), OWNER_SPI_CS, RESOURCE_INDEX(device));
-        IOConfigGPIOAF(IOGetByTag(spi->nss), SPI_IO_CS_CFG, spi->af);
-    }
 #endif
 #if defined(STM32F10X)
     IOConfigGPIO(IOGetByTag(spi->sck), SPI_IO_AF_SCK_CFG);
     IOConfigGPIO(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG);
     IOConfigGPIO(IOGetByTag(spi->mosi), SPI_IO_AF_MOSI_CFG);
-
-    if (spi->nss) {
-        IOInit(IOGetByTag(spi->nss), OWNER_SPI_CS, RESOURCE_INDEX(device));
-        IOConfigGPIO(IOGetByTag(spi->nss), SPI_IO_CS_CFG);
-    }
 #endif
 
     // Init SPI hardware
@@ -168,17 +127,11 @@ void spiInitDevice(SPIDevice device)
 
     SPI_Init(spi->dev, &spiInit);
     SPI_Cmd(spi->dev, ENABLE);
-
-    if (spi->nss) {
-        // Drive NSS high to disable connected SPI device.
-        IOHi(IOGetByTag(spi->nss));
-    }
 }
 
 bool spiInit(SPIDevice device)
 {
-    switch (device)
-    {
+    switch (device) {
     case SPIINVALID:
         return false;
     case SPIDEV_1:
@@ -216,14 +169,15 @@ bool spiInit(SPIDevice device)
 uint32_t spiTimeoutUserCallback(SPI_TypeDef *instance)
 {
     SPIDevice device = spiDeviceByInstance(instance);
-    if (device == SPIINVALID)
+    if (device == SPIINVALID) {
         return -1;
-    spiHardwareMap[device].errorCount++;
-    return spiHardwareMap[device].errorCount;
+    }
+    spiDevice[device].errorCount++;
+    return spiDevice[device].errorCount;
 }
 
 // return uint8_t value or -1 when failure
-uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t data)
+uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t txByte)
 {
     uint16_t spiTimeout = 1000;
 
@@ -232,9 +186,9 @@ uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t data)
             return spiTimeoutUserCallback(instance);
 
 #ifdef STM32F303xC
-    SPI_SendData8(instance, data);
+    SPI_SendData8(instance, txByte);
 #else
-    SPI_I2S_SendData(instance, data);
+    SPI_I2S_SendData(instance, txByte);
 #endif
     spiTimeout = 1000;
     while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_RXNE) == RESET)
@@ -261,14 +215,14 @@ bool spiIsBusBusy(SPI_TypeDef *instance)
 
 }
 
-bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len)
+bool spiTransfer(SPI_TypeDef *instance, const uint8_t *txData, uint8_t *rxData, int len)
 {
     uint16_t spiTimeout = 1000;
 
     uint8_t b;
     instance->DR;
     while (len--) {
-        b = in ? *(in++) : 0xFF;
+        b = txData ? *(txData++) : 0xFF;
         while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_TXE) == RESET) {
             if ((spiTimeout--) == 0)
                 return spiTimeoutUserCallback(instance);
@@ -288,66 +242,28 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len
 #else
         b = SPI_I2S_ReceiveData(instance);
 #endif
-        if (out)
-            *(out++) = b;
+        if (rxData)
+            *(rxData++) = b;
     }
 
+    return true;
+}
+
+bool spiBusTransfer(const busDevice_t *bus, const uint8_t *txData, uint8_t *rxData, int length)
+{
+    IOLo(bus->busdev_u.spi.csnPin);
+    spiTransfer(bus->busdev_u.spi.instance, txData, rxData, length);
+    IOHi(bus->busdev_u.spi.csnPin);
     return true;
 }
 
 void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
 {
 #define BR_CLEAR_MASK 0xFFC7
-
-    uint16_t tempRegister;
-
     SPI_Cmd(instance, DISABLE);
 
-    tempRegister = instance->CR1;
-
-    switch (divisor) {
-    case 2:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_2;
-        break;
-
-    case 4:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_4;
-        break;
-
-    case 8:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_8;
-        break;
-
-    case 16:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_16;
-        break;
-
-    case 32:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_32;
-        break;
-
-    case 64:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_64;
-        break;
-
-    case 128:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_128;
-        break;
-
-    case 256:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_256;
-        break;
-    }
-
-    instance->CR1 = tempRegister;
+    const uint16_t tempRegister = (instance->CR1 & BR_CLEAR_MASK);
+    instance->CR1 = (tempRegister | ((ffs(divisor | 0x100) - 2) << 3));
 
     SPI_Cmd(instance, ENABLE);
 }
@@ -355,14 +271,53 @@ void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
 uint16_t spiGetErrorCounter(SPI_TypeDef *instance)
 {
     SPIDevice device = spiDeviceByInstance(instance);
-    if (device == SPIINVALID)
+    if (device == SPIINVALID) {
         return 0;
-    return spiHardwareMap[device].errorCount;
+    }
+    return spiDevice[device].errorCount;
 }
 
 void spiResetErrorCounter(SPI_TypeDef *instance)
 {
     SPIDevice device = spiDeviceByInstance(instance);
-    if (device != SPIINVALID)
-        spiHardwareMap[device].errorCount = 0;
+    if (device != SPIINVALID) {
+        spiDevice[device].errorCount = 0;
+    }
 }
+
+bool spiBusWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
+{
+    IOLo(bus->busdev_u.spi.csnPin);
+    spiTransferByte(bus->busdev_u.spi.instance, reg);
+    spiTransferByte(bus->busdev_u.spi.instance, data);
+    IOHi(bus->busdev_u.spi.csnPin);
+
+    return true;
+}
+
+bool spiBusReadRegisterBuffer(const busDevice_t *bus, uint8_t reg, uint8_t *data, uint8_t length)
+{
+    IOLo(bus->busdev_u.spi.csnPin);
+    spiTransferByte(bus->busdev_u.spi.instance, reg | 0x80); // read transaction
+    spiTransfer(bus->busdev_u.spi.instance, NULL, data, length);
+    IOHi(bus->busdev_u.spi.csnPin);
+
+    return true;
+}
+
+uint8_t spiBusReadRegister(const busDevice_t *bus, uint8_t reg)
+{
+    uint8_t data;
+    IOLo(bus->busdev_u.spi.csnPin);
+    spiTransferByte(bus->busdev_u.spi.instance, reg | 0x80); // read transaction
+    spiTransfer(bus->busdev_u.spi.instance, NULL, &data, 1);
+    IOHi(bus->busdev_u.spi.csnPin);
+
+    return data;
+}
+
+void spiBusSetInstance(busDevice_t *bus, SPI_TypeDef *instance)
+{
+    bus->busdev_u.spi.instance = instance;
+}
+#endif

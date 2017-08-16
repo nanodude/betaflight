@@ -23,14 +23,13 @@
 
 #include "build/build_config.h"
 
-#include "drivers/system.h"
+#include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/bus_spi.h"
-#include "drivers/sensor.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
-#include "drivers/accgyro.h"
-#include "drivers/accgyro_mpu.h"
-#include "drivers/accgyro_mpu6500.h"
+#include "drivers/time.h"
+#include "drivers/system.h"
 
 #include "hardware_revision.h"
 
@@ -64,14 +63,14 @@ uint8_t detectSpiDevice(void)
     nazeSpiCsPin = IOGetByTag(IO_TAG(NAZE_SPI_CS_PIN));
 #endif
 
-    uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
+    const uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
     uint8_t in[4];
     uint32_t flash_id;
 
     // try autodetect flash chip
     delay(50); // short delay required after initialisation of SPI device instance.
     ENABLE_SPI_CS;
-    spiTransfer(NAZE_SPI_INSTANCE, in, out, sizeof(out));
+    spiTransfer(NAZE_SPI_INSTANCE, out, in, sizeof(out));
     DISABLE_SPI_CS;
 
     flash_id = in[1] << 16 | in[2] << 8 | in[3];
@@ -104,26 +103,18 @@ void updateHardwareRevision(void)
 #endif
 }
 
-const extiConfig_t *selectMPUIntExtiConfigByHardwareRevision(void)
+ioTag_t selectMPUIntExtiConfigByHardwareRevision(void)
 {
-    // MPU_INT output on rev5 hardware PC13
-    static const extiConfig_t nazeRev5MPUIntExtiConfig = {
-        .tag = IO_TAG(PC13)
-    };
 
 #ifdef AFROMINI
-    return &nazeRev5MPUIntExtiConfig;
+    return IO_TAG(PC13);
 #else
-    // MPU_INT output on rev4 PB13
-    static const extiConfig_t nazeRev4MPUIntExtiConfig = {
-        .tag = IO_TAG(PB13)
-    };
-
     if (hardwareRevision < NAZE32_REV5) {
-        return &nazeRev4MPUIntExtiConfig;
-    }
-    else {
-        return &nazeRev5MPUIntExtiConfig;
+        // MPU_INT output on rev4 PB13
+        return IO_TAG(PB13);
+    } else {
+        // MPU_INT output on rev5 PC13
+        return IO_TAG(PC13);
     }
 #endif
 }

@@ -46,7 +46,7 @@
 #include "drivers/system.h"
 #include "drivers/io.h"
 #include "drivers/bus_spi.h"
-
+#include "drivers/time.h"
 
 /**
 * RE1 Register Specification
@@ -127,8 +127,8 @@ static int32_t BRAINFPVFPGA_WriteReg(uint8_t reg, uint8_t data, uint8_t mask);
 static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data);
 static uint8_t BRAINFPVFPGA_ReadReg(uint8_t reg);
 static void update_shadow_regs();
-int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
-int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes);
+int32_t BRAINFPVFPGA_SetLEDs(uint8_t * led_data, uint16_t n_leds);
+int32_t BRAINFPVFPGA_SetIRData(uint8_t * ir_data, uint8_t n_bytes);
 
 
 /**
@@ -344,7 +344,7 @@ uint8_t BRAINFPVFPGA_GetHWRevision()
 /**
  * @brief Set programmable LED (WS2812B) colors
  */
-int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds)
+int32_t BRAINFPVFPGA_SetLEDs(uint8_t * led_data, uint16_t n_leds)
 {
     if (BRAINFPVFPGA_ClaimBus() != 0)
         return -1;
@@ -418,7 +418,7 @@ int32_t BRAINFPVFPGA_SetIRProtocol(enum re1fpga_ir_protocols ir_protocol)
 /**
  * @brief Set IR emitter data
  */
-int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes)
+int32_t BRAINFPVFPGA_SetIRData(uint8_t * ir_data, uint8_t n_bytes)
 {
     if (n_bytes > 16)
         return - 1;

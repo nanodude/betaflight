@@ -19,8 +19,8 @@
 
 #define TARGET_BOARD_IDENTIFIER "RGF3" // rgSSD_F3
 
-#define LED0                     PC1
-#define LED1                     PC0
+#define LED0_PIN                 PC1
+#define LED1_PIN                 PC0
 
 #define BEEPER                   PA8
 #define BEEPER_INVERTED
@@ -42,7 +42,6 @@
 #define SPI2_MISO_PIN            PB14
 #define SPI2_MOSI_PIN            PB15
 
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 2 // MPU_INT, SDCardDetect
 
 #define GYRO
 #define USE_GYRO_SPI_MPU6000
@@ -52,6 +51,7 @@
 #define USE_ACC_SPI_MPU6000
 #define ACC_MPU6000_ALIGN CW180_DEG
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
+#define TARGET_CONFIG
 
 #define USE_EXTI
 #define MPU_INT_EXTI PC13
@@ -59,11 +59,10 @@
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI1
 
 #define SDCARD_DETECT_INVERTED
-
 #define SDCARD_DETECT_PIN        PC14
+
 #define SDCARD_SPI_INSTANCE      SPI1
 #define SDCARD_SPI_CS_GPIO       GPIOB
 #define SDCARD_SPI_CS_PIN        SPI1_NSS_PIN
@@ -76,8 +75,6 @@
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Channel3
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC3
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
-#define USB_IO
 
 #define USE_VCP
 #define USE_UART1
@@ -102,7 +99,8 @@
 #define UART5_RX_PIN             PD2
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_2) // SDA (PA14/AF4), SCL (PA15/AF4)
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE              (I2CDEV_2)
 
 #define I2C2_SCL_GPIO            GPIOA
 #define I2C2_SCL_GPIO_AF         GPIO_AF_4
@@ -116,14 +114,13 @@
 #define I2C2_SDA_CLK_SOURCE      RCC_AHBPeriph_GPIOA
 
 #define USE_ADC
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 
 #define ADC_INSTANCE             ADC2
 
 #define VBAT_ADC_PIN             PA4
 #define CURRENT_METER_ADC_PIN    PA5
-
-#define LED_STRIP
+#define VBAT_SCALE_DEFAULT       119
 
 #define TRANSPONDER
 #define TRANSPONDER_GPIO                     GPIOA
@@ -137,26 +134,14 @@
 #define TRANSPONDER_IRQ                      DMA1_Channel6_IRQn
 #define TRANSPONDER_DMA_TC_FLAG              DMA1_FLAG_TC6
 #define TRANSPONDER_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
-#define BLACKBOX
-#define GPS
-#define SERIAL_RX
-#define TELEMETRY
-#define USE_SERVOS
-#define USE_CLI
 
 #define DEFAULT_RX_FEATURE FEATURE_RX_PPM
 
-#define USE_DSHOT
-#define USE_ESC_TELEMETRY
 #define REMAP_TIM16_DMA
 #define REMAP_TIM17_DMA
 #define ADC24_DMA_REMAP
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
-#define SPEKTRUM_BIND
-
-#define BIND_PIN PB11
 
 // IO - stm32f303rc in 64pin package
 #define TARGET_IO_PORTA 0xffff

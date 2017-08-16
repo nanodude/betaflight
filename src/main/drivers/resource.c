@@ -61,5 +61,10 @@ const char * const ownerNames[OWNER_TOTAL_COUNT] = {
     "LED_STRIP",
     "TRANSPONDER",
     "VTX",
+    "COMPASS_CS",
+    "SPI_PREINIT",
+    "RX_BIND_PLUG",
+    "ESCSERIAL",
+    "CAMERA_CONTROL",
 };
 

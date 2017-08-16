@@ -22,40 +22,45 @@
 #include <limits.h>
 
 extern "C" {
-    #include "build/debug.h"
-
     #include <platform.h>
+
+    #include "build/debug.h"
 
     #include "common/axis.h"
     #include "common/filter.h"
+    #include "common/gps_conversion.h"
     #include "common/maths.h"
 
     #include "config/parameter_group.h"
     #include "config/parameter_group_ids.h"
 
-    #include "drivers/system.h"
     #include "drivers/serial.h"
+    #include "drivers/system.h"
 
     #include "fc/runtime_config.h"
+
+    #include "flight/pid.h"
+    #include "flight/imu.h"
 
     #include "io/gps.h"
     #include "io/serial.h"
 
     #include "rx/crsf.h"
 
-    #include "sensors/sensors.h"
     #include "sensors/battery.h"
+    #include "sensors/sensors.h"
 
-    #include "telemetry/telemetry.h"
     #include "telemetry/crsf.h"
-
-    #include "flight/pid.h"
-    #include "flight/imu.h"
-    #include "flight/gps_conversion.h"
+    #include "telemetry/telemetry.h"
 
     bool airMode;
-    uint16_t vbat;
+
+    uint16_t testBatteryVoltage = 0;
+    int32_t testAmperage = 0;
+
     serialPort_t *telemetrySharedPort;
+    PG_REGISTER(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 0);
+    PG_REGISTER(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
 }
 
 #include "unittest_macros.h"
@@ -77,12 +82,7 @@ uint16_t    Groundspeed ( km/h / 10 )
 uint16_t    GPS heading ( degree / 100 )
 uint16      Altitude ( meter ­ 1000m offset )
 uint8_t     Satellites in use ( counter )
-uint8_t GPS_numSat;
-int32_t GPS_coord[2];
 uint16_t GPS_distanceToHome;        // distance to home point in meters
-uint16_t GPS_altitude;              // altitude in m
-uint16_t GPS_speed;                 // speed in 0.1m/s
-uint16_t GPS_ground_course = 0;     // degrees * 10
 */
 #define FRAME_HEADER_FOOTER_LEN 4
 
@@ -109,13 +109,13 @@ TEST(TelemetryCrsfTest, TestGPS)
     EXPECT_EQ(0, satelliteCount);
     EXPECT_EQ(crfsCrc(frame, frameLen), frame[18]);
 
-    GPS_coord[LAT] = 56 * GPS_DEGREES_DIVIDER;
-    GPS_coord[LON] = 163 * GPS_DEGREES_DIVIDER;
+    gpsSol.llh.lat = 56 * GPS_DEGREES_DIVIDER;
+    gpsSol.llh.lon = 163 * GPS_DEGREES_DIVIDER;
     ENABLE_STATE(GPS_FIX);
-    GPS_altitude = 2345;              // altitude in m
-    GPS_speed = 163;                 // speed in 0.1m/s, 16.3 m/s = 58.68 km/h, so CRSF (km/h *10) value is 587
-    GPS_numSat = 9;
-    GPS_ground_course = 1479;     // degrees * 10
+    gpsSol.llh.alt = 2345;              // altitude in m
+    gpsSol.groundSpeed = 163;                 // speed in 0.1m/s, 16.3 m/s = 58.68 km/h, so CRSF (km/h *10) value is 587
+    gpsSol.numSat = 9;
+    gpsSol.groundCourse = 1479;     // degrees * 10
     frameLen = getCrsfFrame(frame, CRSF_FRAME_GPS);
     lattitude = frame[3] << 24 | frame[4] << 16 | frame[5] << 8 | frame[6];
     EXPECT_EQ(560000000, lattitude);
@@ -135,11 +135,8 @@ TEST(TelemetryCrsfTest, TestGPS)
 TEST(TelemetryCrsfTest, TestBattery)
 {
     uint8_t frame[CRSF_FRAME_SIZE_MAX];
-    batteryConfig_t workingBatteryConfig;
 
-    batteryConfig = &workingBatteryConfig;
-    memset(batteryConfig, 0, sizeof(batteryConfig_t));
-    vbat = 0; // 0.1V units
+    testBatteryVoltage = 0; // 0.1V units
     int frameLen = getCrsfFrame(frame, CRSF_FRAME_BATTERY_SENSOR);
     EXPECT_EQ(CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE + FRAME_HEADER_FOOTER_LEN, frameLen);
     EXPECT_EQ(CRSF_ADDRESS_BROADCAST, frame[0]); // address
@@ -155,9 +152,9 @@ TEST(TelemetryCrsfTest, TestBattery)
     EXPECT_EQ(67, remaining);
     EXPECT_EQ(crfsCrc(frame, frameLen), frame[11]);
 
-    vbat = 33; // 3.3V = 3300 mv
-    amperage = 2960; // = 29.60A = 29600mA - amperage is in 0.01A steps
-    batteryConfig->batteryCapacity = 1234;
+    testBatteryVoltage = 33; // 3.3V = 3300 mv
+    testAmperage = 2960; // = 29.60A = 29600mA - amperage is in 0.01A steps
+    batteryConfigMutable()->batteryCapacity = 1234;
     frameLen = getCrsfFrame(frame, CRSF_FRAME_BATTERY_SENSOR);
     voltage = frame[3] << 8 | frame[4]; // mV * 100
     EXPECT_EQ(33, voltage);
@@ -277,15 +274,8 @@ uint8_t useHottAlarmSoundPeriod (void) { return 0; }
 
 attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
-uint8_t GPS_numSat;
-int32_t GPS_coord[2];
 uint16_t GPS_distanceToHome;        // distance to home point in meters
-uint16_t GPS_altitude;              // altitude in m
-uint16_t GPS_speed;                 // speed in 0.1m/s
-uint16_t GPS_ground_course = 0;     // degrees * 10
-
-int32_t amperage;
-int32_t mAhDrawn;
+gpsSolutionData_t gpsSol;
 
 void beeperConfirmationBeeps(uint8_t beepCount) {UNUSED(beepCount);}
 
@@ -298,8 +288,8 @@ uint32_t serialTxBytesFree(const serialPort_t *) {return 0;}
 uint8_t serialRead(serialPort_t *) {return 0;}
 void serialWrite(serialPort_t *, uint8_t) {}
 void serialWriteBuf(serialPort_t *, const uint8_t *, int) {}
-void serialSetMode(serialPort_t *, portMode_t ) {}
-serialPort_t *openSerialPort(serialPortIdentifier_e, serialPortFunction_e, serialReceiveCallbackPtr, uint32_t, portMode_t, portOptions_t) {return NULL;}
+void serialSetMode(serialPort_t *, portMode_e) {}
+serialPort_t *openSerialPort(serialPortIdentifier_e, serialPortFunction_e, serialReceiveCallbackPtr, uint32_t, portMode_e, portOptions_e) {return NULL;}
 void closeSerialPort(serialPort_t *) {}
 
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e) {return NULL;}
@@ -307,13 +297,24 @@ serialPortConfig_t *findSerialPortConfig(serialPortFunction_e) {return NULL;}
 bool telemetryDetermineEnabledState(portSharing_e) {return true;}
 bool telemetryCheckRxPortShared(const serialPortConfig_t *) {return true;}
 
-portSharing_e determinePortSharing(serialPortConfig_t *, serialPortFunction_e) {return PORTSHARING_NOT_SHARED;}
+portSharing_e determinePortSharing(const serialPortConfig_t *, serialPortFunction_e) {return PORTSHARING_NOT_SHARED;}
 
-uint8_t batteryCapacityRemainingPercentage(void) {return 67;}
-uint8_t calculateBatteryCapacityRemainingPercentage(void) {return 67;}
-uint8_t calculateBatteryPercentage(void) {return 67;}
-batteryState_e getBatteryState(void) {return BATTERY_OK;}
 bool isAirmodeActive(void) {return airMode;}
-uint16_t getVbat(void) { return vbat; }
+
+int32_t getAmperage(void) {
+    return testAmperage;
 }
 
+uint16_t getBatteryVoltage(void) {
+    return testBatteryVoltage;
+}
+
+batteryState_e getBatteryState(void) {
+    return BATTERY_OK;
+}
+
+uint8_t calculateBatteryPercentageRemaining(void) {
+    return 67;
+}
+
+}

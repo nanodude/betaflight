@@ -19,24 +19,41 @@
 
 #ifdef AIORACERF3
 #define TARGET_BOARD_IDENTIFIER "ARF3"
+#elif SPRACINGF3MQ
+#define TARGET_BOARD_IDENTIFIER "SPMQ"
 #else
 #define TARGET_BOARD_IDENTIFIER "SPEV"
+#endif
 
 #define TARGET_CONFIG
+
+#ifdef AIORACERF3
+#undef TARGET_CONFIG
 #endif
+
+#ifdef SPRACINGF3MQ
+#define BRUSHED_MOTORS
+
+#ifndef SPRACINGF3MQ_REV
+#define SPRACINGF3MQ_REV 2
+#endif
+
+#undef USE_UNCOMMON_MIXERS
+#endif
+#undef TELEMETRY_JETIEXBUS
+
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
 
 #define BRUSHED_ESC_AUTODETECT
 
-#define LED0                    PB8
+#define LED0_PIN                PB8
 
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC13
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 2 // MPU_INT, SDCardDetect
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
@@ -65,21 +82,23 @@
 
 //#define SONAR
 
-#define USB_IO
-
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
-// Disabled to make targets fit into flash space in 3.1.7
-//#define USE_SOFTSERIAL1
-//#define USE_SOFTSERIAL2
+#define USE_SOFTSERIAL1
+#define USE_SOFTSERIAL2
 
-//#define SERIAL_PORT_COUNT       6
-#define SERIAL_PORT_COUNT       4
+#define SOFTSERIAL1_RX_PIN      PA6 // PWM 5
+#define SOFTSERIAL1_TX_PIN      PA7 // PWM 6
+
+#define SOFTSERIAL2_RX_PIN      PB0 // PWM 7
+#define SOFTSERIAL2_TX_PIN      PB1 // PWM 8
+
+#define SERIAL_PORT_COUNT       6
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA15  // (HARDARE=0,PPM)
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -91,7 +110,8 @@
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1) // PB6/SCL, PB7/SDA
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE              (I2CDEV_1)
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1 // PB9,3,4,5 on AF5 SPI1 (MPU)
@@ -108,11 +128,10 @@
 #define SPI2_MOSI_PIN           PB15
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
 
 #define SDCARD_DETECT_INVERTED
-
 #define SDCARD_DETECT_PIN                   PC14
+
 #define SDCARD_SPI_INSTANCE                 SPI2
 #define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
 
@@ -128,30 +147,31 @@
 #define MPU6500_CS_PIN                   PB9
 #define MPU6500_SPI_INSTANCE             SPI1
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
+
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
 #define RSSI_ADC_PIN            PB2
 #ifdef AIORACERF3
 #define VBAT_ADC_PIN            PA5
 #define CURRENT_METER_ADC_PIN   PA4
+#define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
 #else
 #define VBAT_ADC_PIN            PA4
 #define CURRENT_METER_ADC_PIN   PA5
 #endif
 
-#define LED_STRIP
+#define OSD
+#define DISABLE_EXTENDED_CMS_OSD_MENU
+#define USE_OSD_OVER_MSP_DISPLAYPORT
+#define USE_MSP_CURRENT_METER
 
 #define TRANSPONDER
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
-#define DEFAULT_FEATURES        (FEATURE_TRANSPONDER | FEATURE_BLACKBOX | FEATURE_RSSI_ADC | FEATURE_CURRENT_METER | FEATURE_TELEMETRY)
-
-#define SPEKTRUM_BIND
-// USART3,
-#define BIND_PIN                PB11
+#define DEFAULT_FEATURES        (FEATURE_TRANSPONDER  | FEATURE_RSSI_ADC | FEATURE_TELEMETRY)
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -165,5 +185,5 @@
 #ifdef AIORACERF3
 #define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(15) | TIM_N(17))
 #else
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(15))
+#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(15) | TIM_N(16))
 #endif

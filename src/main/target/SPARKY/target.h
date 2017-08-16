@@ -21,8 +21,8 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
-#define LED0                    PB4  // Blue (Rev 1 & 2) - PB4
-#define LED1                    PB5  // Green (Rev 1) / Red (Rev 2) - PB5
+#define LED0_PIN                PB4  // Blue (Rev 1 & 2) - PB4
+#define LED1_PIN                PB5  // Green (Rev 1) / Red (Rev 2) - PB5
 
 #define BEEPER                  PA1
 #define BEEPER_INVERTED
@@ -30,7 +30,6 @@
 // MPU6050 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PA15
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define USE_MPU_DATA_READY_SIGNAL
 
 // MPU 9150 INT connected to PA15, pulled up to VCC by 10K Resistor, contains MPU6050 and AK8975 in single component.
@@ -63,7 +62,7 @@
 #define AVOID_UART2_FOR_PWM_PPM
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PB15  // (HARDARE=0)
 
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7
@@ -77,8 +76,8 @@
 // Note: PA5 and PA0 are N/C on the sparky - potentially use for ADC or LED STRIP?
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_2) // SDA (PA10/AF4), SCL (PA9/AF4)
-
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE              (I2CDEV_2)
 #define I2C2_SCL                PA9
 #define I2C2_SDA                PA10
 
@@ -89,13 +88,7 @@
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 
-#define LED_STRIP
-
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
-#define SPEKTRUM_BIND
-// USART2, PA3
-#define BIND_PIN                PA3
 
 //#define SONAR
 //#define SONAR_ECHO_PIN          PB1

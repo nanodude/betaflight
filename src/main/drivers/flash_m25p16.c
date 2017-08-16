@@ -24,9 +24,9 @@
 
 #include "flash.h"
 #include "flash_m25p16.h"
-#include "io.h"
-#include "bus_spi.h"
-#include "system.h"
+#include "drivers/bus_spi.h"
+#include "drivers/io.h"
+#include "drivers/time.h"
 
 #define M25P16_INSTRUCTION_RDID             0x9F
 #define M25P16_INSTRUCTION_READ_BYTES       0x03
@@ -52,8 +52,11 @@
 #define JEDEC_ID_SPANSION_S25FL127     0x012018
 #define JEDEC_ID_MACRONIX_MX25L25635E  0xC22019
 
-#define DISABLE_M25P16       IOHi(m25p16CsPin); __NOP()
-#define ENABLE_M25P16        __NOP(); IOLo(m25p16CsPin)
+#define DISABLE_M25P16       IOHi(bus->busdev_u.spi.csnPin); __NOP()
+#define ENABLE_M25P16        __NOP(); IOLo(bus->busdev_u.spi.csnPin)
+
+static busDevice_t busInstance;
+static busDevice_t *bus;
 
 // Option to skip some sectors
 #ifdef M25P16_FIRST_SECTOR
@@ -71,8 +74,6 @@
 
 static flashGeometry_t geometry = {.pageSize = M25P16_PAGESIZE};
 
-static IO_t m25p16CsPin = IO_NONE;
-
 /*
  * Whether we've performed an action that could have made the device busy for writes.
  *
@@ -87,7 +88,7 @@ static void m25p16_performOneByteCommand(uint8_t command)
 {
     ENABLE_M25P16;
 
-    spiTransferByte(M25P16_SPI_INSTANCE, command);
+    spiTransferByte(bus->busdev_u.spi.instance, command);
 
     DISABLE_M25P16;
 }
@@ -96,7 +97,7 @@ static void m25p16_performOneByteCommand(uint8_t command)
  * The flash requires this write enable command to be sent before commands that would cause
  * a write like program and erase.
  */
-static void m25p16_writeEnable()
+static void m25p16_writeEnable(void)
 {
     m25p16_performOneByteCommand(M25P16_INSTRUCTION_WRITE_ENABLE);
 
@@ -104,21 +105,21 @@ static void m25p16_writeEnable()
     couldBeBusy = true;
 }
 
-static uint8_t m25p16_readStatus()
+static uint8_t m25p16_readStatus(void)
 {
-    uint8_t command[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
+    const uint8_t command[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
     uint8_t in[2];
 
     ENABLE_M25P16;
 
-    spiTransfer(M25P16_SPI_INSTANCE, in, command, sizeof(command));
+    spiTransfer(bus->busdev_u.spi.instance, command, in, sizeof(command));
 
     DISABLE_M25P16;
 
     return in[1];
 }
 
-bool m25p16_isReady()
+bool m25p16_isReady(void)
 {
     // If couldBeBusy is false, don't bother to poll the flash chip for its status
     couldBeBusy = couldBeBusy && ((m25p16_readStatus() & M25P16_STATUS_FLAG_WRITE_IN_PROGRESS) != 0);
@@ -143,64 +144,63 @@ bool m25p16_waitForReady(uint32_t timeoutMillis)
  *
  * Returns true if we get valid ident, false if something bad happened like there is no M25P16.
  */
-static bool m25p16_readIdentification()
+static bool m25p16_readIdentification(void)
 {
-    uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
-    uint8_t in[4];
-    uint32_t chipID;
+    const uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
 
     delay(50); // short delay required after initialisation of SPI device instance.
 
     /* Just in case transfer fails and writes nothing, so we don't try to verify the ID against random garbage
      * from the stack:
      */
+    uint8_t in[4];
     in[1] = 0;
 
     ENABLE_M25P16;
 
-    spiTransfer(M25P16_SPI_INSTANCE, in, out, sizeof(out));
+    spiTransfer(bus->busdev_u.spi.instance, out, in, sizeof(out));
 
     // Clearing the CS bit terminates the command early so we don't have to read the chip UID:
     DISABLE_M25P16;
 
     // Manufacturer, memory type, and capacity
-    chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
+    const uint32_t chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
 
     // All supported chips use the same pagesize of 256 bytes
 
     switch (chipID) {
-        case JEDEC_ID_MICRON_M25P16:
-            geometry.sectors = 32;
-            geometry.pagesPerSector = 256;
+    case JEDEC_ID_MICRON_M25P16:
+        geometry.sectors = 32;
+        geometry.pagesPerSector = 256;
         break;
-        case JEDEC_ID_MACRONIX_MX25L3206E:
-            geometry.sectors = 64;
-            geometry.pagesPerSector = 256;
+    case JEDEC_ID_MACRONIX_MX25L3206E:
+        geometry.sectors = 64;
+        geometry.pagesPerSector = 256;
         break;
-        case JEDEC_ID_MICRON_N25Q064:
-        case JEDEC_ID_WINBOND_W25Q64:
-        case JEDEC_ID_MACRONIX_MX25L6406E:
-            geometry.sectors = 128;
-            geometry.pagesPerSector = 256;
+    case JEDEC_ID_MICRON_N25Q064:
+    case JEDEC_ID_WINBOND_W25Q64:
+    case JEDEC_ID_MACRONIX_MX25L6406E:
+        geometry.sectors = 128;
+        geometry.pagesPerSector = 256;
         break;
-        case JEDEC_ID_MICRON_N25Q128:
-        case JEDEC_ID_WINBOND_W25Q128:
-        case JEDEC_ID_SPANSION_S25FL127:
-            geometry.sectors = 256;
-            geometry.pagesPerSector = 256;
+    case JEDEC_ID_MICRON_N25Q128:
+    case JEDEC_ID_WINBOND_W25Q128:
+    case JEDEC_ID_SPANSION_S25FL127:
+        geometry.sectors = 256;
+        geometry.pagesPerSector = 256;
         break;
-        case JEDEC_ID_MACRONIX_MX25L25635E:
-            geometry.sectors = 512;
-            geometry.pagesPerSector = 256;
+    case JEDEC_ID_MACRONIX_MX25L25635E:
+        geometry.sectors = 512;
+        geometry.pagesPerSector = 256;
         break;
-        default:
-            // Unsupported chip or not an SPI NOR flash
-            geometry.sectors = 0;
-            geometry.pagesPerSector = 0;
+    default:
+        // Unsupported chip or not an SPI NOR flash
+        geometry.sectors = 0;
+        geometry.pagesPerSector = 0;
 
-            geometry.sectorSize = 0;
-            geometry.totalSize = 0;
-            return false;
+        geometry.sectorSize = 0;
+        geometry.totalSize = 0;
+        return false;
     }
 
 #ifdef M25P16_FIRST_SECTOR
@@ -221,7 +221,7 @@ static bool m25p16_readIdentification()
  * Attempts to detect a connected m25p16. If found, true is returned and device capacity can be fetched with
  * m25p16_getGeometry().
  */
-bool m25p16_init(flashConfig_t *flashConfig)
+bool m25p16_init(const flashConfig_t *flashConfig)
 {
     /*
         if we have already detected a flash device we can simply exit
@@ -230,20 +230,23 @@ bool m25p16_init(flashConfig_t *flashConfig)
         return true;
     }
 
+    bus = &busInstance;
+    bus->bustype = BUSTYPE_SPI;
+    spiBusSetInstance(bus, spiInstanceByDevice(SPI_CFG_TO_DEV(flashConfig->spiDevice)));
     if (flashConfig->csTag) {
-        m25p16CsPin = IOGetByTag(flashConfig->csTag);
+        bus->busdev_u.spi.csnPin = IOGetByTag(flashConfig->csTag);
     } else {
         return false;
     }
 
-    IOInit(m25p16CsPin, OWNER_FLASH_CS, 0);
-    IOConfigGPIO(m25p16CsPin, SPI_IO_CS_CFG);
+    IOInit(bus->busdev_u.spi.csnPin, OWNER_FLASH_CS, 0);
+    IOConfigGPIO(bus->busdev_u.spi.csnPin, SPI_IO_CS_CFG);
 
     DISABLE_M25P16;
 
 #ifndef M25P16_SPI_SHARED
     //Maximum speed for standard READ command is 20mHz, other commands tolerate 25mHz
-    spiSetDivisor(M25P16_SPI_INSTANCE, SPI_CLOCK_FAST);
+    spiSetDivisor(bus->busdev_u.spi.instance, SPI_CLOCK_FAST);
 #endif
 
     return m25p16_readIdentification();
@@ -255,7 +258,7 @@ bool m25p16_init(flashConfig_t *flashConfig)
 void m25p16_eraseSector(uint32_t address)
 {
     address = TRANSLATE_ADDR(address);
-    uint8_t out[] = { M25P16_INSTRUCTION_SECTOR_ERASE, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
+    const uint8_t out[] = { M25P16_INSTRUCTION_SECTOR_ERASE, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
 
     m25p16_waitForReady(SECTOR_ERASE_TIMEOUT_MILLIS);
 
@@ -263,12 +266,12 @@ void m25p16_eraseSector(uint32_t address)
 
     ENABLE_M25P16;
 
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, out, sizeof(out));
+    spiTransfer(bus->busdev_u.spi.instance, out, NULL, sizeof(out));
 
     DISABLE_M25P16;
 }
 
-void m25p16_eraseCompletely()
+void m25p16_eraseCompletely(void)
 {
     m25p16_waitForReady(BULK_ERASE_TIMEOUT_MILLIS);
 
@@ -280,7 +283,7 @@ void m25p16_eraseCompletely()
 void m25p16_pageProgramBegin(uint32_t address)
 {
     address = TRANSLATE_ADDR(address);
-    uint8_t command[] = { M25P16_INSTRUCTION_PAGE_PROGRAM, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
+    const uint8_t command[] = { M25P16_INSTRUCTION_PAGE_PROGRAM, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
 
     m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS);
 
@@ -288,15 +291,15 @@ void m25p16_pageProgramBegin(uint32_t address)
 
     ENABLE_M25P16;
 
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, sizeof(command));
+    spiTransfer(bus->busdev_u.spi.instance, command, NULL, sizeof(command));
 }
 
 void m25p16_pageProgramContinue(const uint8_t *data, int length)
 {
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, data, length);
+    spiTransfer(bus->busdev_u.spi.instance, data, NULL, length);
 }
 
-void m25p16_pageProgramFinish()
+void m25p16_pageProgramFinish(void)
 {
     DISABLE_M25P16;
 }
@@ -337,7 +340,7 @@ void m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 {
     address = TRANSLATE_ADDR(address);
-    uint8_t command[] = { M25P16_INSTRUCTION_READ_BYTES, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
+    const uint8_t command[] = { M25P16_INSTRUCTION_READ_BYTES, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
 
     if (!m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS)) {
         return 0;
@@ -345,8 +348,8 @@ int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 
     ENABLE_M25P16;
 
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, sizeof(command));
-    spiTransfer(M25P16_SPI_INSTANCE, buffer, NULL, length);
+    spiTransfer(bus->busdev_u.spi.instance, command, NULL, sizeof(command));
+    spiTransfer(bus->busdev_u.spi.instance, NULL, buffer, length);
 
     DISABLE_M25P16;
 
@@ -358,7 +361,7 @@ int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
  *
  * Can be called before calling m25p16_init() (the result would have totalSize = 0).
  */
-const flashGeometry_t* m25p16_getGeometry()
+const flashGeometry_t* m25p16_getGeometry(void)
 {
     return &geometry;
 }

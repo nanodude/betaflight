@@ -21,8 +21,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "BRAINRE1"
 
-#define CONFIG_START_FLASH_ADDRESS (0x08010000) // 64kB, flash sector
-
 #define USBD_PRODUCT_STRING     "BrainRE1"
 
 #define LED0                    PB13
@@ -30,7 +28,7 @@
 #define LED0_INVERTED
 #define LED1_INVERTED
 
-#define BEEPER
+#define BEEPER NONE
 #define LED_STRIP
 
 #define USE_ESCSERIAL
@@ -128,7 +126,7 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 #define USE_I2C_PULLUP
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
@@ -141,7 +139,7 @@
 #define VBAT_SCALE_DEFAULT      66
 #define CURRENT_SCALE_DEFAULT   250
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_BLACKBOX)
+#define DEFAULT_FEATURES        0
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 

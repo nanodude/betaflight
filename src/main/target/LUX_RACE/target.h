@@ -22,14 +22,14 @@
 #else
 #define TARGET_BOARD_IDENTIFIER "LUX"
 #endif
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
 
-#define LED0                    PC15
-#define LED1                    PC14
+#define LED0_PIN                PC15
+#define LED1_PIN                PC14
 #ifndef LUXV2_RACE
-#define LED2                    PC13
+#define LED2_PIN                PC13
 #endif
 
 #ifdef LUXV2_RACE
@@ -68,11 +68,10 @@
 #define SPI2_MOSI_PIN           PB15
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
 
 #define SDCARD_DETECT_INVERTED
-
 #define SDCARD_DETECT_PIN                   PC13
+
 #define SDCARD_SPI_INSTANCE                 SPI2
 #define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
 
@@ -113,8 +112,6 @@
 #define ACC_MPU6500_ALIGN CW270_DEG
 #endif
 
-#define USB_IO
-
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2
@@ -147,8 +144,6 @@
 #define RSSI_ADC_PIN            PC2
 #define EXTERNAL1_ADC_PIN       PC3
 
-#define LED_STRIP
-
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
@@ -156,19 +151,15 @@
 
 #ifdef LUXV2_RACE
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define DEFAULT_FEATURES        ( FEATURE_BLACKBOX | FEATURE_TELEMETRY )
+#define DEFAULT_FEATURES        (FEATURE_TELEMETRY)
 #else
-#define DEFAULT_FEATURES        FEATURE_TELEMETRY
+#define DEFAULT_FEATURES        (FEATURE_TELEMETRY)
 #endif
-
-#define SPEKTRUM_BIND
-// USART1, PC5
-#define BIND_PIN                PC5
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA8  // (HARDARE=0,PPM)
 
 // IO - assuming 303 in 64pin package, TODO
 #define TARGET_IO_PORTA         0xffff

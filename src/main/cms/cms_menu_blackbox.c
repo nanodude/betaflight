@@ -21,76 +21,50 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
 #include "platform.h"
 
-#include "build/version.h"
+#if defined(CMS) && defined(BLACKBOX)
 
-#ifdef CMS
+#include "build/version.h"
 
 #if defined(USE_CHIBIOS)
 #include "ch.h"
 #endif
 
 #include "drivers/system.h"
+#include "blackbox/blackbox.h"
+#include "blackbox/blackbox_io.h"
 
 #include "cms/cms.h"
 #include "cms/cms_types.h"
 #include "cms/cms_menu_blackbox.h"
 
+#include "common/printf.h"
 #include "common/utils.h"
 
-#include "config/config_profile.h"
-#include "config/config_master.h"
 #include "config/feature.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "drivers/time.h"
+
+#include "fc/config.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
-
-#include "blackbox/blackbox_io.h"
-
-#ifdef USE_FLASHFS
-static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
-{
-    UNUSED(ptr);
-
-    displayClearScreen(pDisplay);
-    displayWrite(pDisplay, 5, 3, "ERASING FLASH...");
-    displayResync(pDisplay); // Was max7456RefreshAll(); Why at this timing?
-
-#ifdef USE_CHIBIOS
-    // makes sure we have exclusive access to SPI
-    chSysLock();
-#endif
-
-    flashfsEraseCompletely();
-    while (!flashfsIsReady()) {
-        delay(100);
-    }
-
-#ifdef USE_CHIBIOS
-    chSysUnlock();
-#endif
-
-    displayClearScreen(pDisplay);
-    displayResync(pDisplay); // Was max7456RefreshAll(); wedges during heavy SPI?
-
-    return 0;
-}
-#endif // USE_FLASHFS
+#include "io/beeper.h"
 
 static const char * const cmsx_BlackboxDeviceNames[] = {
-    "SERIAL",
+    "NONE",
     "FLASH ",
-    "SDCARD"
+    "SDCARD",
+    "SERIAL"
 };
 
-static bool featureRead = false;
-
-static uint8_t cmsx_FeatureBlackbox;
+static uint16_t blackboxConfig_p_denom;
 
 static uint8_t cmsx_BlackboxDevice;
 static OSD_TAB_t cmsx_BlackboxDeviceTable = { &cmsx_BlackboxDevice, 2, cmsx_BlackboxDeviceNames };
@@ -116,22 +90,22 @@ static void cmsx_Blackbox_GetDeviceStatus()
         unit = "MB";
 
         if (!sdcard_isInserted()) {
-            snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "NO CARD");
+            tfp_sprintf(cmsx_BlackboxStatus, "NO CARD");
         } else if (!sdcard_isFunctional()) {
-            snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "FAULT");
+            tfp_sprintf(cmsx_BlackboxStatus, "FAULT");
         } else {
             switch (afatfs_getFilesystemState()) {
             case AFATFS_FILESYSTEM_STATE_READY:
-                snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "READY");
+                tfp_sprintf(cmsx_BlackboxStatus, "READY");
                 storageDeviceIsWorking = true;
                 break;
             case AFATFS_FILESYSTEM_STATE_INITIALIZATION:
-                snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "INIT");
+                tfp_sprintf(cmsx_BlackboxStatus, "INIT");
                 break;
             case AFATFS_FILESYSTEM_STATE_FATAL:
             case AFATFS_FILESYSTEM_STATE_UNKNOWN:
             default:
-                snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "FAULT");
+                tfp_sprintf(cmsx_BlackboxStatus, "FAULT");
                 break;
             }
         }
@@ -150,37 +124,67 @@ static void cmsx_Blackbox_GetDeviceStatus()
 
         storageDeviceIsWorking = flashfsIsReady();
         if (storageDeviceIsWorking) {
-            snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "READY");
+            tfp_sprintf(cmsx_BlackboxStatus, "READY");
 
             const flashGeometry_t *geometry = flashfsGetGeometry();
             storageUsed = flashfsGetOffset() / 1024;
             storageFree = (geometry->totalSize / 1024) - storageUsed;
         } else {
-            snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "FAULT");
+            tfp_sprintf(cmsx_BlackboxStatus, "FAULT");
         }
 
         break;
 #endif
 
     default:
-        snprintf(cmsx_BlackboxStatus, CMS_BLACKBOX_STRING_LENGTH, "---");
+        tfp_sprintf(cmsx_BlackboxStatus, "---");
     }
 
     /* Storage counters */
-    snprintf(cmsx_BlackboxDeviceStorageUsed, CMS_BLACKBOX_STRING_LENGTH, "%ld%s", storageUsed, unit);
-    snprintf(cmsx_BlackboxDeviceStorageFree, CMS_BLACKBOX_STRING_LENGTH, "%ld%s", storageFree, unit);
+    tfp_sprintf(cmsx_BlackboxDeviceStorageUsed, "%ld%s", storageUsed, unit);
+    tfp_sprintf(cmsx_BlackboxDeviceStorageFree, "%ld%s", storageFree, unit);
 }
+
+#ifdef USE_FLASHFS
+static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
+{
+    UNUSED(ptr);
+
+    displayClearScreen(pDisplay);
+    displayWrite(pDisplay, 5, 3, "ERASING FLASH...");
+    displayResync(pDisplay); // Was max7456RefreshAll(); Why at this timing?
+
+#ifdef USE_CHIBIOS
+    // makes sure we have exclusive access to SPI
+    chSysLock();
+#endif
+
+    flashfsEraseCompletely();
+    while (!flashfsIsReady()) {
+        delay(100);
+    }
+
+#ifdef USE_CHIBIOS
+    chSysUnlock();
+#endif
+
+    beeper(BEEPER_BLACKBOX_ERASE);
+    displayClearScreen(pDisplay);
+    displayResync(pDisplay); // Was max7456RefreshAll(); wedges during heavy SPI?
+
+    // Update storage device status to show new used space amount
+    cmsx_Blackbox_GetDeviceStatus();
+
+    return 0;
+}
+#endif // USE_FLASHFS
 
 static long cmsx_Blackbox_onEnter(void)
 {
     cmsx_Blackbox_GetDeviceStatus();
     cmsx_BlackboxDevice = blackboxConfig()->device;
 
-    if (!featureRead) {
-        cmsx_FeatureBlackbox = feature(FEATURE_BLACKBOX) ? 1 : 0;
-        featureRead = true;
-    }
-
+    blackboxConfig_p_denom = blackboxConfig()->p_denom;
     return 0;
 }
 
@@ -189,34 +193,26 @@ static long cmsx_Blackbox_onExit(const OSD_Entry *self)
     UNUSED(self);
 
     if (blackboxMayEditConfig()) {
-        blackboxConfig()->device = cmsx_BlackboxDevice;
-        validateBlackboxConfig();
+        blackboxConfigMutable()->device = cmsx_BlackboxDevice;
+        blackboxValidateConfig();
     }
-
+    blackboxConfigMutable()->p_denom = blackboxConfig_p_denom;
     return 0;
 }
 
 static long cmsx_Blackbox_FeatureWriteback(void)
 {
-    if (featureRead) {
-        if (cmsx_FeatureBlackbox)
-            featureSet(FEATURE_BLACKBOX);
-        else
-            featureClear(FEATURE_BLACKBOX);
-    }
-
     return 0;
 }
 
 static OSD_Entry cmsx_menuBlackboxEntries[] =
 {
     { "-- BLACKBOX --", OME_Label, NULL, NULL, 0},
-    { "ENABLED",     OME_Bool,    NULL,            &cmsx_FeatureBlackbox,                                     0 },
     { "DEVICE",      OME_TAB,     NULL,            &cmsx_BlackboxDeviceTable,                                 0 },
     { "(STATUS)",    OME_String,  NULL,            &cmsx_BlackboxStatus,                                      0 },
     { "(USED)",      OME_String,  NULL,            &cmsx_BlackboxDeviceStorageUsed,                           0 },
     { "(FREE)",      OME_String,  NULL,            &cmsx_BlackboxDeviceStorageFree,                           0 },
-    { "RATE DENOM",  OME_UINT8,   NULL,            &(OSD_UINT8_t){ &blackboxConfig()->rate_denom, 1, 32, 1 }, 0 },
+    { "P DENOM",     OME_UINT16,  NULL,            &(OSD_UINT16_t){ &blackboxConfig_p_denom, 1, INT16_MAX, 1 },0 },
 
 #ifdef USE_FLASHFS
     { "ERASE FLASH", OME_Funcall, cmsx_EraseFlash, NULL,                                                      0 },

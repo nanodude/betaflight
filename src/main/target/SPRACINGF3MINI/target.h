@@ -22,16 +22,17 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
 
-#define LED0                    PB8
+#define LED0_PIN                PB8
 #else
 #define TARGET_BOARD_IDENTIFIER "SRFM"
 
+#ifndef SPRACINGF3MINI_REV
+#define SPRACINGF3MINI_REV 2
+#endif
+
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
-// early prototype had slightly different pin mappings.
-//#define SPRACINGF3MINI_MKII_REVA
-
-#define LED0                    PB3
+#define LED0_PIN                PB3
 #endif
 
 #define BEEPER                  PC15
@@ -39,35 +40,32 @@
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC13
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 2 // MPU_INT, SDCardDetect
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
-
-#define USE_MAG_DATA_READY_SIGNAL
-#define ENSURE_MAG_DATA_READY_IS_HIGH
 
 #define GYRO
 #define ACC
 
-#define BARO
-#define USE_BARO_BMP280
-
 #ifdef TINYBEEF3
+
 #define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW270_DEG
 
 #define USE_ACC_SPI_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
-
-#define MAG_AK8963_ALIGN CW90_DEG_FLIP
 #else
-//#define USE_FAKE_GYRO
+
+#define USE_MAG_DATA_READY_SIGNAL
+#define ENSURE_MAG_DATA_READY_IS_HIGH
+
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 
-//#define USE_FAKE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW180_DEG
+
+#define BARO
+#define USE_BARO_BMP280
 
 #define MAG
 #define USE_MPU9250_MAG // Enables bypass configuration
@@ -80,13 +78,7 @@
 //#define SONAR_ECHO_PIN          PB1
 //#define SONAR_TRIGGER_PIN       PB0
 
-#define USB_IO
-
-#ifndef TINYBEEF3
-#define USB_CABLE_DETECTION
-
-#define USB_DETECT_PIN          PB5
-#endif
+#define BRUSHED_ESC_AUTODETECT
 
 #define USE_VCP
 #define USE_UART1
@@ -96,13 +88,25 @@
 #ifdef TINYBEEF3
 #define SERIAL_PORT_COUNT       4
 #else
+#define USB_DETECT_PIN          PB5
+
 #define USE_SOFTSERIAL1
 #define USE_SOFTSERIAL2
 #define SERIAL_PORT_COUNT       6
 #endif
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#ifdef TINYBEEF3
+#define ESCSERIAL_TIMER_TX_PIN  PA15 // (Hardware=0)
+#else
+#if defined(SPRACINGF3MINI_REV) && (SPRACINGF3MINI_REV <= 1)
+#define ESCSERIAL_TIMER_TX_PIN  PB5  // (Hardware=0)
+#else
+#define ESCSERIAL_TIMER_TX_PIN  PB4  // (Hardware=0)
+#endif
+#endif
+
+#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -120,16 +124,7 @@
 
 #define SONAR_SOFTSERIAL1_EXCLUSIVE
 
-#define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1) // PB6/SCL, PB7/SDA
-
 #define USE_SPI
-#define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5
-
-#define SPI2_NSS_PIN            PB12
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
 
 #ifdef TINYBEEF3
 #define USE_SPI_DEVICE_1 // PB9,3,4,5 on AF5 SPI1 (MPU)
@@ -139,16 +134,25 @@
 #define SPI1_MISO_PIN           PB4
 #define SPI1_MOSI_PIN           PB5
 
-#define MPU6500_CS_PIN                   PB9
+#define MPU6500_CS_PIN                   SPI1_NSS_PIN
 #define MPU6500_SPI_INSTANCE             SPI1
-#endif
+#else
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE              (I2CDEV_1)
+
+#define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5
+
+#define SPI2_NSS_PIN            PB12
+#define SPI2_SCK_PIN            PB13
+#define SPI2_MISO_PIN           PB14
+#define SPI2_MOSI_PIN           PB15
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
 
 #define SDCARD_DETECT_INVERTED
-
 #define SDCARD_DETECT_PIN                   PC14
+
 #define SDCARD_SPI_INSTANCE                 SPI2
 #define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
 
@@ -164,42 +168,30 @@
 // Performance logging for SD card operations:
 // #define AFATFS_USE_INTROSPECTIVE_LOGGING
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#endif
+
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define USE_ADC
 #define ADC_INSTANCE                ADC2
 #define VBAT_ADC_PIN                PA4
 #define CURRENT_METER_ADC_PIN       PA5
 #define RSSI_ADC_PIN                PB2
 
-#define LED_STRIP
-
 #define TRANSPONDER
 
 #define REDUCE_TRANSPONDER_CURRENT_DRAW_WHEN_USB_CABLE_PRESENT
 
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
-#ifdef TINYBEEF3
-#define BRUSHED_ESC_AUTODETECT
-#else
-#define DEFAULT_FEATURES        FEATURE_BLACKBOX
-#endif
 
 #ifndef TINYBEEF3
+
 #define BUTTONS
 #define BUTTON_A_PIN            PB1
 #define BUTTON_B_PIN            PB0
 
-#define HARDWARE_BIND_PLUG
-#define BINDPLUG_PIN            PB0
+#define BINDPLUG_PIN            BUTTON_B_PIN
 #endif
-
-#define SPEKTRUM_BIND
-// USART3,
-#define BIND_PIN                PB11
-
-#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

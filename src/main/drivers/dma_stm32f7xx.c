@@ -77,7 +77,7 @@ static void enableDmaClock(uint32_t rcc)
         /* Delay after an RCC peripheral clock enabling */
         tmpreg = READ_BIT(RCC->AHB1ENR, rcc);
         UNUSED(tmpreg);
-    } while(0);
+    } while (0);
 }
 
 void dmaInit(dmaIdentifier_e identifier, resourceOwner_e owner, uint8_t resourceIndex)
@@ -110,7 +110,7 @@ uint8_t dmaGetResourceIndex(dmaIdentifier_e identifier)
 dmaIdentifier_e dmaGetIdentifier(const DMA_Stream_TypeDef* stream)
 {
     for (int i = 0; i < DMA_MAX_DESCRIPTORS; i++) {
-        if (dmaDescriptors[i].stream == stream) {
+        if (dmaDescriptors[i].ref == stream) {
             return i;
         }
     }

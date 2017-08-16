@@ -32,12 +32,18 @@ void main_step(void)
 
 #ifndef NOMAIN
 #if !defined(USE_CHIBIOS)
+
 int main(void)
 {
     init();
     while (true) {
-        main_step();
+        scheduler();
+        processLoopback();
+#ifdef SIMULATOR_BUILD
+        delayMicroseconds_real(50); // max rate 20kHz
+#endif
     }
+    return 0;
 }
 #endif
 
@@ -60,7 +66,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 8 * 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 2 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -74,22 +80,24 @@ static THD_FUNCTION(BetaFlightThread, arg)
 #include "brainfpv/brainfpv_osd.h"
 #include "drivers/display.h"
 #include "io/displayport_max7456.h"
-
+#include "drivers/vcd.h"
 #include "config/config_eeprom.h"
-#include "config/config_profile.h"
-#include "config/config_master.h"
 #include "config/feature.h"
 
 void osdInit(displayPort_t *osdDisplayPortToUse);
 
 extern binary_semaphore_t onScreenDisplaySemaphore;
 
-static THD_WORKING_AREA(waOSDThread, 12 * 1024);
+static THD_WORKING_AREA(waOSDThread, 8 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
     chRegSetThreadName("OSD");
-	displayPort_t *osdDisplayPort = max7456DisplayPortInit(&masterConfig.vcdProfile, displayPortProfileMax7456());
+    vcdProfile_t vcdProfile_ = {
+        .video_system=VIDEO_SYSTEM_AUTO,
+        .h_offset = 0,
+        .v_offset = 0};
+    displayPort_t *osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
     osdInit(osdDisplayPort);
     while (1) {
         // wait for VSYNC
@@ -153,7 +161,7 @@ int main()
 #endif /* USE_BRAINFPV_OSD */
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
-  if (masterConfig.bfOsdConfig.spec_enabled) {
+  if (bfOsdConfig()->spec_enabled) {
     spectrographInit();
     chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
   }

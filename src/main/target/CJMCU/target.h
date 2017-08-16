@@ -21,9 +21,9 @@
 #define USE_HARDWARE_REVISION_DETECTION
 #define TARGET_BUS_INIT
 
-#define LED0                    PC14
-#define LED1                    PC13
-#define LED2                    PC15
+#define LED0_PIN                PC14
+#define LED1_PIN                PC13
+#define LED2_PIN                PC15
 
 #undef BEEPER
 
@@ -44,6 +44,7 @@
 #define SERIAL_PORT_COUNT       2
 
 #define USE_I2C
+#define USE_I2C_DEVICE_1
 #define I2C_DEVICE              (I2CDEV_1)
 
 // #define SOFT_I2C // enable to test software i2c
@@ -75,7 +76,7 @@
 #define USE_RX_NRF24
 #define USE_RX_CX10
 #define USE_RX_H8_3D
-#define USE_RX_INAV
+//#define USE_RX_INAV // Temporary disabled to make some room in flash
 #define USE_RX_SYMA
 #define USE_RX_V202
 //#define RX_SPI_DEFAULT_PROTOCOL RX_SPI_NRF24_SYMA_X5
@@ -106,8 +107,7 @@
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 #define USE_RX_MSP
-#define SPEKTRUM_BIND
-#define BIND_PIN                PA3 // UART2, PA3
+#define USE_SPEKTRUM_BIND
 
 #endif //USE_RX_NRF24
 

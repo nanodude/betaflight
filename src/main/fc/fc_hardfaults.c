@@ -21,7 +21,7 @@
 #include "platform.h"
 
 #include "drivers/light_led.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 #include "drivers/transponder_ir.h"
 
 #include "fc/fc_init.h"
@@ -93,11 +93,14 @@ void HardFault_Handler(void)
 {
     LED2_ON;
 
+#ifndef USE_OSD_SLAVE
     // fall out of the sky
     uint8_t requiredStateForMotors = SYSTEM_STATE_CONFIG_LOADED | SYSTEM_STATE_MOTORS_READY;
     if ((systemState & requiredStateForMotors) == requiredStateForMotors) {
         stopMotors();
     }
+#endif
+
 #ifdef TRANSPONDER
     // prevent IR LEDs from burning out.
     uint8_t requiredStateForTransponder = SYSTEM_STATE_CONFIG_LOADED | SYSTEM_STATE_TRANSPONDER_ENABLED;

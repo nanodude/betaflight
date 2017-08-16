@@ -21,346 +21,237 @@
 
 #include "platform.h"
 
-#include "drivers/system.h"
-
-#include "config/config_master.h"
-
 #include "build/build_config.h"
 
+#include "common/maths.h"
+#include "common/utils.h"
+
 #include "config/config_eeprom.h"
+#include "config/config_streamer.h"
+#include "config/parameter_group.h"
+#include "fc/config.h"
 
-#if !defined(FLASH_SIZE)
-#error "Flash size not defined for target. (specify in KB)"
-#endif
+#include "drivers/system.h"
 
-
-#ifndef FLASH_PAGE_SIZE
-    #ifdef STM32F303xC
-        #define FLASH_PAGE_SIZE                 ((uint16_t)0x800)
-    #endif
-
-    #ifdef STM32F10X_MD
-        #define FLASH_PAGE_SIZE                 ((uint16_t)0x400)
-    #endif
-
-    #ifdef STM32F10X_HD
-        #define FLASH_PAGE_SIZE                 ((uint16_t)0x800)
-    #endif
-
-    #if defined(STM32F745xx)
-        #define FLASH_PAGE_SIZE                 ((uint32_t)0x40000)
-    #endif
-
-    #if defined(STM32F746xx)
-        #define FLASH_PAGE_SIZE                 ((uint32_t)0x40000)
-    #endif
-
-    #if defined(STM32F722xx)
-        #define FLASH_PAGE_SIZE                 ((uint32_t)0x20000)
-    #endif
-
-    #if defined(STM32F40_41xxx)
-        #define FLASH_PAGE_SIZE                 ((uint32_t)0x20000)
-    #endif
-
-    #if defined (STM32F411xE)
-        #define FLASH_PAGE_SIZE                 ((uint32_t)0x20000)
-    #endif
-
-    #if defined (STM32F446xx)
-        #define FLASH_PAGE_SIZE                 ((uint32_t)0x20000)
-    #endif
-#endif
-
-#if !defined(FLASH_SIZE) && !defined(FLASH_PAGE_COUNT)
-    #ifdef STM32F10X_MD
-        #define FLASH_PAGE_COUNT 128
-    #endif
-
-    #ifdef STM32F10X_HD
-        #define FLASH_PAGE_COUNT 128
-    #endif
-#endif
-
-#if defined(FLASH_SIZE)
-#if defined(STM32F40_41xxx)
-#define FLASH_PAGE_COUNT 4
-#elif defined (STM32F411xE)
-#define FLASH_PAGE_COUNT 3  // just to make calculations work
-#elif defined (STM32F446xx)
-#define FLASH_PAGE_COUNT 4 // just to make calculations work
-#elif defined (STM32F722xx)
-#define FLASH_PAGE_COUNT 3
-#elif defined (STM32F745xx)
-#define FLASH_PAGE_COUNT 4
-#elif defined (STM32F746xx)
-#define FLASH_PAGE_COUNT 4
+#ifdef EEPROM_IN_RAM
+extern uint8_t eepromData[EEPROM_SIZE];
+# define __config_start (*eepromData)
+# define __config_end (*ARRAYEND(eepromData))
 #else
-#define FLASH_PAGE_COUNT ((FLASH_SIZE * 0x400) / FLASH_PAGE_SIZE)
-#endif
-#endif
-
-#if !defined(FLASH_PAGE_SIZE)
-#error "Flash page size not defined for target."
+extern uint8_t __config_start;   // configured via linker script when building binaries.
+extern uint8_t __config_end;
 #endif
 
-#if !defined(FLASH_PAGE_COUNT)
-#error "Flash page count not defined for target."
-#endif
+static uint16_t eepromConfigSize;
 
-#if FLASH_SIZE <= 128
-#define FLASH_TO_RESERVE_FOR_CONFIG 0x800
-#else
-#define FLASH_TO_RESERVE_FOR_CONFIG 0x1000
-#endif
+typedef enum {
+    CR_CLASSICATION_SYSTEM   = 0,
+    CR_CLASSICATION_PROFILE_LAST = CR_CLASSICATION_SYSTEM,
+} configRecordFlags_e;
 
-// use the last flash pages for storage
-#ifdef CUSTOM_FLASH_MEMORY_ADDRESS
-size_t custom_flash_memory_address = 0;
-#define CONFIG_START_FLASH_ADDRESS (custom_flash_memory_address)
-#else
-// use the last flash pages for storage
-#ifndef CONFIG_START_FLASH_ADDRESS
-#define CONFIG_START_FLASH_ADDRESS (0x08000000 + (uint32_t)((FLASH_PAGE_SIZE * FLASH_PAGE_COUNT) - FLASH_TO_RESERVE_FOR_CONFIG))
-#endif
-#endif
+#define CR_CLASSIFICATION_MASK  (0x3)
+#define CRC_START_VALUE         0xFFFF
+#define CRC_CHECK_VALUE         0x1D0F  // pre-calculated value of CRC that includes the CRC itself
 
+// Header for the saved copy.
+typedef struct {
+    uint8_t eepromConfigVersion;
+    uint8_t magic_be;           // magic number, should be 0xBE
+} PG_PACKED configHeader_t;
+
+// Header for each stored PG.
+typedef struct {
+    // split up.
+    uint16_t size;
+    pgn_t pgn;
+    uint8_t version;
+
+    // lower 2 bits used to indicate system or profile number, see CR_CLASSIFICATION_MASK
+    uint8_t flags;
+
+    uint8_t pg[];
+} PG_PACKED configRecord_t;
+
+// Footer for the saved copy.
+typedef struct {
+    uint16_t terminator;
+} PG_PACKED configFooter_t;
+// checksum is appended just after footer. It is not included in footer to make checksum calculation consistent
+
+// Used to check the compiler packing at build time.
+typedef struct {
+    uint8_t byte;
+    uint32_t word;
+} PG_PACKED packingTest_t;
 
 void initEEPROM(void)
 {
+    // Verify that this architecture packs as expected.
+    BUILD_BUG_ON(offsetof(packingTest_t, byte) != 0);
+    BUILD_BUG_ON(offsetof(packingTest_t, word) != 1);
+    BUILD_BUG_ON(sizeof(packingTest_t) != 5);
+
+    BUILD_BUG_ON(sizeof(configFooter_t) != 2);
+    BUILD_BUG_ON(sizeof(configRecord_t) != 6);
 }
 
-static uint8_t calculateChecksum(const uint8_t *data, uint32_t length)
-{
-    uint8_t checksum = 0;
-    const uint8_t *byteOffset;
-
-    for (byteOffset = data; byteOffset < (data + length); byteOffset++)
-        checksum ^= *byteOffset;
-    return checksum;
-}
-
+// Scan the EEPROM config. Returns true if the config is valid.
 bool isEEPROMContentValid(void)
 {
-    const master_t *temp = (const master_t *) CONFIG_START_FLASH_ADDRESS;
-    uint8_t checksum = 0;
+    const uint8_t *p = &__config_start;
+    const configHeader_t *header = (const configHeader_t *)p;
 
-    // check version number
-    if (EEPROM_CONF_VERSION != temp->version)
+    if (header->eepromConfigVersion != EEPROM_CONF_VERSION) {
         return false;
-
-    // check size and magic numbers
-    if (temp->size != sizeof(master_t) || temp->magic_be != 0xBE || temp->magic_ef != 0xEF)
+    }
+    if (header->magic_be != 0xBE) {
         return false;
+    }
 
-    if (strncasecmp(temp->boardIdentifier, TARGET_BOARD_IDENTIFIER, sizeof(TARGET_BOARD_IDENTIFIER)))
-        return false;
+    uint16_t crc = CRC_START_VALUE;
+    crc = crc16_ccitt_update(crc, header, sizeof(*header));
+    p += sizeof(*header);
 
-    // verify integrity of temporary copy
-    checksum = calculateChecksum((const uint8_t *) temp, sizeof(master_t));
-    if (checksum != 0)
-        return false;
+    for (;;) {
+        const configRecord_t *record = (const configRecord_t *)p;
 
-    // looks good, let's roll!
+        if (record->size == 0) {
+            // Found the end.  Stop scanning.
+            break;
+        }
+        if (p + record->size >= &__config_end
+            || record->size < sizeof(*record)) {
+            // Too big or too small.
+            return false;
+        }
+
+        crc = crc16_ccitt_update(crc, p, record->size);
+
+        p += record->size;
+    }
+
+    const configFooter_t *footer = (const configFooter_t *)p;
+    crc = crc16_ccitt_update(crc, footer, sizeof(*footer));
+    p += sizeof(*footer);
+
+    // include stored CRC in the CRC calculation
+    const uint16_t *storedCrc = (const uint16_t *)p;
+    crc = crc16_ccitt_update(crc, storedCrc, sizeof(*storedCrc));
+    p += sizeof(storedCrc);
+
+    eepromConfigSize = p - &__config_start;
+
+    // CRC has the property that if the CRC itself is included in the calculation the resulting CRC will have constant value
+    return crc == CRC_CHECK_VALUE;
+}
+
+uint16_t getEEPROMConfigSize(void)
+{
+    return eepromConfigSize;
+}
+
+// find config record for reg + classification (profile info) in EEPROM
+// return NULL when record is not found
+// this function assumes that EEPROM content is valid
+static const configRecord_t *findEEPROM(const pgRegistry_t *reg, configRecordFlags_e classification)
+{
+    const uint8_t *p = &__config_start;
+    p += sizeof(configHeader_t);             // skip header
+    while (true) {
+        const configRecord_t *record = (const configRecord_t *)p;
+        if (record->size == 0
+            || p + record->size >= &__config_end
+            || record->size < sizeof(*record))
+            break;
+        if (pgN(reg) == record->pgn
+            && (record->flags & CR_CLASSIFICATION_MASK) == classification)
+            return record;
+        p += record->size;
+    }
+    // record not found
+    return NULL;
+}
+
+// Initialize all PG records from EEPROM.
+// This functions processes all PGs sequentially, scanning EEPROM for each one. This is suboptimal,
+//   but each PG is loaded/initialized exactly once and in defined order.
+bool loadEEPROM(void)
+{
+    PG_FOREACH(reg) {
+        const configRecord_t *rec = findEEPROM(reg, CR_CLASSICATION_SYSTEM);
+        if (rec) {
+            // config from EEPROM is available, use it to initialize PG. pgLoad will handle version mismatch
+            pgLoad(reg, rec->pg, rec->size - offsetof(configRecord_t, pg), rec->version);
+        } else {
+            pgReset(reg);
+        }
+    }
     return true;
 }
 
-#if defined(STM32F7)
-
-// FIXME: HAL for now this will only work for F4/F7 as flash layout is different
-void writeEEPROM(void)
+static bool writeSettingsToEEPROM(void)
 {
-    // Generate compile time error if the config does not fit in the reserved area of flash.
-    BUILD_BUG_ON(sizeof(master_t) > FLASH_TO_RESERVE_FOR_CONFIG);
+    config_streamer_t streamer;
+    config_streamer_init(&streamer);
 
-    HAL_StatusTypeDef status;
-    uint32_t wordOffset;
-    int8_t attemptsRemaining = 3;
+    config_streamer_start(&streamer, (uintptr_t)&__config_start, &__config_end - &__config_start);
 
-    suspendRxSignal();
+    configHeader_t header = {
+        .eepromConfigVersion =  EEPROM_CONF_VERSION,
+        .magic_be =             0xBE,
+    };
 
-    // prepare checksum/version constants
-    masterConfig.version = EEPROM_CONF_VERSION;
-    masterConfig.size = sizeof(master_t);
-    masterConfig.magic_be = 0xBE;
-    masterConfig.magic_ef = 0xEF;
-    masterConfig.chk = 0; // erase checksum before recalculating
-    masterConfig.chk = calculateChecksum((const uint8_t *) &masterConfig, sizeof(master_t));
+    config_streamer_write(&streamer, (uint8_t *)&header, sizeof(header));
+    uint16_t crc = CRC_START_VALUE;
+    crc = crc16_ccitt_update(crc, (uint8_t *)&header, sizeof(header));
+    PG_FOREACH(reg) {
+        const uint16_t regSize = pgSize(reg);
+        configRecord_t record = {
+            .size = sizeof(configRecord_t) + regSize,
+            .pgn = pgN(reg),
+            .version = pgVersion(reg),
+            .flags = 0
+        };
 
+        record.flags |= CR_CLASSICATION_SYSTEM;
+        config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record));
+        crc = crc16_ccitt_update(crc, (uint8_t *)&record, sizeof(record));
+        config_streamer_write(&streamer, reg->address, regSize);
+        crc = crc16_ccitt_update(crc, reg->address, regSize);
+    }
+
+    configFooter_t footer = {
+        .terminator = 0,
+    };
+
+    config_streamer_write(&streamer, (uint8_t *)&footer, sizeof(footer));
+    crc = crc16_ccitt_update(crc, (uint8_t *)&footer, sizeof(footer));
+
+    // include inverted CRC in big endian format in the CRC
+    const uint16_t invertedBigEndianCrc = ~(((crc & 0xFF) << 8) | (crc >> 8));
+    config_streamer_write(&streamer, (uint8_t *)&invertedBigEndianCrc, sizeof(crc));
+
+    config_streamer_flush(&streamer);
+
+    const bool success = config_streamer_finish(&streamer) == 0;
+
+    return success;
+}
+
+void writeConfigToEEPROM(void)
+{
+    bool success = false;
     // write it
-    /* Unlock the Flash to enable the flash control register access *************/
-    HAL_FLASH_Unlock();
-    while (attemptsRemaining--)
-    {
-        /* Fill EraseInit structure*/
-        FLASH_EraseInitTypeDef EraseInitStruct = {0};
-        EraseInitStruct.TypeErase     = FLASH_TYPEERASE_SECTORS;
-        EraseInitStruct.VoltageRange  = FLASH_VOLTAGE_RANGE_3; // 2.7-3.6V
-        EraseInitStruct.Sector        = (FLASH_SECTOR_TOTAL-1);
-        EraseInitStruct.NbSectors     = 1;
-        uint32_t SECTORError;
-        status = HAL_FLASHEx_Erase(&EraseInitStruct, &SECTORError);
-        if (status != HAL_OK)
-        {
-            continue;
-        }
-        else
-        {
-            for (wordOffset = 0; wordOffset < sizeof(master_t); wordOffset += 4)
-            {
-                status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, CONFIG_START_FLASH_ADDRESS + wordOffset, *(uint32_t *) ((char *) &masterConfig + wordOffset));
-                if(status != HAL_OK)
-                {
-                    break;
-                }
-            }
-        }
-        if (status == HAL_OK) {
-            break;
+    for (int attempt = 0; attempt < 3 && !success; attempt++) {
+        if (writeSettingsToEEPROM()) {
+            success = true;
         }
     }
-    HAL_FLASH_Lock();
+
+    if (success && isEEPROMContentValid()) {
+        return;
+    }
 
     // Flash write failed - just die now
-    if (status != HAL_OK || !isEEPROMContentValid()) {
-        failureMode(FAILURE_FLASH_WRITE_FAILED);
-    }
-
-    resumeRxSignal();
-}
-#else
-
-
-#if defined(STM32F4)
-/*
-Sector 0    0x08000000 - 0x08003FFF 16 Kbytes
-Sector 1    0x08004000 - 0x08007FFF 16 Kbytes
-Sector 2    0x08008000 - 0x0800BFFF 16 Kbytes
-Sector 3    0x0800C000 - 0x0800FFFF 16 Kbytes
-Sector 4    0x08010000 - 0x0801FFFF 64 Kbytes
-Sector 5    0x08020000 - 0x0803FFFF 128 Kbytes
-Sector 6    0x08040000 - 0x0805FFFF 128 Kbytes
-Sector 7    0x08060000 - 0x0807FFFF 128 Kbytes
-Sector 8    0x08080000 - 0x0809FFFF 128 Kbytes
-Sector 9    0x080A0000 - 0x080BFFFF 128 Kbytes
-Sector 10   0x080C0000 - 0x080DFFFF 128 Kbytes
-Sector 11   0x080E0000 - 0x080FFFFF 128 Kbytes
-*/
-
-static uint32_t getFLASHSectorForEEPROM(void)
-{
-    if (CONFIG_START_FLASH_ADDRESS <= 0x08003FFF)
-        return FLASH_Sector_0;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x08007FFF)
-        return FLASH_Sector_1;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x0800BFFF)
-        return FLASH_Sector_2;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x0800FFFF)
-        return FLASH_Sector_3;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x0801FFFF)
-        return FLASH_Sector_4;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x0803FFFF)
-        return FLASH_Sector_5;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x0805FFFF)
-        return FLASH_Sector_6;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x0807FFFF)
-        return FLASH_Sector_7;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x0809FFFF)
-        return FLASH_Sector_8;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x080DFFFF)
-        return FLASH_Sector_9;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x080BFFFF)
-        return FLASH_Sector_10;
-    if (CONFIG_START_FLASH_ADDRESS <= 0x080FFFFF)
-        return FLASH_Sector_11;
-
-    // Not good
-    while (1) {
-        failureMode(FAILURE_FLASH_WRITE_FAILED);
-    }
-}
-#endif
-
-void writeEEPROM(void)
-{
-    // Generate compile time error if the config does not fit in the reserved area of flash.
-    BUILD_BUG_ON(sizeof(master_t) > FLASH_TO_RESERVE_FOR_CONFIG);
-
-    FLASH_Status status = 0;
-    uint32_t wordOffset;
-    int8_t attemptsRemaining = 3;
-
-    suspendRxSignal();
-
-    // prepare checksum/version constants
-    masterConfig.version = EEPROM_CONF_VERSION;
-    masterConfig.size = sizeof(master_t);
-    masterConfig.magic_be = 0xBE;
-    masterConfig.magic_ef = 0xEF;
-    masterConfig.chk = 0; // erase checksum before recalculating
-    masterConfig.chk = calculateChecksum((const uint8_t *) &masterConfig, sizeof(master_t));
-
-    // write it
-    FLASH_Unlock();
-    while (attemptsRemaining--) {
-#if defined(STM32F4)
-        FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
-#elif defined(STM32F303)
-        FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
-#elif defined(STM32F10X)
-        FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
-#endif
-        for (wordOffset = 0; wordOffset < sizeof(master_t); wordOffset += 4) {
-            if (wordOffset % FLASH_PAGE_SIZE == 0) {
-#if defined(STM32F4)
-                status = FLASH_EraseSector(getFLASHSectorForEEPROM(), VoltageRange_3); //0x08060000 to 0x08080000
-#else
-                status = FLASH_ErasePage(CONFIG_START_FLASH_ADDRESS + wordOffset);
-#endif
-                if (status != FLASH_COMPLETE) {
-                    break;
-                }
-            }
-
-            status = FLASH_ProgramWord(CONFIG_START_FLASH_ADDRESS + wordOffset,
-                    *(uint32_t *) ((char *) &masterConfig + wordOffset));
-            if (status != FLASH_COMPLETE) {
-                break;
-            }
-        }
-        if (status == FLASH_COMPLETE) {
-            break;
-        }
-    }
-    FLASH_Lock();
-
-    // Flash write failed - just die now
-    if (status != FLASH_COMPLETE || !isEEPROMContentValid()) {
-        failureMode(FAILURE_FLASH_WRITE_FAILED);
-    }
-
-    resumeRxSignal();
-}
-#endif
-
-void readEEPROM(void)
-{
-    // Sanity check
-    if (!isEEPROMContentValid())
-        failureMode(FAILURE_INVALID_EEPROM_CONTENTS);
-
-    suspendRxSignal();
-
-    // Read flash
-    memcpy(&masterConfig, (char *) CONFIG_START_FLASH_ADDRESS, sizeof(master_t));
-
-    if (masterConfig.current_profile_index > MAX_PROFILE_COUNT - 1) // sanity check
-        masterConfig.current_profile_index = 0;
-
-    setProfile(masterConfig.current_profile_index);
-
-    validateAndFixConfig();
-    activateConfig();
-
-    resumeRxSignal();
+    failureMode(FAILURE_FLASH_WRITE_FAILED);
 }

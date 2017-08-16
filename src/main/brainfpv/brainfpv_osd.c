@@ -50,13 +50,11 @@
 #include "common/printf.h"
 #include "common/typeconversion.h"
 
-#include "drivers/gpio.h"
 #include "drivers/sensor.h"
 #include "drivers/system.h"
 #include "drivers/serial.h"
-#include "drivers/compass.h"
 #include "drivers/timer.h"
-#include "drivers/accgyro.h"
+#include "drivers/time.h"
 #include "drivers/light_led.h"
 #include "drivers/light_ws2811strip.h"
 #include "drivers/sound_beeper.h"
@@ -84,19 +82,40 @@
 #include "telemetry/telemetry.h"
 
 #include "flight/mixer.h"
-#include "flight/altitudehold.h"
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/navigation.h"
 
-#include "config/config_profile.h"
-#include "config/config_master.h"
 #include "config/feature.h"
+#include "config/parameter_group_ids.h"
 
+#include "fc/rc_controls.h"
+#include "rx/rx.h"
 #include "fc/runtime_config.h"
-
+#include "fc/rc_modes.h"
 
 #if defined(USE_BRAINFPV_OSD) | 1
+
+PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_CONFIG, 0);
+
+PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
+  .sync_threshold = BRAINFPV_OSD_SYNC_TH_DEFAULT,
+  .white_level    = 110,
+  .black_level    = 20,
+  .x_offset       = 0,
+  .x_scale        = 8,
+  .sbs_3d_enabled = 0,
+  .sbs_3d_right_eye_offset = 30,
+  .font = 0,
+  .ir_system = 0,
+  .ir_trackmate_id = 0,
+  .ir_ilap_id = 0,
+  .ahi_steps = 2,
+  .bmi160foc = 0,
+  .altitude_scale = 1,
+  .sticks_display = 0,
+  .spec_enabled = 0
+);
 
 const char * const gitTag = __GIT_TAG__;
 
@@ -106,7 +125,6 @@ extern uint8_t *draw_buffer;
 extern uint8_t *disp_buffer;
 
 extern bool cmsInMenu;
-
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch,
@@ -130,6 +148,22 @@ void max7456Init(const vcdProfile_t *vcdProfile)
     (void)vcdProfile;
 }
 
+void max7456Invert(bool invert)
+{
+    (void)invert;
+}
+
+void max7456Brightness(uint8_t black, uint8_t white)
+{
+    (void)black;
+    (void)white;
+}
+
+bool max7456DmaInProgress(void)
+{
+    return false;
+}
+
 void    max7456DrawScreen(void)
 {}
 
@@ -148,13 +182,13 @@ uint8_t max7456GetRowsCount(void)
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, masterConfig.bfOsdConfig.font);
+    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bfOsdConfig()->font);
 }
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 {
     char buff[2] = {c, 0};
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, masterConfig.bfOsdConfig.font);
+    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bfOsdConfig()->font);
 }
 
 void max7456ClearScreen(void)
@@ -182,11 +216,11 @@ void brainFpvOsdWelcome(void)
     draw_image(GRAPHICS_X_MIDDLE - image_betaflight.width - 5, GY - image_brainfpv.height / 2, &image_brainfpv);
     draw_image(GRAPHICS_X_MIDDLE + 5, GY - image_betaflight.height / 2, &image_betaflight);
 
-    sprintf(string_buffer, "BF VERSION: %s", gitTag);
+    tfp_sprintf(string_buffer, "BF VERSION: %s", gitTag);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     write_string("MENU: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
-    if (masterConfig.bfOsdConfig.spec_enabled) {
+    if (bfOsdConfig()->spec_enabled) {
         write_string("SPECT: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 25, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     }
 #endif
@@ -195,7 +229,7 @@ void brainFpvOsdWelcome(void)
 static int32_t getAltitude(void)
 {
     int32_t alt = baro.BaroAlt;
-    switch (osdProfile()->units) {
+    switch (osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
             return (alt * 328) / 100; // Convert to feet / 100
         default:
@@ -205,17 +239,17 @@ static int32_t getAltitude(void)
 
 void osdUpdateLocal()
 {
-    if (masterConfig.bfOsdConfig.altitude_scale && sensors(SENSOR_BARO)) {
+    if (bfOsdConfig()->altitude_scale && sensors(SENSOR_BARO)) {
         float altitude = getAltitude() / 100.f;
         osd_draw_vertical_scale(altitude, 100, 1, GRAPHICS_RIGHT - 20, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
     }
 
-    if (masterConfig.bfOsdConfig.sticks_display == 1) {
+    if (bfOsdConfig()->sticks_display == 1) {
         // Mode 2
         draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rcData[YAW], rcData[THROTTLE]);
         draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rcData[ROLL], rcData[PITCH]);
     }
-    else if (masterConfig.bfOsdConfig.sticks_display == 2) {
+    else if (bfOsdConfig()->sticks_display == 2) {
         // Mode 1
         draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rcData[YAW], rcData[PITCH]);
         draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rcData[ROLL], rcData[THROTTLE]);
@@ -240,7 +274,7 @@ void osdMain(void) {
       return;
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
-    if (masterConfig.bfOsdConfig.spec_enabled) {
+    if (bfOsdConfig()->spec_enabled) {
         if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
             mode = MODE_SPEC;
         }
@@ -280,35 +314,12 @@ void osdMain(void) {
     }
 }
 
-
-void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig)
-{
-    bfOsdConfig->sync_threshold = BRAINFPV_OSD_SYNC_TH_DEFAULT;
-    bfOsdConfig->white_level    = 110;
-    bfOsdConfig->black_level    = 20;
-    bfOsdConfig->x_offset       = 0;
-    bfOsdConfig->x_scale        = 8;
-    bfOsdConfig->sbs_3d_enabled = 0;
-    bfOsdConfig->sbs_3d_right_eye_offset = 30;
-    bfOsdConfig->font = 0;
-    bfOsdConfig->ir_system = 0;
-    bfOsdConfig->ir_trackmate_id = 0;
-    bfOsdConfig->ir_ilap_id = 0;
-    bfOsdConfig->ahi_steps = 2;
-    bfOsdConfig->bmi160foc = 0;
-    bfOsdConfig->altitude_scale = 1;
-    bfOsdConfig->sticks_display = 0;
-#if defined(USE_BRAINFPV_SPECTROGRAPH)
-    bfOsdConfig->spec_enabled = 0;
-#endif
-}
-
 void brainFpvOsdArtificialHorizon(void)
 {
     simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
                               GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
                               GRAPHICS_BOTTOM * 0.8f, GRAPHICS_RIGHT * 0.8f, 30,
-                              masterConfig.bfOsdConfig.ahi_steps);
+                              bfOsdConfig()->ahi_steps);
 }
 
 #define CENTER_BODY       3
@@ -382,7 +393,7 @@ static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, in
 
         char tmp_str[5];
 
-        sprintf(tmp_str, "%d", angle);
+        tfp_sprintf(tmp_str, "%d", angle);
 
         if (angle < 0) {
             write_line_outlined_dashed(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 + d_x2, pp_y2 - d_y2, 2, 2, 0, 1, 5);

@@ -19,12 +19,20 @@
 #include <stdint.h>
 
 #include "platform.h"
+
+#include "config/feature.h"
+
 #include "drivers/bus_i2c.h"
 #include "drivers/bus_spi.h"
-#include "hardware_revision.h"
-#include "config/config_master.h"
 #include "drivers/io.h"
-#include "config/feature.h"
+
+#include "fc/config.h"
+
+#include "io/serial.h"
+
+#include "telemetry/telemetry.h"
+
+#include "hardware_revision.h"
 
 void targetPreInit(void)
 {
@@ -45,7 +53,7 @@ void targetPreInit(void)
     serialPortConfig_t *portConfig = serialFindPortConfiguration(SERIAL_PORT_USART1);
     if (portConfig) {
         bool smartportEnabled = (portConfig->functionMask & FUNCTION_TELEMETRY_SMARTPORT);
-        if (smartportEnabled && (telemetryConfig()->telemetry_inversion) && (feature(FEATURE_TELEMETRY))) {
+        if (smartportEnabled && (!telemetryConfig()->telemetry_inverted) && (feature(FEATURE_TELEMETRY))) {
             high = true;
         }
     }

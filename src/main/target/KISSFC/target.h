@@ -26,13 +26,10 @@
 #define USE_ESC_SENSOR
 
 #define USE_ESCSERIAL
-#ifdef KISSFC
-#define USE_ESCSERIAL_INVERSION
-#endif
-#define ESCSERIAL_TIMER_TX_HARDWARE 0
+#define ESCSERIAL_TIMER_TX_PIN  PA13  // (Hardware=6, common to KISSFC & KISSCC)
 #define REMAP_TIM17_DMA
 
-#define LED0                    PB1
+#define LED0_PIN                PB1
 
 #define BEEPER                  PB13
 #define BEEPER_INVERTED
@@ -51,6 +48,7 @@
 #define ACC
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW90_DEG
+#undef LED_STRIP
 #else
 #define GYRO
 #define USE_GYRO_MPU6050
@@ -59,8 +57,6 @@
 #define ACC
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW180_DEG
-
-#define LED_STRIP
 #endif
 
 #define USE_VCP
@@ -89,7 +85,8 @@
 #endif
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1) // PB6/SCL, PB7/SDA
+#define USE_I2C_DEVICE_1
+#define I2C_DEVICE              (I2CDEV_1)
 
 #define USE_ADC
 #define VBAT_SCALE_DEFAULT      160
@@ -98,15 +95,11 @@
 #define CURRENT_METER_ADC_PIN   PA2
 //#define RSSI_ADC_PIN            PB2
 
-#define DEFAULT_FEATURES        FEATURE_VBAT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
 
 #define AVOID_UART2_FOR_PWM_PPM
-
-#define SPEKTRUM_BIND
-#define BIND_PIN                PB4
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

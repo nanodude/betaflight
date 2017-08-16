@@ -18,8 +18,9 @@
  #pragma once
 
 // TODO - GPIO_TypeDef include
-#include "io.h"
 #include "platform.h"
+
+#include "drivers/io.h"
 
 typedef struct ioDef_s {
     ioTag_t tag;
@@ -32,7 +33,7 @@ typedef struct ioRec_s {
     uint8_t index;
 } ioRec_t;
 
-extern ioRec_t ioRecs[DEFIO_IO_USED_COUNT];
+extern ioRec_t ioRecs[];
 
 int IO_GPIOPortIdx(IO_t io);
 int IO_GPIOPinIdx(IO_t io);

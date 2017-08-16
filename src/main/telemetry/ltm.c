@@ -40,10 +40,11 @@
 #include "common/maths.h"
 #include "common/axis.h"
 #include "common/color.h"
+#include "common/utils.h"
 
-#include "drivers/system.h"
+#include "drivers/time.h"
 #include "drivers/sensor.h"
-#include "drivers/accgyro.h"
+#include "drivers/accgyro/accgyro.h"
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
@@ -68,7 +69,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
-#include "flight/altitudehold.h"
+#include "flight/altitude.h"
 #include "flight/navigation.h"
 
 #include "telemetry/telemetry.h"
@@ -80,7 +81,6 @@
 
 static serialPort_t *ltmPort;
 static serialPortConfig_t *portConfig;
-static telemetryConfig_t *telemetryConfig;
 static bool ltmEnabled;
 static portSharing_e ltmPortSharing;
 static uint8_t ltm_crc;
@@ -133,23 +133,23 @@ static void ltm_gframe(void)
 
     if (!STATE(GPS_FIX))
         gps_fix_type = 1;
-    else if (GPS_numSat < 5)
+    else if (gpsSol.numSat < 5)
         gps_fix_type = 2;
     else
         gps_fix_type = 3;
 
     ltm_initialise_packet('G');
-    ltm_serialise_32(GPS_coord[LAT]);
-    ltm_serialise_32(GPS_coord[LON]);
-    ltm_serialise_8((uint8_t)(GPS_speed / 100));
+    ltm_serialise_32(gpsSol.llh.lat);
+    ltm_serialise_32(gpsSol.llh.lon);
+    ltm_serialise_8((uint8_t)(gpsSol.groundSpeed / 100));
 
 #if defined(BARO) || defined(SONAR)
-    ltm_alt = (sensors(SENSOR_SONAR) || sensors(SENSOR_BARO)) ? altitudeHoldGetEstimatedAltitude() : GPS_altitude * 100;
+    ltm_alt = (sensors(SENSOR_SONAR) || sensors(SENSOR_BARO)) ? getEstimatedAltitude() : gpsSol.llh.alt * 100;
 #else
-    ltm_alt = GPS_altitude * 100;
+    ltm_alt = gpsSol.llh.alt * 100;
 #endif
     ltm_serialise_32(ltm_alt);
-    ltm_serialise_8((GPS_numSat << 2) | gps_fix_type);
+    ltm_serialise_8((gpsSol.numSat << 2) | gps_fix_type);
     ltm_finalise();
 #endif
 }
@@ -190,7 +190,7 @@ static void ltm_sframe(void)
     if (failsafeIsActive())
         lt_statemode |= 2;
     ltm_initialise_packet('S');
-    ltm_serialise_16(getVbat() * 100);    //vbat converted to mv
+    ltm_serialise_16(getBatteryVoltage() * 100);    //vbat converted to mv
     ltm_serialise_16(0);             //  current, not implemented
     ltm_serialise_8((uint8_t)((rssi * 254) / 1023));        // scaled RSSI (uchar)
     ltm_serialise_8(0);              // no airspeed
@@ -268,9 +268,8 @@ void freeLtmTelemetryPort(void)
     ltmEnabled = false;
 }
 
-void initLtmTelemetry(telemetryConfig_t *initialTelemetryConfig)
+void initLtmTelemetry(void)
 {
-    telemetryConfig = initialTelemetryConfig;
     portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_LTM);
     ltmPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_LTM);
 }
@@ -284,7 +283,7 @@ void configureLtmTelemetryPort(void)
     if (baudRateIndex == BAUD_AUTO) {
         baudRateIndex = BAUD_19200;
     }
-    ltmPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_LTM, NULL, baudRates[baudRateIndex], TELEMETRY_LTM_INITIAL_PORT_MODE, SERIAL_NOT_INVERTED);
+    ltmPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_LTM, NULL, baudRates[baudRateIndex], TELEMETRY_LTM_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inverted ? SERIAL_INVERTED : SERIAL_NOT_INVERTED);
     if (!ltmPort)
         return;
     ltmEnabled = true;

@@ -28,27 +28,30 @@
 #include "common/maths.h"
 #include "common/filter.h"
 
-#include "drivers/accgyro.h"
-#include "drivers/accgyro_adxl345.h"
-#include "drivers/accgyro_bma280.h"
-#include "drivers/accgyro_fake.h"
-#include "drivers/accgyro_l3g4200d.h"
-#include "drivers/accgyro_mma845x.h"
-#include "drivers/accgyro_mpu.h"
-#include "drivers/accgyro_mpu3050.h"
-#include "drivers/accgyro_mpu6050.h"
-#include "drivers/accgyro_mpu6500.h"
-#include "drivers/accgyro_l3gd20.h"
-#include "drivers/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro_spi_icm20689.h"
-#include "drivers/accgyro_spi_mpu6000.h"
-#include "drivers/accgyro_spi_mpu6500.h"
-#include "drivers/accgyro_spi_mpu9250.h"
-#include "drivers/accgyro_spi_bmi160.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_adxl345.h"
+#include "drivers/accgyro/accgyro_bma280.h"
+#include "drivers/accgyro/accgyro_fake.h"
+#include "drivers/accgyro/accgyro_l3g4200d.h"
+#include "drivers/accgyro/accgyro_l3gd20.h"
+#include "drivers/accgyro/accgyro_lsm303dlhc.h"
+#include "drivers/accgyro/accgyro_mma845x.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_mpu3050.h"
+#include "drivers/accgyro/accgyro_mpu6050.h"
+#include "drivers/accgyro/accgyro_mpu6500.h"
+#include "drivers/accgyro/accgyro_spi_bmi160.h"
+#include "drivers/accgyro/accgyro_spi_icm20689.h"
+#include "drivers/accgyro/accgyro_spi_mpu6000.h"
+#include "drivers/accgyro/accgyro_spi_mpu6500.h"
+#include "drivers/accgyro/accgyro_spi_mpu9250.h"
+
 #include "drivers/bus_spi.h"
 #include "drivers/gyro_sync.h"
 #include "drivers/io.h"
-#include "drivers/system.h"
 
 #include "fc/runtime_config.h"
 
@@ -57,9 +60,10 @@
 
 #include "scheduler/scheduler.h"
 
-#include "sensors/sensors.h"
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
+#include "sensors/gyroanalyse.h"
+#include "sensors/sensors.h"
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
 #include "ch.h"
@@ -77,42 +81,94 @@ extern float spec_gyro_data_yaw[];
 #include "hardware_revision.h"
 #endif
 
-gyro_t gyro;                      // gyro access functions
+gyro_t gyro;
 
-static int32_t gyroADC[XYZ_AXIS_COUNT];
 
-static int32_t gyroZero[XYZ_AXIS_COUNT] = { 0, 0, 0 };
-static const gyroConfig_t *gyroConfig;
-static uint16_t calibratingG = 0;
+typedef struct gyroCalibration_s {
+    int32_t sum[XYZ_AXIS_COUNT];
+    stdev_t var[XYZ_AXIS_COUNT];
+    uint16_t calibratingG;
+} gyroCalibration_t;
 
-static filterApplyFnPtr softLpfFilterApplyFn;
-static void *softLpfFilter[3];
-static filterApplyFnPtr notchFilter1ApplyFn;
-static void *notchFilter1[3];
-static filterApplyFnPtr notchFilter2ApplyFn;
-static void *notchFilter2[3];
+bool firstArmingCalibrationWasStarted = false;
+
+typedef union gyroSoftFilter_u {
+    biquadFilter_t gyroFilterLpfState[XYZ_AXIS_COUNT];
+    pt1Filter_t gyroFilterPt1State[XYZ_AXIS_COUNT];
+    firFilterDenoise_t gyroDenoiseState[XYZ_AXIS_COUNT];
+} gyroSoftLpfFilter_t;
+
+typedef struct gyroSensor_s {
+    gyroDev_t gyroDev;
+    gyroCalibration_t calibration;
+    // gyro soft filter
+    filterApplyFnPtr softLpfFilterApplyFn;
+    gyroSoftLpfFilter_t softLpfFilter;
+    void *softLpfFilterPtr[XYZ_AXIS_COUNT];
+    // notch filters
+    filterApplyFnPtr notchFilter1ApplyFn;
+    biquadFilter_t notchFilter1[XYZ_AXIS_COUNT];
+    filterApplyFnPtr notchFilter2ApplyFn;
+    biquadFilter_t notchFilter2[XYZ_AXIS_COUNT];
+    filterApplyFnPtr notchFilterDynApplyFn;
+    biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
+} gyroSensor_t;
+
+static gyroSensor_t gyroSensor1;
+
+static void gyroInitSensorFilters(gyroSensor_t *gyroSensor);
 
 #define DEBUG_GYRO_CALIBRATION 3
 
-static const extiConfig_t *selectMPUIntExtiConfig(void)
-{
-#if defined(MPU_INT_EXTI)
-    static const extiConfig_t mpuIntExtiConfig = { .tag = IO_TAG(MPU_INT_EXTI) };
-    return &mpuIntExtiConfig;
-#elif defined(USE_HARDWARE_REVISION_DETECTION)
-    return selectMPUIntExtiConfigByHardwareRevision();
+#ifdef STM32F10X
+#define GYRO_SYNC_DENOM_DEFAULT 8
+#elif defined(USE_GYRO_SPI_MPU6000) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_ICM20601)  || defined(USE_GYRO_SPI_ICM20689)
+#define GYRO_SYNC_DENOM_DEFAULT 1
 #else
-    return NULL;
+#define GYRO_SYNC_DENOM_DEFAULT 4
 #endif
+
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 0);
+
+PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
+    .gyro_align = ALIGN_DEFAULT,
+    .gyroMovementCalibrationThreshold = 48,
+    .gyro_sync_denom = GYRO_SYNC_DENOM_DEFAULT,
+    .gyro_lpf = GYRO_LPF_256HZ,
+    .gyro_soft_lpf_type = FILTER_PT1,
+    .gyro_soft_lpf_hz = 90,
+    .gyro_isr_update = false,
+    .gyro_use_32khz = false,
+    .gyro_to_use = 0,
+    .gyro_soft_notch_hz_1 = 400,
+    .gyro_soft_notch_cutoff_1 = 300,
+    .gyro_soft_notch_hz_2 = 200,
+    .gyro_soft_notch_cutoff_2 = 100
+);
+
+
+const busDevice_t *gyroSensorBus(void)
+{
+    return &gyroSensor1.gyroDev.bus;
 }
 
-static bool gyroDetect(gyroDev_t *dev)
+const mpuConfiguration_t *gyroMpuConfiguration(void)
+{
+    return &gyroSensor1.gyroDev.mpuConfiguration;
+}
+
+const mpuDetectionResult_t *gyroMpuDetectionResult(void)
+{
+    return &gyroSensor1.gyroDev.mpuDetectionResult;
+}
+
+STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev)
 {
     gyroSensor_e gyroHardware = GYRO_DEFAULT;
 
     dev->gyroAlign = ALIGN_DEFAULT;
 
-    switch(gyroHardware) {
+    switch (gyroHardware) {
     case GYRO_DEFAULT:
 #ifdef USE_GYRO_MPU6050
     case GYRO_MPU6050:
@@ -171,22 +227,26 @@ static bool gyroDetect(gyroDev_t *dev)
 
 #if defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500)
     case GYRO_MPU6500:
-    case GYRO_ICM20608G:
+    case GYRO_ICM20601:
     case GYRO_ICM20602:
+    case GYRO_ICM20608G:
 #ifdef USE_GYRO_SPI_MPU6500
         if (mpu6500GyroDetect(dev) || mpu6500SpiGyroDetect(dev)) {
 #else
         if (mpu6500GyroDetect(dev)) {
 #endif
-            switch(dev->mpuDetectionResult.sensor) {
+            switch (dev->mpuDetectionResult.sensor) {
             case MPU_9250_SPI:
                 gyroHardware = GYRO_MPU9250;
                 break;
-            case ICM_20608_SPI:
-                gyroHardware = GYRO_ICM20608G;
+            case ICM_20601_SPI:
+                gyroHardware = GYRO_ICM20601;
                 break;
             case ICM_20602_SPI:
                 gyroHardware = GYRO_ICM20602;
+                break;
+            case ICM_20608_SPI:
+                gyroHardware = GYRO_ICM20608G;
                 break;
             default:
                 gyroHardware = GYRO_MPU6500;
@@ -213,8 +273,7 @@ static bool gyroDetect(gyroDev_t *dev)
 
 #ifdef USE_GYRO_SPI_ICM20689
     case GYRO_ICM20689:
-        if (icm20689SpiGyroDetect(dev))
-        {
+        if (icm20689SpiGyroDetect(dev)) {
             gyroHardware = GYRO_ICM20689;
 #ifdef GYRO_ICM20689_ALIGN
             dev->gyroAlign = GYRO_ICM20689_ALIGN;
@@ -223,19 +282,16 @@ static bool gyroDetect(gyroDev_t *dev)
         }
 #endif
 
-    case GYRO_BMI160:
 #ifdef USE_ACCGYRO_BMI160
-        if (bmi160SpiGyroDetect(dev))
-        {
+    case GYRO_BMI160:
+        if (bmi160SpiGyroDetect(dev)) {
             gyroHardware = GYRO_BMI160;
 #ifdef GYRO_BMI160_ALIGN
             dev->gyroAlign = GYRO_BMI160_ALIGN;
 #endif
-
             break;
         }
 #endif
-        ; // fallthrough
 
 #ifdef USE_FAKE_GYRO
     case GYRO_FAKE:
@@ -248,104 +304,150 @@ static bool gyroDetect(gyroDev_t *dev)
         gyroHardware = GYRO_NONE;
     }
 
+    if (gyroHardware != GYRO_NONE) {
+        detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
+        sensorsSet(SENSOR_GYRO);
+    }
+
+
+    return gyroHardware;
+}
+
+static bool gyroInitSensor(gyroSensor_t *gyroSensor)
+{
+#if defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU3050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20601) || defined(USE_GYRO_SPI_ICM20689)
+
+#if defined(MPU_INT_EXTI)
+    gyroSensor->gyroDev.mpuIntExtiTag =  IO_TAG(MPU_INT_EXTI);
+#elif defined(USE_HARDWARE_REVISION_DETECTION)
+    gyroSensor->gyroDev.mpuIntExtiTag =  selectMPUIntExtiConfigByHardwareRevision();
+#else
+    gyroSensor->gyroDev.mpuIntExtiTag =  IO_TAG_NONE;
+#endif // MPU_INT_EXTI
+
+#ifdef USE_DUAL_GYRO
+    // set cnsPin using GYRO_n_CS_PIN defined in target.h
+    gyroSensor->gyroDev.bus.busdev_u.spi.csnPin = gyroConfig()->gyro_to_use == 0 ? IOGetByTag(IO_TAG(GYRO_0_CS_PIN)) : IOGetByTag(IO_TAG(GYRO_1_CS_PIN));
+#else
+    gyroSensor->gyroDev.bus.busdev_u.spi.csnPin = IO_NONE; // set cnsPin to IO_NONE so mpuDetect will set it according to value defined in target.h
+#endif // USE_DUAL_GYRO
+    mpuDetect(&gyroSensor->gyroDev);
+    mpuResetFn = gyroSensor->gyroDev.mpuConfiguration.resetFn; // must be set after mpuDetect
+#endif
+
+    const gyroSensor_e gyroHardware = gyroDetect(&gyroSensor->gyroDev);
     if (gyroHardware == GYRO_NONE) {
         return false;
     }
 
-    detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
-    sensorsSet(SENSOR_GYRO);
-
-    return true;
-}
-
-bool gyroInit(const gyroConfig_t *gyroConfigToUse)
-{
-    gyroConfig = gyroConfigToUse;
-    memset(&gyro, 0, sizeof(gyro));
-#if defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU3050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20689)
-    gyro.dev.mpuIntExtiConfig = selectMPUIntExtiConfig();
-    mpuDetect(&gyro.dev);
-    mpuReset = gyro.dev.mpuConfiguration.reset;
-#endif
-
-    if (!gyroDetect(&gyro.dev)) {
-        return false;
-    }
-
-    switch (detectedSensors[SENSOR_INDEX_GYRO]) {
-    default:
-        // gyro does not support 32kHz
-        // cast away constness, legitimate as this is cross-validation
-        ((gyroConfig_t*)gyroConfig)->gyro_use_32khz = false;
-        break;
+    switch (gyroHardware) {
     case GYRO_MPU6500:
     case GYRO_MPU9250:
-    case GYRO_ICM20689:
-    case GYRO_ICM20608G:
+    case GYRO_ICM20601:
     case GYRO_ICM20602:
+    case GYRO_ICM20608G:
+    case GYRO_ICM20689:
         // do nothing, as gyro supports 32kHz
+        break;
+    default:
+        // gyro does not support 32kHz
+        gyroConfigMutable()->gyro_use_32khz = false;
         break;
     }
 
-    // Must set gyro sample rate before initialisation
-    gyro.targetLooptime = gyroSetSampleRate(&gyro.dev, gyroConfig->gyro_lpf, gyroConfig->gyro_sync_denom, gyroConfig->gyro_use_32khz);
-    gyro.dev.lpf = gyroConfig->gyro_lpf;
-    gyro.dev.init(&gyro.dev);
-    gyroInitFilters();
+    // Must set gyro targetLooptime before gyroDev.init and initialisation of filters
+    gyro.targetLooptime = gyroSetSampleRate(&gyroSensor->gyroDev, gyroConfig()->gyro_lpf, gyroConfig()->gyro_sync_denom, gyroConfig()->gyro_use_32khz);
+    gyroSensor->gyroDev.lpf = gyroConfig()->gyro_lpf;
+    gyroSensor->gyroDev.initFn(&gyroSensor->gyroDev);
+    if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
+        gyroSensor->gyroDev.gyroAlign = gyroConfig()->gyro_align;
+    }
+    gyroInitSensorFilters(gyroSensor);
+#ifdef USE_GYRO_DATA_ANALYSE
+    gyroDataAnalyseInit(gyro.targetLooptime);
+#endif
     return true;
 }
 
-void gyroInitFilters(void)
+bool gyroInit(void)
 {
-    static biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
-    static pt1Filter_t gyroFilterPt1[XYZ_AXIS_COUNT];
-    static firFilterDenoise_t gyroDenoiseState[XYZ_AXIS_COUNT];
-    static biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
-    static biquadFilter_t gyroFilterNotch_2[XYZ_AXIS_COUNT];
+    memset(&gyro, 0, sizeof(gyro));
+    return gyroInitSensor(&gyroSensor1);
+}
 
-    softLpfFilterApplyFn = nullFilterApply;
-    notchFilter1ApplyFn = nullFilterApply;
-    notchFilter2ApplyFn = nullFilterApply;
+void gyroInitFilterLpf(gyroSensor_t *gyroSensor, uint8_t lpfHz)
+{
+    gyroSensor->softLpfFilterApplyFn = nullFilterApply;
+    const uint32_t gyroFrequencyNyquist = 1000000 / 2 / gyro.targetLooptime;
 
-    uint32_t gyroFrequencyNyquist = (1.0f / (gyro.targetLooptime * 0.000001f)) / 2; // No rounding needed
-
-    if (gyroConfig->gyro_soft_lpf_hz && gyroConfig->gyro_soft_lpf_hz <= gyroFrequencyNyquist) {  // Initialisation needs to happen once samplingrate is known
-        if (gyroConfig->gyro_soft_lpf_type == FILTER_BIQUAD) {
-            softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
+    if (lpfHz && lpfHz <= gyroFrequencyNyquist) {  // Initialisation needs to happen once samplingrate is known
+        switch (gyroConfig()->gyro_soft_lpf_type) {
+        case FILTER_BIQUAD:
+            gyroSensor->softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
             for (int axis = 0; axis < 3; axis++) {
-                softLpfFilter[axis] = &gyroFilterLPF[axis];
-                biquadFilterInitLPF(softLpfFilter[axis], gyroConfig->gyro_soft_lpf_hz, gyro.targetLooptime);
+                gyroSensor->softLpfFilterPtr[axis] = &gyroSensor->softLpfFilter.gyroFilterLpfState[axis];
+                biquadFilterInitLPF(&gyroSensor->softLpfFilter.gyroFilterLpfState[axis], lpfHz, gyro.targetLooptime);
             }
-        } else if (gyroConfig->gyro_soft_lpf_type == FILTER_PT1) {
-            softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
+            break;
+        case FILTER_PT1:
+            gyroSensor->softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
             const float gyroDt = (float) gyro.targetLooptime * 0.000001f;
             for (int axis = 0; axis < 3; axis++) {
-                softLpfFilter[axis] = &gyroFilterPt1[axis];
-                pt1FilterInit(softLpfFilter[axis], gyroConfig->gyro_soft_lpf_hz, gyroDt);
+                gyroSensor->softLpfFilterPtr[axis] = &gyroSensor->softLpfFilter.gyroFilterPt1State[axis];
+                pt1FilterInit(&gyroSensor->softLpfFilter.gyroFilterPt1State[axis], lpfHz, gyroDt);
             }
-        } else {
-            softLpfFilterApplyFn = (filterApplyFnPtr)firFilterDenoiseUpdate;
+            break;
+        default:
+            gyroSensor->softLpfFilterApplyFn = (filterApplyFnPtr)firFilterDenoiseUpdate;
             for (int axis = 0; axis < 3; axis++) {
-                softLpfFilter[axis] = &gyroDenoiseState[axis];
-                firFilterDenoiseInit(softLpfFilter[axis], gyroConfig->gyro_soft_lpf_hz, gyro.targetLooptime);
+                gyroSensor->softLpfFilterPtr[axis] = &gyroSensor->softLpfFilter.gyroDenoiseState[axis];
+                firFilterDenoiseInit(&gyroSensor->softLpfFilter.gyroDenoiseState[axis], lpfHz, gyro.targetLooptime);
             }
+            break;
+        }
+    }
+}
+
+static uint16_t calculateNyquistAdjustedNotchHz(uint16_t notchHz, uint16_t notchCutoffHz)
+{
+    const uint32_t gyroFrequencyNyquist = 1000000 / 2 / gyro.targetLooptime;
+    if (notchHz > gyroFrequencyNyquist) {
+        if (notchCutoffHz < gyroFrequencyNyquist) {
+            notchHz = gyroFrequencyNyquist;
+        } else {
+            notchHz = 0;
         }
     }
 
-    if (gyroConfig->gyro_soft_notch_hz_1 && gyroConfig->gyro_soft_notch_hz_1 <= gyroFrequencyNyquist) {
-        notchFilter1ApplyFn = (filterApplyFnPtr)biquadFilterApply;
-        const float gyroSoftNotchQ1 = filterGetNotchQ(gyroConfig->gyro_soft_notch_hz_1, gyroConfig->gyro_soft_notch_cutoff_1);
+    return notchHz;
+}
+
+void gyroInitFilterNotch1(gyroSensor_t *gyroSensor, uint16_t notchHz, uint16_t notchCutoffHz)
+{
+    gyroSensor->notchFilter1ApplyFn = nullFilterApply;
+
+    notchHz = calculateNyquistAdjustedNotchHz(notchHz, notchCutoffHz);
+
+    if (notchHz != 0 && notchCutoffHz != 0) {
+        gyroSensor->notchFilter1ApplyFn = (filterApplyFnPtr)biquadFilterApply;
+        const float notchQ = filterGetNotchQ(notchHz, notchCutoffHz);
         for (int axis = 0; axis < 3; axis++) {
-            notchFilter1[axis] = &gyroFilterNotch_1[axis];
-            biquadFilterInit(notchFilter1[axis], gyroConfig->gyro_soft_notch_hz_1, gyro.targetLooptime, gyroSoftNotchQ1, FILTER_NOTCH);
+            biquadFilterInit(&gyroSensor->notchFilter1[axis], notchHz, gyro.targetLooptime, notchQ, FILTER_NOTCH);
         }
     }
-    if (gyroConfig->gyro_soft_notch_hz_2 && gyroConfig->gyro_soft_notch_hz_2 <= gyroFrequencyNyquist) {
-        notchFilter2ApplyFn = (filterApplyFnPtr)biquadFilterApply;
-        const float gyroSoftNotchQ2 = filterGetNotchQ(gyroConfig->gyro_soft_notch_hz_2, gyroConfig->gyro_soft_notch_cutoff_2);
+}
+
+void gyroInitFilterNotch2(gyroSensor_t *gyroSensor, uint16_t notchHz, uint16_t notchCutoffHz)
+{
+    gyroSensor->notchFilter2ApplyFn = nullFilterApply;
+
+    notchHz = calculateNyquistAdjustedNotchHz(notchHz, notchCutoffHz);
+
+    if (notchHz != 0 && notchCutoffHz != 0) {
+        gyroSensor->notchFilter2ApplyFn = (filterApplyFnPtr)biquadFilterApply;
+        const float notchQ = filterGetNotchQ(notchHz, notchCutoffHz);
         for (int axis = 0; axis < 3; axis++) {
-            notchFilter2[axis] = &gyroFilterNotch_2[axis];
-            biquadFilterInit(notchFilter2[axis], gyroConfig->gyro_soft_notch_hz_2, gyro.targetLooptime, gyroSoftNotchQ2, FILTER_NOTCH);
+            biquadFilterInit(&gyroSensor->notchFilter2[axis], notchHz, gyro.targetLooptime, notchQ, FILTER_NOTCH);
         }
     }
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
@@ -353,14 +455,41 @@ void gyroInitFilters(void)
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 }
 
-bool isGyroCalibrationComplete(void)
+void gyroInitFilterDynamicNotch(gyroSensor_t *gyroSensor)
 {
-    return calibratingG == 0;
+    gyroSensor->notchFilterDynApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
+    const float notchQ = filterGetNotchQ(400, 390); //just any init value
+    for (int axis = 0; axis < 3; axis++) {
+        biquadFilterInit(&gyroSensor->notchFilterDyn[axis], 400, gyro.targetLooptime, notchQ, FILTER_NOTCH);
+    }
 }
 
-static bool isOnFinalGyroCalibrationCycle(void)
+static void gyroInitSensorFilters(gyroSensor_t *gyroSensor)
 {
-    return calibratingG == 1;
+    gyroInitFilterLpf(gyroSensor, gyroConfig()->gyro_soft_lpf_hz);
+    gyroInitFilterNotch1(gyroSensor, gyroConfig()->gyro_soft_notch_hz_1, gyroConfig()->gyro_soft_notch_cutoff_1);
+    gyroInitFilterNotch2(gyroSensor, gyroConfig()->gyro_soft_notch_hz_2, gyroConfig()->gyro_soft_notch_cutoff_2);
+    gyroInitFilterDynamicNotch(gyroSensor);
+}
+
+void gyroInitFilters(void)
+{
+    gyroInitSensorFilters(&gyroSensor1);
+}
+
+bool isGyroSensorCalibrationComplete(const gyroSensor_t *gyroSensor)
+{
+    return gyroSensor->calibration.calibratingG == 0;
+}
+
+bool isGyroCalibrationComplete(void)
+{
+    return isGyroSensorCalibrationComplete(&gyroSensor1);
+}
+
+static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibration)
+{
+    return gyroCalibration->calibratingG == 1;
 }
 
 static uint16_t gyroCalculateCalibratingCycles(void)
@@ -368,143 +497,138 @@ static uint16_t gyroCalculateCalibratingCycles(void)
     return (CALIBRATING_GYRO_CYCLES / gyro.targetLooptime) * CALIBRATING_GYRO_CYCLES;
 }
 
-static bool isOnFirstGyroCalibrationCycle(void)
+static bool isOnFirstGyroCalibrationCycle(const gyroCalibration_t *gyroCalibration)
 {
-    return calibratingG == gyroCalculateCalibratingCycles();
+    return gyroCalibration->calibratingG == gyroCalculateCalibratingCycles();
 }
 
-void gyroSetCalibrationCycles(void)
+static void gyroSetCalibrationCycles(gyroSensor_t *gyroSensor)
 {
-    calibratingG = gyroCalculateCalibratingCycles();
+    gyroSensor->calibration.calibratingG = gyroCalculateCalibratingCycles();
 }
 
-static void performGyroCalibration(uint8_t gyroMovementCalibrationThreshold)
+void gyroStartCalibration(bool isFirstArmingCalibration)
 {
-    static int32_t g[3];
-    static stdev_t var[3];
+    if (!(isFirstArmingCalibration && firstArmingCalibrationWasStarted)) {
+        gyroSetCalibrationCycles(&gyroSensor1);
 
-    for (int axis = 0; axis < 3; axis++) {
+        if (isFirstArmingCalibration) {
+            firstArmingCalibrationWasStarted = true;
+        }
+    }
+}
 
+bool isFirstArmingGyroCalibrationRunning(void)
+{
+    return firstArmingCalibrationWasStarted && !isGyroCalibrationComplete();
+}
+
+STATIC_UNIT_TESTED void performGyroCalibration(gyroSensor_t *gyroSensor, uint8_t gyroMovementCalibrationThreshold)
+{
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // Reset g[axis] at start of calibration
-        if (isOnFirstGyroCalibrationCycle()) {
-            g[axis] = 0;
-            devClear(&var[axis]);
+        if (isOnFirstGyroCalibrationCycle(&gyroSensor->calibration)) {
+            gyroSensor->calibration.sum[axis] = 0;
+            devClear(&gyroSensor->calibration.var[axis]);
+            // gyroZero is set to zero until calibration complete
+            gyroSensor->gyroDev.gyroZero[axis] = 0;
         }
 
         // Sum up CALIBRATING_GYRO_CYCLES readings
-        g[axis] += gyroADC[axis];
-        devPush(&var[axis], gyroADC[axis]);
+        gyroSensor->calibration.sum[axis] += gyroSensor->gyroDev.gyroADCRaw[axis];
+        devPush(&gyroSensor->calibration.var[axis], gyroSensor->gyroDev.gyroADCRaw[axis]);
 
-        // Reset global variables to prevent other code from using un-calibrated data
-        gyroADC[axis] = 0;
-        gyroZero[axis] = 0;
+        if (isOnFinalGyroCalibrationCycle(&gyroSensor->calibration)) {
+            const float stddev = devStandardDeviation(&gyroSensor->calibration.var[axis]);
 
-        if (isOnFinalGyroCalibrationCycle()) {
-            float dev = devStandardDeviation(&var[axis]);
-
-            DEBUG_SET(DEBUG_GYRO, DEBUG_GYRO_CALIBRATION, lrintf(dev));
+            DEBUG_SET(DEBUG_GYRO, DEBUG_GYRO_CALIBRATION, lrintf(stddev));
 
             // check deviation and startover in case the model was moved
-            if (gyroMovementCalibrationThreshold && dev > gyroMovementCalibrationThreshold) {
-                gyroSetCalibrationCycles();
+            if (gyroMovementCalibrationThreshold && stddev > gyroMovementCalibrationThreshold) {
+                gyroSetCalibrationCycles(gyroSensor);
                 return;
             }
-            gyroZero[axis] = (g[axis] + (gyroCalculateCalibratingCycles() / 2)) / gyroCalculateCalibratingCycles();
+            gyroSensor->gyroDev.gyroZero[axis] = (gyroSensor->calibration.sum[axis] + (gyroCalculateCalibratingCycles() / 2)) / gyroCalculateCalibratingCycles();
         }
     }
 
-    if (isOnFinalGyroCalibrationCycle()) {
+    if (isOnFinalGyroCalibrationCycle(&gyroSensor->calibration)) {
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
-        beeper(BEEPER_GYRO_CALIBRATED);
-    }
-    calibratingG--;
-
-}
-
-#if defined(GYRO_USES_SPI) && defined(USE_MPU_DATA_READY_SIGNAL)
-static bool gyroUpdateISR(gyroDev_t* gyroDev)
-{
-    if (!gyroDev->dataReady || !gyroDev->read(gyroDev)) {
-        return false;
-    }
-#ifdef DEBUG_MPU_DATA_READY_INTERRUPT
-    debug[2] = (uint16_t)(micros() & 0xffff);
-#endif
-    gyroDev->dataReady = false;
-    // move gyro data into 32-bit variables to avoid overflows in calculations
-    gyroADC[X] = gyroDev->gyroADCRaw[X];
-    gyroADC[Y] = gyroDev->gyroADCRaw[Y];
-    gyroADC[Z] = gyroDev->gyroADCRaw[Z];
-
-    alignSensors(gyroADC, gyroDev->gyroAlign);
-
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        gyroADC[axis] -= gyroZero[axis];
-        // scale gyro output to degrees per second
-        float gyroADCf = (float)gyroADC[axis] * gyroDev->scale;
-        gyroADCf = softLpfFilterApplyFn(softLpfFilter[axis], gyroADCf);
-        gyroADCf = notchFilter1ApplyFn(notchFilter1[axis], gyroADCf);
-        gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
-        gyro.gyroADCf[axis] = gyroADCf;
-    }
-    return true;
-}
-#endif
-
-void gyroUpdate(void)
-{
-    // range: +/- 8192; +/- 2000 deg/sec
-    if (gyro.dev.update) {
-        // if the gyro update function is set then return, since the gyro is read in gyroUpdateISR
-        return;
-    }
-    if (!gyro.dev.read(&gyro.dev)) {
-        return;
-    }
-    gyro.dev.dataReady = false;
-    // move gyro data into 32-bit variables to avoid overflows in calculations
-    gyroADC[X] = gyro.dev.gyroADCRaw[X];
-    gyroADC[Y] = gyro.dev.gyroADCRaw[Y];
-    gyroADC[Z] = gyro.dev.gyroADCRaw[Z];
-
-    alignSensors(gyroADC, gyro.dev.gyroAlign);
-
-    const bool calibrationComplete = isGyroCalibrationComplete();
-    if (calibrationComplete) {
-#if defined(GYRO_USES_SPI) && defined(USE_MPU_DATA_READY_SIGNAL) && !defined(BRAINFPV)
-        // SPI-based gyro so can read and update in ISR
-        if (gyroConfig->gyro_isr_update) {
-            mpuGyroSetIsrUpdate(&gyro.dev, gyroUpdateISR);
-            return;
+        if (!firstArmingCalibrationWasStarted || !isArmingDisabled()) {
+            beeper(BEEPER_GYRO_CALIBRATED);
         }
-#endif
-#ifdef DEBUG_MPU_DATA_READY_INTERRUPT
-        debug[3] = (uint16_t)(micros() & 0xffff);
-#endif
+    }
+    --gyroSensor->calibration.calibratingG;
+
+}
+
+void gyroUpdateSensor(gyroSensor_t *gyroSensor)
+{
+    if (!gyroSensor->gyroDev.readFn(&gyroSensor->gyroDev)) {
+
+        return;
+    }
+    gyroSensor->gyroDev.dataReady = false;
+
+    if (isGyroSensorCalibrationComplete(gyroSensor)) {
+        // move gyro data into 32-bit variables to avoid overflows in calculations
+        gyroSensor->gyroDev.gyroADC[X] = (int32_t)gyroSensor->gyroDev.gyroADCRaw[X] - (int32_t)gyroSensor->gyroDev.gyroZero[X];
+        gyroSensor->gyroDev.gyroADC[Y] = (int32_t)gyroSensor->gyroDev.gyroADCRaw[Y] - (int32_t)gyroSensor->gyroDev.gyroZero[Y];
+        gyroSensor->gyroDev.gyroADC[Z] = (int32_t)gyroSensor->gyroDev.gyroADCRaw[Z] - (int32_t)gyroSensor->gyroDev.gyroZero[Z];
+
+        alignSensors(gyroSensor->gyroDev.gyroADC, gyroSensor->gyroDev.gyroAlign);
     } else {
-        performGyroCalibration(gyroConfig->gyroMovementCalibrationThreshold);
+        performGyroCalibration(gyroSensor, gyroConfig()->gyroMovementCalibrationThreshold);
+        // Reset gyro values to zero to prevent other code from using uncalibrated data
+        gyro.gyroADCf[X] = 0.0f;
+        gyro.gyroADCf[Y] = 0.0f;
+        gyro.gyroADCf[Z] = 0.0f;
+        // still calibrating, so no need to further process gyro data
+        return;
     }
 
+#ifdef USE_GYRO_DATA_ANALYSE
+    gyroDataAnalyse(&gyroSensor->gyroDev, gyroSensor->notchFilterDyn);
+#endif
+
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        gyroADC[axis] -= gyroZero[axis];
         // scale gyro output to degrees per second
-        float gyroADCf = (float)gyroADC[axis] * gyro.dev.scale;
+        float gyroADCf = (float)gyroSensor->gyroDev.gyroADC[axis] * gyroSensor->gyroDev.scale;
+
+#ifdef USE_GYRO_DATA_ANALYSE
+        // Apply Dynamic Notch filtering
+        if (axis == 0)
+            DEBUG_SET(DEBUG_FFT, 0, lrintf(gyroADCf)); // store raw data
+
+        if (isDynamicFilterActive())
+            gyroADCf = gyroSensor->notchFilterDynApplyFn(&gyroSensor->notchFilterDyn[axis], gyroADCf);
+
+        if (axis == 0)
+            DEBUG_SET(DEBUG_FFT, 1, lrintf(gyroADCf)); // store data after dynamic notch
+#endif
+
+        // Apply Static Notch filtering
+        DEBUG_SET(DEBUG_NOTCH, axis, lrintf(gyroADCf));
+        gyroADCf = gyroSensor->notchFilter1ApplyFn(&gyroSensor->notchFilter1[axis], gyroADCf);
+        gyroADCf = gyroSensor->notchFilter2ApplyFn(&gyroSensor->notchFilter2[axis], gyroADCf);
 
         // Apply LPF
         DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
-        gyroADCf = softLpfFilterApplyFn(softLpfFilter[axis], gyroADCf);
+        gyroADCf = gyroSensor->softLpfFilterApplyFn(gyroSensor->softLpfFilterPtr[axis], gyroADCf);
 
-        // Apply Notch filtering
-        DEBUG_SET(DEBUG_NOTCH, axis, lrintf(gyroADCf));
-        gyroADCf = notchFilter1ApplyFn(notchFilter1[axis], gyroADCf);
-        gyroADCf = notchFilter2ApplyFn(notchFilter2[axis], gyroADCf);
         gyro.gyroADCf[axis] = gyroADCf;
     }
+}
 
-    if (!calibrationComplete) {
-        gyroADC[X] = lrintf(gyro.gyroADCf[X] / gyro.dev.scale);
-        gyroADC[Y] = lrintf(gyro.gyroADCf[Y] / gyro.dev.scale);
-        gyroADC[Z] = lrintf(gyro.gyroADCf[Z] / gyro.dev.scale);
+void gyroUpdate(void)
+{
+    gyroUpdateSensor(&gyroSensor1);
+}
+
+void gyroReadTemperature(void)
+{
+    if (gyroSensor1.gyroDev.temperatureFn) {
+        gyroSensor1.gyroDev.temperatureFn(&gyroSensor1.gyroDev, &gyroSensor1.gyroDev.temperature);
     }
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (spec_data_processed) {
@@ -525,4 +649,14 @@ void gyroUpdate(void)
         }
     }
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+}
+
+int16_t gyroGetTemperature(void)
+{
+    return gyroSensor1.gyroDev.temperature;
+}
+
+int16_t gyroRateDps(int axis)
+{
+    return lrintf(gyro.gyroADCf[axis] / gyroSensor1.gyroDev.scale);
 }
