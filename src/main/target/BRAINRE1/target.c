@@ -103,25 +103,37 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 };
 
 bool brainfpv_settings_updated = true;
+bool brainfpv_settings_updated_from_cms = false;
+
+extern bfOsdConfig_t bfOsdConfigCms;
 
 void brainFPVUpdateSettings(void) {
-    BRAINFPVFPGA_SetBwLevels(bfOsdConfig()->black_level, bfOsdConfig()->white_level);
-    BRAINFPVFPGA_SetSyncThreshold(bfOsdConfig()->sync_threshold);
-    BRAINFPVFPGA_SetXOffset(bfOsdConfig()->x_offset);
-    BRAINFPVFPGA_SetXScale(bfOsdConfig()->x_scale);
-    BRAINFPVFPGA_Set3DConfig(bfOsdConfig()->sbs_3d_enabled, bfOsdConfig()->sbs_3d_right_eye_offset);
+    const bfOsdConfig_t * bfOsdConfigUse;
 
-    if (bfOsdConfig()->ir_system == 1) {
+    if (brainfpv_settings_updated_from_cms)
+        bfOsdConfigUse = &bfOsdConfigCms;
+    else
+        bfOsdConfigUse = bfOsdConfig();
+
+
+    BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->black_level, bfOsdConfigUse->white_level);
+    BRAINFPVFPGA_SetSyncThreshold(bfOsdConfigUse->sync_threshold);
+    BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
+    BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
+    BRAINFPVFPGA_Set3DConfig(bfOsdConfigUse->sbs_3d_enabled, bfOsdConfigUse->sbs_3d_right_eye_offset);
+
+    if (bfOsdConfigUse->ir_system == 1) {
         uint8_t ir_data[6];
-        ir_generate_ilap_packet(bfOsdConfig()->ir_ilap_id, ir_data, 6);
+        ir_generate_ilap_packet(bfOsdConfigUse->ir_ilap_id, ir_data, 6);
         BRAINFPVFPGA_SetIRData(ir_data, 6);
         BRAINFPVFPGA_SetIRProtocol(BRAINFPVFPGA_IR_PROTOCOL_ILAP);
     }
 
-    if (bfOsdConfig()->ir_system == 2) {
+    if (bfOsdConfigUse->ir_system == 2) {
         uint8_t ir_data[4];
-        ir_generate_trackmate_packet(bfOsdConfig()->ir_trackmate_id, ir_data, 6);
+        ir_generate_trackmate_packet(bfOsdConfigUse->ir_trackmate_id, ir_data, 6);
         BRAINFPVFPGA_SetIRData(ir_data, 4);
         BRAINFPVFPGA_SetIRProtocol(BRAINFPVFPGA_IR_PROTOCOL_TRACKMATE);
     }
+    brainfpv_settings_updated_from_cms = false;
 }

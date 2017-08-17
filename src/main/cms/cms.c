@@ -923,9 +923,10 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             *ptr->val = ir_next_valid_trackmateid(*ptr->val + 1, -1);
         }
     }
-    if (currentMenu == &cmsx_menuBrainFPVOsd) {
+    if (currentCtx.menu == &cmsx_menuBrainFPVOsd) {
         if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
             brainfpv_settings_updated = true;
+            brainfpv_settings_updated_from_cms = true;
         }
     }
 #endif
