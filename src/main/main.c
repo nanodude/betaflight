@@ -66,7 +66,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 2 * 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 8 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -150,8 +150,8 @@ int main()
 #endif /* USE_BRAINFPV_OSD */
 
   /* re-init timer irq to make sure it works */
-  extern void *isr_vector_table_base;
-  NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
+  //extern void *isr_vector_table_base;
+  //NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
   st_lld_init();
 
   chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
