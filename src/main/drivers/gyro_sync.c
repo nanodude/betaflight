@@ -45,12 +45,13 @@ uint32_t gyroSetSampleRate(gyroDev_t *gyro, uint8_t lpf, uint8_t gyroSyncDenomin
 #endif
         }
     } else {
-        gyro->gyroRateKHz = GYRO_RATE_1_kHz;
+        gyro->gyroRateKHz = GYRO_RATE_8_kHz;
         gyroSamplePeriod = 1000.0f;
         gyroSyncDenominator = 1; // Always full Sampling 1khz
     }
 
 #if defined(BRAINFPV)
+    gyro->gyroRateKHz = GYRO_RATE_3200_Hz;
     gyroSamplePeriod = 300;
     gyroSyncDenominator = 1; // Always full Sampling 1khz
 #endif /* defined(BRAINFPV) */
