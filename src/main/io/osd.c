@@ -302,6 +302,8 @@ static void osdDrawSingleElement(uint8_t item)
         return;
     }
 
+    bool brainfpv_item = false;
+
     uint8_t elemPosX = OSD_X(osdConfig()->item_pos[item]);
     uint8_t elemPosY = OSD_Y(osdConfig()->item_pos[item]);
     uint8_t elemOffsetX = 0;
@@ -494,6 +496,7 @@ static void osdDrawSingleElement(uint8_t item)
             break;
 #else
             brainFpvOsdCenterMark();
+            brainfpv_item = true;
             break;
 #endif
 
@@ -525,6 +528,7 @@ static void osdDrawSingleElement(uint8_t item)
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
 #else
             brainFpvOsdArtificialHorizon();
+            brainfpv_item = true;
             break;
 #endif
 
@@ -709,7 +713,9 @@ static void osdDrawSingleElement(uint8_t item)
         return;
     }
 
-    displayWrite(osdDisplayPort, elemPosX + elemOffsetX, elemPosY, buff);
+    if (!brainfpv_item) {
+        displayWrite(osdDisplayPort, elemPosX + elemOffsetX, elemPosY, buff);
+    }
 }
 
 static void osdDrawElements(void)
