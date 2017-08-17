@@ -619,18 +619,7 @@ void gyroUpdateSensor(gyroSensor_t *gyroSensor)
 
         gyro.gyroADCf[axis] = gyroADCf;
     }
-}
 
-void gyroUpdate(void)
-{
-    gyroUpdateSensor(&gyroSensor1);
-}
-
-void gyroReadTemperature(void)
-{
-    if (gyroSensor1.gyroDev.temperatureFn) {
-        gyroSensor1.gyroDev.temperatureFn(&gyroSensor1.gyroDev, &gyroSensor1.gyroDev.temperature);
-    }
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (spec_data_processed) {
         if ((debugMode == DEBUG_GYRO) || (debugMode == DEBUG_NOTCH)) {
@@ -650,6 +639,18 @@ void gyroReadTemperature(void)
         }
     }
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+}
+
+void gyroUpdate(void)
+{
+    gyroUpdateSensor(&gyroSensor1);
+}
+
+void gyroReadTemperature(void)
+{
+    if (gyroSensor1.gyroDev.temperatureFn) {
+        gyroSensor1.gyroDev.temperatureFn(&gyroSensor1.gyroDev, &gyroSensor1.gyroDev.temperature);
+    }
 }
 
 int16_t gyroGetTemperature(void)
