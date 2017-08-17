@@ -23,8 +23,8 @@
 
 #define USBD_PRODUCT_STRING     "BrainRE1"
 
-#define LED0                    PB13
-#define LED1                    PC8
+#define LED0_PIN                    PB13
+#define LED1_PIN                    PC8
 #define LED0_INVERTED
 #define LED1_INVERTED
 
@@ -78,6 +78,8 @@
 #define ACC
 
 #define USE_ACCGYRO_BMI160
+#define USE_GYRO_SPI_BMI160
+#define USE_ACC_SPI_BMI160
 #define GYRO_BMI160_ALIGN    CW0_DEG
 #define ACC_BMI160_ALIGN     CW0_DEG
 #define BMI160_SPI_INSTANCE  SPI1
@@ -96,6 +98,7 @@
 #define VBUS_SENSING_PIN        PA9
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART
 #define USE_UART1
 #undef USE_UART1_TX_DMA
 #define USE_UART1_TX_NODMA
@@ -136,10 +139,10 @@
 #define VBAT_ADC_PIN            PC0
 #define RSSI_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC1
-#define VBAT_SCALE_DEFAULT      66
-#define CURRENT_SCALE_DEFAULT   250
+#define VBAT_SCALE_DEFAULT             66
+#define CURRENT_METER_SCALE_DEFAULT   250
 
-#define DEFAULT_FEATURES        0
+#define DEFAULT_FEATURES        (FEATURE_OSD)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
@@ -168,4 +171,5 @@
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
 
 bool brainfpv_settings_updated;
+bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);
