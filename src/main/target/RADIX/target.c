@@ -31,15 +31,12 @@
 #include "drivers/sensor.h"
 #include "drivers/system.h"
 #include "drivers/dma.h"
-#include "drivers/gpio.h"
 #include "drivers/light_led.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/timer.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
 #include "drivers/serial_uart.h"
-#include "drivers/accgyro.h"
-#include "drivers/compass.h"
 #include "drivers/pwm_output.h"
 #include "drivers/adc.h"
 #include "drivers/bus_i2c.h"
@@ -52,7 +49,6 @@
 #include "drivers/transponder_ir.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
-#include "drivers/vtx_soft_spi_rtc6705.h"
 
 #ifdef USE_BST
 #include "bus_bst.h"
@@ -70,7 +66,6 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/transponder_ir.h"
 #include "io/osd.h"
-#include "io/vtx.h"
 
 #include "scheduler/scheduler.h"
 
@@ -93,11 +88,10 @@
 #include "flight/failsafe.h"
 #include "flight/navigation.h"
 
-#include "config/config_profile.h"
-#include "config/config_master.h"
 
 #include "fpga_drv.h"
 #include "brainfpv/ir_transponder.h"
+#include "brainfpv/brainfpv_osd.h"
 
 
 
@@ -112,26 +106,37 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 };
 
 bool brainfpv_settings_updated = true;
-extern master_t masterConfig;
+bool brainfpv_settings_updated_from_cms = false;
+
+extern bfOsdConfig_t bfOsdConfigCms;
 
 void brainFPVUpdateSettings(void) {
-    BRAINFPVFPGA_SetBwLevels(masterConfig.bfOsdConfig.black_level, masterConfig.bfOsdConfig.white_level);
-    BRAINFPVFPGA_SetSyncThreshold(masterConfig.bfOsdConfig.sync_threshold);
-    BRAINFPVFPGA_SetXOffset(masterConfig.bfOsdConfig.x_offset);
-    BRAINFPVFPGA_SetXScale(masterConfig.bfOsdConfig.x_scale);
-    BRAINFPVFPGA_Set3DConfig(masterConfig.bfOsdConfig.sbs_3d_enabled, masterConfig.bfOsdConfig.sbs_3d_right_eye_offset);
+    const bfOsdConfig_t * bfOsdConfigUse;
 
-    if (masterConfig.bfOsdConfig.ir_system == 1) {
+    if (brainfpv_settings_updated_from_cms)
+        bfOsdConfigUse = &bfOsdConfigCms;
+    else
+        bfOsdConfigUse = bfOsdConfig();
+
+
+    BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->black_level, bfOsdConfigUse->white_level);
+    BRAINFPVFPGA_SetSyncThreshold(bfOsdConfigUse->sync_threshold);
+    BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
+    BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
+    BRAINFPVFPGA_Set3DConfig(bfOsdConfigUse->sbs_3d_enabled, bfOsdConfigUse->sbs_3d_right_eye_offset);
+
+    if (bfOsdConfigUse->ir_system == 1) {
         uint8_t ir_data[6];
-        ir_generate_ilap_packet(masterConfig.bfOsdConfig.ir_ilap_id, ir_data, 6);
+        ir_generate_ilap_packet(bfOsdConfigUse->ir_ilap_id, ir_data, 6);
         BRAINFPVFPGA_SetIRData(ir_data, 6);
         BRAINFPVFPGA_SetIRProtocol(BRAINFPVFPGA_IR_PROTOCOL_ILAP);
     }
 
-    if (masterConfig.bfOsdConfig.ir_system == 2) {
+    if (bfOsdConfigUse->ir_system == 2) {
         uint8_t ir_data[4];
-        ir_generate_trackmate_packet(masterConfig.bfOsdConfig.ir_trackmate_id, ir_data, 6);
+        ir_generate_trackmate_packet(bfOsdConfigUse->ir_trackmate_id, ir_data, 6);
         BRAINFPVFPGA_SetIRData(ir_data, 4);
         BRAINFPVFPGA_SetIRProtocol(BRAINFPVFPGA_IR_PROTOCOL_TRACKMATE);
     }
+    brainfpv_settings_updated_from_cms = false;
 }

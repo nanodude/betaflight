@@ -46,6 +46,7 @@
 #include "drivers/system.h"
 #include "drivers/io.h"
 #include "drivers/bus_spi.h"
+#include "drivers/time.h"
 
 
 /**
@@ -149,6 +150,7 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     re1FPGACsPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CS_PIN));
     IOInit(re1FPGACsPin, OWNER_OSD, 0);
     IOConfigGPIO(re1FPGACsPin, SPI_IO_CS_CFG);
+    IOHi(re1FPGACsPin);
 
     spiSetDivisor(BRAINFPVFPGA_SPI_INSTANCE, BRAINFPVFPGA_SPI_DIVISOR);
 
@@ -156,11 +158,11 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
         /* Configure the CDONE and CRESETB pins */
         re1FPGACdonePin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CDONE_PIN));
         IOInit(re1FPGACdonePin, OWNER_OSD, 0);
-        IOConfigGPIO(re1FPGACdonePin, IOCFG_IPU_25);
+        IOConfigGPIO(re1FPGACdonePin, IOCFG_IN_FLOATING);
 
         re1FPGACresetPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CRESET_PIN));
         IOInit(re1FPGACresetPin, OWNER_OSD, 0);
-        IOConfigGPIO(re1FPGACresetPin, IOCFG_OUT_PP);
+        IOConfigGPIO(re1FPGACresetPin, GPIO_OType_OD);
 #if defined(BRAINFPV_FPGA_INCLUDE_BITSTREAM)
         if (BRAINFPVFPGA_LoadBitstream() < 0) {
             return -2;

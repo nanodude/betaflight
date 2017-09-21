@@ -25,12 +25,11 @@
 
 #define USBD_PRODUCT_STRING     "BrainFPV RADIX"
 
-#define LED0                    PB13
+#define LED0_PIN                PB13
+#define LED1_PIN                NONE
 #define LED0_INVERTED
 
-#define LED1                    NONE
-
-#define BEEPER
+#define BEEPER                  NONE
 #define LED_STRIP
 
 #define USE_ESCSERIAL
@@ -75,6 +74,8 @@
 #define ACC
 
 #define USE_ACCGYRO_BMI160
+#define USE_GYRO_SPI_BMI160
+#define USE_ACC_SPI_BMI160
 #define GYRO_BMI160_ALIGN    CW0_DEG
 #define ACC_BMI160_ALIGN     CW0_DEG
 #define BMI160_SPI_INSTANCE  SPI1
@@ -83,9 +84,10 @@
 #define BMI160_INT_EXTI      PC13
 
 #define BARO
+#define DEFAULT_BARO_BMP280
 #define BARO_ZERO_ON_ARM
 #define USE_BARO_BMP280
-#define MS5611_I2C_INSTANCE     I2CDEV_1
+#define BARO_I2C_INSTANCE     I2CDEV_1
 
 #define USABLE_TIMER_CHANNEL_COUNT 7
 
@@ -93,6 +95,7 @@
 #define VBUS_SENSING_PIN        PA9
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART
 #define USE_UART1
 #undef USE_UART1_TX_DMA
 #define USE_UART1_TX_NODMA
@@ -127,7 +130,7 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 #define USE_I2C_PULLUP
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
@@ -137,10 +140,10 @@
 #define VBAT_ADC_PIN            PC1
 #define RSSI_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC0
-#define VBAT_SCALE_DEFAULT      110
-#define CURRENT_SCALE_DEFAULT   200
+#define VBAT_SCALE_DEFAULT            110
+#define CURRENT_METER_SCALE_DEFAULT   250
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER )
+#define DEFAULT_FEATURES        (FEATURE_OSD)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
@@ -159,4 +162,5 @@
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
 
 bool brainfpv_settings_updated;
+bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);

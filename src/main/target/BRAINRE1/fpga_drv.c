@@ -222,6 +222,9 @@ static int32_t BRAINFPVFPGA_ClaimBus()
  */
 static int32_t BRAINFPVFPGA_ReleaseBus()
 {
+    // wait for SPI to be done
+    while (spiIsBusBusy(BRAINFPVFPGA_SPI_INSTANCE)) {};
+
     IOHi(re1FPGACsPin);
 
     return 0;
