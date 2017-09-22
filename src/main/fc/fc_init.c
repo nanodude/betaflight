@@ -81,6 +81,7 @@
 #include "msp/msp_serial.h"
 
 #include "rx/rx.h"
+#include "rx/rx_spi.h"
 #include "rx/spektrum.h"
 
 #include "io/beeper.h"
@@ -163,7 +164,6 @@ void processLoopback(void)
 #endif
 }
 
-
 #ifdef VTX_RTC6705
 bool canUpdateVTX(void)
 {
@@ -205,6 +205,9 @@ void spiPreInit(void)
 #endif
 #ifdef USE_GYRO_SPI_MPU9250
     spiPreInitCs(IO_TAG(MPU9250_CS_PIN));
+#endif
+#ifdef USE_GYRO_SPI_ICM20649
+    spiPreInitCs(IO_TAG(ICM20649_CS_PIN));
 #endif
 #ifdef USE_GYRO_SPI_ICM20689
     spiPreInitCs(IO_TAG(ICM20689_CS_PIN));
@@ -509,7 +512,8 @@ void init(void)
     adcConfigMutable()->vbat.enabled = (batteryConfig()->voltageMeterSource == VOLTAGE_METER_ADC);
     adcConfigMutable()->current.enabled = (batteryConfig()->currentMeterSource == CURRENT_METER_ADC);
 
-    adcConfigMutable()->rssi.enabled = feature(FEATURE_RSSI_ADC);
+    // The FrSky D SPI RX sends RSSI_ADC_PIN (if configured) as A2
+    adcConfigMutable()->rssi.enabled = feature(FEATURE_RSSI_ADC) || (feature(FEATURE_RX_SPI) && rxConfig()->rx_spi_protocol == RX_SPI_FRSKY_D);
     adcInit(adcConfig());
 #endif
 
@@ -755,6 +759,8 @@ void init(void)
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     pwmEnableMotors();
+
+    setArmingDisabled(ARMING_DISABLED_BOOT_GRACE_TIME);
 
 #ifdef USE_OSD_SLAVE
     osdSlaveTasksInit();

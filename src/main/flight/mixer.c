@@ -43,6 +43,7 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/fc_core.h"
+#include "fc/fc_rc.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -316,14 +317,32 @@ static float disarmMotorOutput, deadbandMotor3dHigh, deadbandMotor3dLow;
 float motorOutputHigh, motorOutputLow;
 static float rcCommandThrottleRange, rcCommandThrottleRange3dLow, rcCommandThrottleRange3dHigh;
 
-uint8_t getMotorCount()
+uint8_t getMotorCount(void)
 {
     return motorCount;
 }
 
-float getMotorMixRange()
+float getMotorMixRange(void)
 {
     return motorMixRange;
+}
+
+bool areMotorsRunning(void)
+{
+    bool motorsRunning = false;
+    if (ARMING_FLAG(ARMED)) {
+        motorsRunning = true;
+    } else {
+        for (int i = 0; i < motorCount; i++) {
+            if (motor_disarmed[i] != disarmMotorOutput) {
+                motorsRunning = true;
+
+                break;
+            }
+        }
+    }
+
+    return motorsRunning;
 }
 
 bool mixerIsOutputSaturated(int axis, float errorRate)
@@ -512,6 +531,8 @@ void calculateThrottleAndCurrentMotorEndpoints(void)
         if((rcCommand[THROTTLE] <= (rxConfig()->midrc - flight3DConfig()->deadband3d_throttle))) {
             motorOutputMax = deadbandMotor3dLow;
             motorOutputMin = motorOutputLow;
+            throttlePrevious = rcCommand[THROTTLE];                //3D Mode Throttle Fix #3696
+            throttle = rcCommand[THROTTLE] - rxConfig()->mincheck; //3D Mode Throttle Fix #3696
             currentThrottleInputRange = rcCommandThrottleRange3dLow;
             if(isMotorProtocolDshot()) mixerInversion = true;
         } else if(rcCommand[THROTTLE] >= (rxConfig()->midrc + flight3DConfig()->deadband3d_throttle)) {
@@ -543,7 +564,36 @@ void calculateThrottleAndCurrentMotorEndpoints(void)
     motorOutputRange = motorOutputMax - motorOutputMin;
 }
 
-void applyMixToMotors(float motorMix[MAX_SUPPORTED_MOTORS]) {
+static void applyFlipOverAfterCrashModeToMotors(void)
+{
+    float motorMix[MAX_SUPPORTED_MOTORS];
+
+    for (int i = 0; i < motorCount; i++) {
+        if (getRcDeflectionAbs(FD_ROLL) > getRcDeflectionAbs(FD_PITCH)) {
+            motorMix[i] = getRcDeflection(FD_ROLL) * pidSumLimit * currentMixer[i].roll * (-1);
+        } else {
+            motorMix[i] = getRcDeflection(FD_PITCH) * pidSumLimit * currentMixer[i].pitch * (-1);
+        }
+    }
+    // Apply the mix to motor endpoints
+    for (uint32_t i = 0; i < motorCount; i++) {
+        float motorOutput =  motorOutputMin + motorOutputRange * (motorMix[i]);
+        //Add a little bit to the motorOutputMin so props aren't spinning when sticks are centered
+        motorOutput = (motorOutput < motorOutputMin + 20 ) ? disarmMotorOutput : motorOutput;
+
+        motor[i] = motorOutput;
+    }
+
+    // Disarmed mode
+    if (!ARMING_FLAG(ARMED)) {
+        for (int i = 0; i < motorCount; i++) {
+            motor[i] = motor_disarmed[i];
+        }
+    }
+}
+
+static void applyMixToMotors(float motorMix[MAX_SUPPORTED_MOTORS])
+{
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     for (uint32_t i = 0; i < motorCount; i++) {
@@ -583,36 +633,42 @@ void applyMixToMotors(float motorMix[MAX_SUPPORTED_MOTORS]) {
 
 void mixTable(uint8_t vbatPidCompensation)
 {
+    if (isFlipOverAfterCrashMode()) {
+        applyFlipOverAfterCrashModeToMotors();        
+        return;
+    }
     // Find min and max throttle based on conditions. Throttle has to be known before mixing
     calculateThrottleAndCurrentMotorEndpoints();
 
-    float motorMix[MAX_SUPPORTED_MOTORS];
-
     // Calculate and Limit the PIDsum
-    const float scaledAxisPidRoll =
+    float scaledAxisPidRoll =
         constrainf((axisPID_P[FD_ROLL] + axisPID_I[FD_ROLL] + axisPID_D[FD_ROLL]) / PID_MIXER_SCALING, -pidSumLimit, pidSumLimit);
-    const float scaledAxisPidPitch =
+    float scaledAxisPidPitch =
         constrainf((axisPID_P[FD_PITCH] + axisPID_I[FD_PITCH] + axisPID_D[FD_PITCH]) / PID_MIXER_SCALING, -pidSumLimit, pidSumLimit);
-    const float scaledAxisPidYaw =
-        constrainf((axisPID_P[FD_YAW] + axisPID_I[FD_YAW]) / PID_MIXER_SCALING, -pidSumLimitYaw, pidSumLimitYaw);
+    float scaledAxisPidYaw =
+        -constrainf((axisPID_P[FD_YAW] + axisPID_I[FD_YAW]) / PID_MIXER_SCALING, -pidSumLimitYaw, pidSumLimitYaw);
+    if (isMotorsReversed()) {
+        scaledAxisPidRoll = -scaledAxisPidRoll;
+        scaledAxisPidPitch = -scaledAxisPidPitch;
+        scaledAxisPidYaw = -scaledAxisPidYaw;
+    }
+    if (mixerConfig()->yaw_motors_reversed) {
+        scaledAxisPidYaw = -scaledAxisPidYaw;
+    }
 
     // Calculate voltage compensation
     const float vbatCompensationFactor = (vbatPidCompensation)  ? calculateVbatPidCompensation() : 1.0f;
 
     // Find roll/pitch/yaw desired output
+    float motorMix[MAX_SUPPORTED_MOTORS];
     float motorMixMax = 0, motorMixMin = 0;
-    const int yawDirection = GET_DIRECTION(mixerConfig()->yaw_motors_reversed);
-    int motorDirection = GET_DIRECTION(isMotorsReversed());
-  
     for (int i = 0; i < motorCount; i++) {
         float mix =
-            scaledAxisPidRoll  * currentMixer[i].roll  * (motorDirection) +
-            scaledAxisPidPitch * currentMixer[i].pitch * (motorDirection) +
-            scaledAxisPidYaw   * currentMixer[i].yaw * (-yawDirection) * (motorDirection);
+            scaledAxisPidRoll  * currentMixer[i].roll +
+            scaledAxisPidPitch * currentMixer[i].pitch +
+            scaledAxisPidYaw   * currentMixer[i].yaw;
 
-        if (vbatCompensationFactor > 1.0f) {
-            mix *= vbatCompensationFactor;  // Add voltage compensation
-        }
+        mix *= vbatCompensationFactor;  // Add voltage compensation
 
         if (mix > motorMixMax) {
             motorMixMax = mix;

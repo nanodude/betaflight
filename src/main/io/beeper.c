@@ -365,10 +365,13 @@ void beeperUpdate(timeUs_t currentTimeUs)
     }
 
     #ifdef USE_DSHOT
-    if (!ARMING_FLAG(ARMED) && beeperConfig()->dshotForward && currentBeeperEntry->mode == BEEPER_RX_SET) {
-        for (unsigned index = 0; index < getMotorCount(); index++) {
-            pwmWriteDshotCommand(index, DSHOT_CMD_BEEP3);
-        }
+    if (!areMotorsRunning() && beeperConfig()->dshotForward && currentBeeperEntry->mode == BEEPER_RX_SET) {
+        pwmDisableMotors();
+        delay(1);
+
+        pwmWriteDshotCommand(ALL_MOTORS, getMotorCount(), DSHOT_CMD_BEEP3);
+
+        pwmEnableMotors();
     }
     #endif
 
