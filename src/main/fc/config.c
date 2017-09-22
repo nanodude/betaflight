@@ -553,7 +553,7 @@ void validateAndFixGyroConfig(void)
     }
 
 #if !defined(GYRO_USES_SPI) || !defined(USE_MPU_DATA_READY_SIGNAL)
-    gyroConfigMutable()->gyro_isr_update = false;
+//    gyroConfigMutable()->gyro_isr_update = false;
 #endif
 
 #if defined(BRAINFPV)

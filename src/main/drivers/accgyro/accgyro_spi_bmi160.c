@@ -37,7 +37,6 @@
 
 #include "platform.h"
 
-#ifdef USE_ACCGYRO_BMI160
 
 #include "drivers/bus_spi.h"
 #include "drivers/exti.h"
