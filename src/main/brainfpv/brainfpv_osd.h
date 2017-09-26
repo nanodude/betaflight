@@ -20,6 +20,7 @@ typedef struct bfOsdConfig_s {
     uint32_t ir_ilap_id;
     uint8_t ahi_steps;
     uint8_t bmi160foc;
+    uint16_t bmi160foc_ret;
     uint8_t altitude_scale;
     uint8_t sticks_display;
     uint8_t show_logo_on_arm;

@@ -55,6 +55,7 @@ binary_semaphore_t gyroSem;
 #endif
 
 #if defined(BRAINFPV)
+#include "fc/config.h"
 #include "brainfpv/brainfpv_osd.h"
 #endif
 
@@ -98,7 +99,7 @@ static volatile bool bmi160ExtiInitDone = false;
 
 //! Private functions
 static int32_t BMI160_Config(const busDevice_t *bus);
-static int32_t BMI160_do_foc(const busDevice_t *bus);
+static int16_t BMI160_do_foc(const busDevice_t *bus);
 
 uint8_t bmi160Detect(const busDevice_t *bus)
 {
@@ -141,29 +142,19 @@ static void BMI160_Init(const busDevice_t *bus)
         return;
     }
 
-    bool do_foc = false;
-
-// FIXME
-//#ifdef BRAINFPV
-//    do_foc = bfOsdConfig()->bmi160foc;
-//#endif
-
 #if defined(USE_CHIBIOS)
     chBSemObjectInit(&gyroSem, FALSE);
 #endif
 
+#ifdef BRAINFPV
     /* Perform fast offset compensation if requested */
-    if (do_foc) {
-        BMI160_do_foc(bus);
+    if (bfOsdConfig()->bmi160foc) {
+        int16_t foc_ret = BMI160_do_foc(bus);
+        bfOsdConfigMutable()->bmi160foc = false;
+        bfOsdConfigMutable()->bmi160foc_ret = foc_ret;
+        writeEEPROM();
     }
-
-// FIXME
-//#ifdef BRAINFPV
-//    if (do_foc) {
-//        bfOsdConfig()->bmi160foc = false;
-//        writeEEPROM();
-//    }
-//#endif
+#endif
 
     BMI160InitDone = true;
 }
@@ -222,7 +213,7 @@ static int32_t BMI160_Config(const busDevice_t *bus)
     return 0;
 }
 
-static int32_t BMI160_do_foc(const busDevice_t *bus)
+static int16_t BMI160_do_foc(const busDevice_t *bus)
 {
     // assume sensor is mounted on top
     uint8_t val = 0x7D;;
