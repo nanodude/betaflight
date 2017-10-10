@@ -114,7 +114,7 @@ void setPreferredBeeperOffMask(uint32_t mask);
 void initEEPROM(void);
 void resetEEPROM(void);
 void readEEPROM(void);
-void writeEEPROM();
+void writeEEPROM(void);
 void ensureEEPROMContainsValidData(void);
 
 void saveConfigAndNotify(void);

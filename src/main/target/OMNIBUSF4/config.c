@@ -15,32 +15,21 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform.h"
+#include <platform.h>
+
+#ifdef TARGET_CONFIG
 
 #include "config/parameter_group.h"
+#include "drivers/max7456.h"
 
-typedef struct vtxRTC6705Config_s {
-    uint8_t band;       // 1=A, 2=B, 3=E, 4=F(Airwaves/Fatshark), 5=Raceband
-    uint8_t channel;    // 1-8
-    uint8_t power;      // 0 = lowest
-} vtxRTC6705Config_t;
-
-PG_DECLARE(vtxRTC6705Config_t, vtxRTC6705Config);
-
-#ifdef RTC6705_POWER_PIN
-#define RTC6705_POWER_COUNT 3
-#define VTX_RTC6705_DEFAULT_POWER 1
-#else
-#define RTC6705_POWER_COUNT 2
-#define VTX_RTC6705_DEFAULT_POWER 0
+void targetConfiguration(void)
+{
+#ifdef OMNIBUSF4BASE
+    // OMNIBUS F4 AIO (1st gen) has a AB7456 chip that is detected as MAX7456
+    max7456ConfigMutable()->clockConfig = MAX7456_CLOCK_CONFIG_FULL;
 #endif
-
-extern const char * const rtc6705PowerNames[RTC6705_POWER_COUNT];
-
-void vtxRTC6705Configure(void);
-bool vtxRTC6705Init(void);
+}
+#endif

@@ -168,7 +168,7 @@ static escSensorData_t *escData;
 /**
  * Gets the correct altitude symbol for the current unit system
  */
-static char osdGetMetersToSelectedUnitSymbol()
+static char osdGetMetersToSelectedUnitSymbol(void)
 {
     switch (osdConfig()->units) {
     case OSD_UNIT_IMPERIAL:

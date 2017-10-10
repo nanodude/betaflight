@@ -26,6 +26,8 @@ extern "C" {
 
     #include "build/debug.h"
 
+    #include "config/parameter_group.h"
+    #include "config/parameter_group_ids.h"
     #include "common/crc.h"
     #include "common/utils.h"
 
@@ -47,6 +49,8 @@ extern "C" {
     extern uint32_t crsfChannelData[CRSF_MAX_CHANNEL];
 
     uint32_t dummyTimeUs;
+
+    PG_REGISTER(rxConfig_t, rxConfig, PG_RX_CONFIG, 0);
 }
 
 #include "unittest_macros.h"
@@ -282,7 +286,7 @@ serialPort_t *openSerialPort(serialPortIdentifier_e, serialPortFunction_e, seria
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e ) {return NULL;}
 bool telemetryCheckRxPortShared(const serialPortConfig_t *) {return false;}
 serialPort_t *telemetrySharedPort = NULL;
-void scheduleDeviceInfoResponse(void) {};
-void scheduleMspResponse(mspPackage_t *package) { UNUSED(package); };
+void crsfScheduleDeviceInfoResponse(void) {};
+void crsfScheduleMspResponse(mspPackage_t *package) { UNUSED(package); };
 bool handleMspFrame(uint8_t *, uint8_t *) { return false; }
 }
