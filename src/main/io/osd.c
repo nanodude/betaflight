@@ -1276,6 +1276,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         displayDrawScreen(osdDisplayPort);
     }
 #else
+    showVisualBeeper = isBeeperOn();
     osdRefresh(currentTimeUs);
 #endif
 
