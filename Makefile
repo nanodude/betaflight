@@ -268,7 +268,7 @@ TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf
 TARGET_LST      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).lst
 TARGET_OBJS     = $(addsuffix .o,$(addprefix $(OBJECT_DIR)/$(TARGET)/,$(basename $(SRC))))
 TARGET_DEPS     = $(addsuffix .d,$(addprefix $(OBJECT_DIR)/$(TARGET)/,$(basename $(SRC))))
-TARGET_MAP      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).map
+TARGET_MAP      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).map
 
 
 CLEAN_ARTIFACTS := $(TARGET_BIN)
