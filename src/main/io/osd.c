@@ -94,6 +94,8 @@
 #include "cms/cms.h"
 #endif
 
+extern bool brainfpv_user_avatar_set;
+
 const char * const osdTimerSourceNames[] = {
     "ON TIME  ",
     "TOTAL ARM",
@@ -101,7 +103,6 @@ const char * const osdTimerSourceNames[] = {
 };
 
 // Blink control
-
 static bool blinkState = true;
 static bool showVisualBeeper = false;
 
@@ -456,13 +457,19 @@ static void osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_CRAFT_NAME:
-        if (strlen(pilotConfig()->name) == 0)
-            strcpy(buff, "CRAFT_NAME");
+        if (brainfpv_user_avatar_set && bfOsdConfig()->show_user_logo) {
+            brainFpvOsdUserLogo(elemPosX + 4, elemPosY);
+            brainfpv_item = true;
+        }
         else {
-            for (unsigned int i = 0; i < MAX_NAME_LENGTH; i++) {
-                buff[i] = toupper((unsigned char)pilotConfig()->name[i]);
-                if (pilotConfig()->name[i] == 0)
-                    break;
+            if (strlen(pilotConfig()->name) == 0)
+                strcpy(buff, "CRAFT_NAME");
+            else {
+                for (unsigned int i = 0; i < MAX_NAME_LENGTH; i++) {
+                    buff[i] = toupper((unsigned char)pilotConfig()->name[i]);
+                    if (pilotConfig()->name[i] == 0)
+                        break;
+                }
             }
         }
         break;
@@ -1144,7 +1151,12 @@ static void osdShowStats(void)
 static void osdShowArmed(void)
 {
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12, 7, "ARMED");
+    if (bfOsdConfig()->show_logo_on_arm) {
+        #define GY (GRAPHICS_BOTTOM / 2 - 30)
+        brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
+    }
+
+    displayWrite(osdDisplayPort, 12, 11, "ARMED");
 }
 
 STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)

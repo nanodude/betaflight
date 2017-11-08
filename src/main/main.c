@@ -99,6 +99,7 @@ static THD_FUNCTION(OSDThread, arg)
         .v_offset = 0};
     displayPort_t *osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
     osdInit(osdDisplayPort);
+    brainFpvOsdInit();
     while (1) {
         // wait for VSYNC
         chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(100));

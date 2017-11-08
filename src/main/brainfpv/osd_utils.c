@@ -69,34 +69,7 @@ void clearGraphics()
 
 void draw_image(uint16_t x, uint16_t y, const struct Image * image)
 {
-#if defined(VIDEO_SPLITBUFFER)
-	CHECK_COORDS(x + image->width, y + image->height);
-	uint8_t byte_width = image->width / 8;
-	uint8_t pixel_offset = x % 8;
-	uint8_t mask1 = 0xFF;
-	uint8_t mask2 = 0x00;
-
-	if (pixel_offset > 0) {
-		for (uint8_t i = 0; i<pixel_offset; i++) {
-			mask2 |= 0x01 << i;
-		}
-		mask1 = ~mask2;
-	}
-
-	for (uint16_t yp = 0; yp < image->height; yp++) {
-		for (uint16_t xp = 0; xp < image->width / 8; xp++) {
-			draw_buffer_level[(y + yp) * BUFFER_WIDTH + xp + x / 8] |= (image->level[yp * byte_width + xp] & mask1) >> pixel_offset;
-			draw_buffer_mask[(y + yp) * BUFFER_WIDTH + xp + x / 8] |= (image->mask[yp * byte_width + xp] & mask1) >> pixel_offset;
-			if (pixel_offset > 0) {
-				draw_buffer_level[(y + yp) * BUFFER_WIDTH + xp + x / 8 + 1] |= (image->level[yp * byte_width + xp] & mask2) <<
-						(8 - pixel_offset);
-				draw_buffer_mask[(y + yp) * BUFFER_WIDTH + xp + x / 8 + 1] |= (image->mask[yp * byte_width + xp] & mask2) <<
-						(8 - pixel_offset);
-			}
-		}
-	}
-#else
-	CHECK_COORDS(x + image->width, y + image->height);
+	CHECK_COORDS(x + image->width, y);
 	uint8_t byte_width = image->width / 4;
 	uint8_t pixel_offset = 2 * (x % 4);
 	uint8_t mask1 = 0xFF;
@@ -110,6 +83,8 @@ void draw_image(uint16_t x, uint16_t y, const struct Image * image)
 	}
 
 	for (uint16_t yp = 0; yp < image->height; yp++) {
+		if ((y + yp) >  GRAPHICS_BOTTOM)
+			break;
 		for (uint16_t xp = 0; xp < byte_width; xp++) {
 			draw_buffer[(y + yp) * BUFFER_WIDTH + xp + x / 4] |= (image->data[yp * byte_width + xp] & mask1) >> pixel_offset;
 			if (pixel_offset > 0) {
@@ -118,7 +93,6 @@ void draw_image(uint16_t x, uint16_t y, const struct Image * image)
 			}
 		}
 	}
-#endif /* VIDEO_SPLITBUFFER */
 }
 
 /// Draws four points relative to the given center point.

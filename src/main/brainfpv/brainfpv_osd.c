@@ -114,7 +114,9 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .bmi160foc = 0,
   .altitude_scale = 1,
   .sticks_display = 0,
-  .spec_enabled = 0
+  .spec_enabled = 0,
+  .show_logo_on_arm = 1,
+  .show_user_logo = 1
 );
 
 const char * const gitTag = __GIT_TAG__;
@@ -125,6 +127,7 @@ extern uint8_t *draw_buffer;
 extern uint8_t *disp_buffer;
 
 extern bool cmsInMenu;
+bool brainfpv_user_avatar_set = false;
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch,
@@ -207,14 +210,22 @@ uint8_t* max7456GetScreenBuffer(void)
 }
 /*******************************************************************************/
 
+void brainFpvOsdInit(void)
+{
+    for (uint16_t i=0; i<sizeof(data_userlogo); i++) {
+        if (data_userlogo[i] != 0) {
+            brainfpv_user_avatar_set = true;
+            break;
+        }
+    }
+}
+
 void brainFpvOsdWelcome(void)
 {
     char string_buffer[100];
 
 #define GY (GRAPHICS_BOTTOM / 2 - 30)
-
-    draw_image(GRAPHICS_X_MIDDLE - image_betaflight.width - 5, GY - image_brainfpv.height / 2, &image_brainfpv);
-    draw_image(GRAPHICS_X_MIDDLE + 5, GY - image_betaflight.height / 2, &image_betaflight);
+    brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
 
     tfp_sprintf(string_buffer, "BF VERSION: %s", gitTag);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
@@ -453,6 +464,17 @@ void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical)
 
     write_filled_rectangle_lm(stick_x - (STICK_BOX_SIZE) / 2 - 1, stick_y - (STICK_BOX_SIZE) / 2 - 1, STICK_BOX_SIZE + 2, STICK_BOX_SIZE + 2, 0, 1);
     write_filled_rectangle_lm(stick_x - (STICK_BOX_SIZE) / 2, stick_y - (STICK_BOX_SIZE) / 2, STICK_BOX_SIZE, STICK_BOX_SIZE, 1, 1);
+}
+
+
+void brainFpvOsdUserLogo(uint16_t x, uint16_t y)
+{
+    draw_image(MAX_X(x) - image_userlogo.width / 2, MAX_Y(y) - image_userlogo.height / 2, &image_userlogo);
+}
+
+void brainFpvOsdMainLogo(uint16_t x, uint16_t y)
+{
+    draw_image(x - image_mainlogo.width / 2, y - image_mainlogo.height / 2, &image_mainlogo);
 }
 #endif /* USE_BRAINFPV_OSD */
 

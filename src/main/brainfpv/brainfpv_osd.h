@@ -22,6 +22,8 @@ typedef struct bfOsdConfig_s {
     uint8_t bmi160foc;
     uint8_t altitude_scale;
     uint8_t sticks_display;
+    uint8_t show_logo_on_arm;
+    uint8_t show_user_logo;
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     uint8_t spec_enabled;
 #endif
@@ -35,4 +37,7 @@ void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig);
 
 void brainFpvOsdArtificialHorizon(void);
 void brainFpvOsdCenterMark(void);
+void brainFpvOsdUserLogo(uint16_t x, uint16_t y);
+void brainFpvOsdMainLogo(uint16_t x, uint16_t y);
+
 #endif /* BRAINFPV_OSD */
