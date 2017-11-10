@@ -457,7 +457,7 @@ static void osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_CRAFT_NAME:
-        if (brainfpv_user_avatar_set && bfOsdConfig()->show_user_logo) {
+        if (brainfpv_user_avatar_set && bfOsdConfig()->show_pilot_logo) {
             brainFpvOsdUserLogo(elemPosX + 4, elemPosY);
             brainfpv_item = true;
         }

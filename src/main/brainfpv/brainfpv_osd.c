@@ -116,7 +116,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .sticks_display = 0,
   .spec_enabled = 0,
   .show_logo_on_arm = 1,
-  .show_user_logo = 1
+  .show_pilot_logo = 1
 );
 
 const char * const gitTag = __GIT_TAG__;

@@ -143,7 +143,7 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
     {"SPECTROGRAPH", OME_Bool, NULL, &bfOsdConfigCms.spec_enabled, 0},
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
     {"SHOW LOGO ON ARM", OME_Bool, NULL, &bfOsdConfigCms.show_logo_on_arm, 0},
-    {"SHOW USER LOGO", OME_Bool, NULL, &bfOsdConfigCms.show_user_logo, 0},
+    {"SHOW PILOT LOGO", OME_Bool, NULL, &bfOsdConfigCms.show_pilot_logo, 0},
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}
 };
