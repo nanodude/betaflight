@@ -118,7 +118,6 @@ void writeEEPROM(void);
 void ensureEEPROMContainsValidData(void);
 
 void saveConfigAndNotify(void);
-void validateAndFixConfig(void);
 void validateAndFixGyroConfig(void);
 void activateConfig(void);
 

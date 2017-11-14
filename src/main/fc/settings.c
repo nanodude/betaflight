@@ -144,7 +144,7 @@ static const char * const lookupTableGPSSBASMode[] = {
 #endif
 
 static const char * const lookupTableCurrentSensor[] = {
-    "NONE", "ADC", "VIRTUAL", "ESC"
+    "NONE", "ADC", "VIRTUAL", "ESC", "MSP"
 };
 
 static const char * const lookupTableBatterySensor[] = {
