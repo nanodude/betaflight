@@ -88,8 +88,9 @@
 #define BARO
 #define DEFAULT_BARO_BMP280
 #define BARO_ZERO_ON_ARM
-#define USE_BARO_BMP280
-#define BARO_I2C_INSTANCE     I2CDEV_1
+#define USE_BARO_SPI_BMP280
+#define BMP280_SPI_INSTANCE     SPI3
+#define BMP280_CS_PIN           PB8
 
 #define USABLE_TIMER_CHANNEL_COUNT 7
 
@@ -130,12 +131,6 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
-
-#define USE_I2C
-#define USE_I2C_DEVICE_1
-#define USE_I2C_PULLUP
-#define I2C1_SCL                PB8
-#define I2C1_SDA                PB9
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
