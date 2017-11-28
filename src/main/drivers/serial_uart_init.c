@@ -62,11 +62,6 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
     if (inverted) {
         if (uartPort->USARTx == USART3) {
             BRAINFPVFPGA_SerialRxInvert(true);
-#ifdef RADIX
-            if (uartPort->port.options & SERIAL_BIDIR) {
-                BRAINFPVFPGA_SerialRxBidirectional(true);
-            }
-#endif
         }
         if (uartPort->USARTx == USART6) {
             if (uartPort->port.options & SERIAL_BIDIR) {
@@ -80,11 +75,6 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
         }
     }
     else {
-#ifdef RADIX
-        if ((uartPort->USARTx == USART3) && (uartPort->port.options & SERIAL_BIDIR)) {
-            BRAINFPVFPGA_SerialRxBidirectional(true);
-        }
-#endif
         if ((uartPort->USARTx == USART6) && (uartPort->port.options & SERIAL_BIDIR)) {
             // non-inverted bi-directional mode with pullup
 #ifdef BRAINRE1

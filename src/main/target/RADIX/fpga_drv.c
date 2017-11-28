@@ -71,14 +71,9 @@
 *                                                       1: status: green custom: blue
 *                                        CFG[6]: 0: BUZZER DC drive
 *                                                1: BUZZER 4kHz drive
-*                                        CFG[7]: Serial RX bidirectional mode
-*                                                0: normal
-*                                                1: bi-directional
 * 0x02     CTL    R/W   1       0x00     CTL[0]: BUZZER 0: off, 1: on
 *                                        CTL[1]: Custom LED: 0: off, 1: on
 *                                        CTL[2]: Alarm LED: 0: off, 1: on
-*                                        CTL[3]: GPIO0 0: off, 1: on
-*                                        CTL[4]: GPIO1 0: off, 1: on
 * 0x03     BLACK  R/W   1       XXX      OSD black level
 * 0x04     WHITE  R/W   1       XXX      OSD white level
 * 0x05     THR    R/W   1       XXX      OSD sync detect threshold
@@ -478,21 +473,6 @@ int32_t BRAINFPVFPGA_SerialRxInvert(bool invert)
 }
 
 /**
- * @brief Enable / disable the serial RX bi-directional mode
- */
-int32_t BRAINFPVFPGA_SerialRxBidirectional(bool bidirectional)
-{
-    uint8_t data;
-    if (bidirectional) {
-        data = 0x80;
-    }
-    else {
-        data = 0x00;
-    }
-    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CFG, data, 0x80);
-}
-
-/**
  * @brief Set MultiPort TX pin mode
  */
 int32_t BRAINFPVFPGA_MPTxPinMode(bool bidrectional, bool invert)
@@ -574,25 +554,6 @@ int32_t BRAINFPVFPGA_AlarmLEDToggle()
     uint8_t data = shadow_reg.reg_ctl ^ 0x04;
     return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x04);
 }
-
-/**
- * @brief Set GPIO output
- */
-int32_t BRAINFPVFPGA_SetGPIO(uint8_t gpio, bool enable)
-{
-    uint8_t data = 0;
-
-    if (gpio > 1)
-        return -1;
-
-    uint8_t mask = 0x08 << gpio;
-
-    if (enable)
-        data = mask;
-
-    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, mask);
-}
-
 
 /**
  * @brief Set the notification LED colors
