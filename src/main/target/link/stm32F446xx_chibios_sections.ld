@@ -77,6 +77,10 @@ SECTIONS
         KEEP(*(.isr_vector)) /* Startup code */
     } > START
 
+    images : ALIGN(16) SUBALIGN(16)
+    {
+        KEEP(*(.images_section))
+    } > START
 
     constructors : ALIGN(4) SUBALIGN(4)
     {

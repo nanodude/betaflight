@@ -213,8 +213,8 @@ uint8_t* max7456GetScreenBuffer(void)
 
 void brainFpvOsdInit(void)
 {
-    for (uint16_t i=0; i<sizeof(data_userlogo); i++) {
-        if (data_userlogo[i] != 0) {
+    for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
+        if (image_userlogo.data[i] != 0) {
             brainfpv_user_avatar_set = true;
             break;
         }

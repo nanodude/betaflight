@@ -352,6 +352,7 @@ SRC += brainfpv/spectrograph.c \
        brainfpv/video_quadspi.c \
        brainfpv/osd_utils.c \
        brainfpv/fonts.c \
+       brainfpv/images.c \
        brainfpv/video_quadspi.c \
        brainfpv/ir_transponder.c \
        io/displayport_max7456.c \
