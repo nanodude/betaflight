@@ -25,12 +25,13 @@
 #include "fc/config.h"
 
 #include "flight/pid.h"
-
 #include "sensors/gyro.h"
+#include "blackbox/blackbox.h"
 
 void targetConfiguration(void)
 {
     gyroConfigMutable()->gyro_sync_denom = 1;
     pidConfigMutable()->pid_process_denom = 1;
+    blackboxConfigMutable()->p_denom = 128;
 }
 #endif
