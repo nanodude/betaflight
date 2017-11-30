@@ -302,7 +302,9 @@ bool spiBusWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
 {
     IOLo(bus->busdev_u.spi.csnPin);
     spiTransferByte(bus->busdev_u.spi.instance, reg);
+    while (spiIsBusBusy(bus->busdev_u.spi.instance)) {};
     spiTransferByte(bus->busdev_u.spi.instance, data);
+    while (spiIsBusBusy(bus->busdev_u.spi.instance)) {};
     IOHi(bus->busdev_u.spi.csnPin);
 
     return true;
@@ -312,7 +314,9 @@ bool spiBusReadRegisterBuffer(const busDevice_t *bus, uint8_t reg, uint8_t *data
 {
     IOLo(bus->busdev_u.spi.csnPin);
     spiTransferByte(bus->busdev_u.spi.instance, reg | 0x80); // read transaction
+    while (spiIsBusBusy(bus->busdev_u.spi.instance)) {};
     spiTransfer(bus->busdev_u.spi.instance, NULL, data, length);
+    while (spiIsBusBusy(bus->busdev_u.spi.instance)) {};
     IOHi(bus->busdev_u.spi.csnPin);
 
     return true;
@@ -323,7 +327,9 @@ uint8_t spiBusReadRegister(const busDevice_t *bus, uint8_t reg)
     uint8_t data;
     IOLo(bus->busdev_u.spi.csnPin);
     spiTransferByte(bus->busdev_u.spi.instance, reg | 0x80); // read transaction
+    while (spiIsBusBusy(bus->busdev_u.spi.instance)) {};
     spiTransfer(bus->busdev_u.spi.instance, NULL, &data, 1);
+    while (spiIsBusBusy(bus->busdev_u.spi.instance)) {};
     IOHi(bus->busdev_u.spi.csnPin);
 
     return data;
