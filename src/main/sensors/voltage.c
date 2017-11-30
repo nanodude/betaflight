@@ -134,15 +134,15 @@ static const uint8_t voltageMeterAdcChannelMap[] = {
 #endif
 };
 
-#if !defined(ADC_VREF)
-#define ADC_VREF 3300
+#if !defined(ADCVREF)
+#define ADCVREF 3300
 #endif
 
 STATIC_UNIT_TESTED uint16_t voltageAdcToVoltage(const uint16_t src, const voltageSensorADCConfig_t *config)
 {
     // calculate battery voltage based on ADC reading
     // result is Vbatt in 0.1V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 110 = 10:1 voltage divider (10k:1k) * 10 for 0.1V
-    return ((((uint32_t)src * config->vbatscale * ADC_VREF + (0xFFF * 500)) / (0xFFF *100 *  config->vbatresdivval)) / config->vbatresdivmultiplier);
+    return ((((uint32_t)src * config->vbatscale * ADCVREF + (0xFFF * 500)) / (0xFFF *100 *  config->vbatresdivval)) / config->vbatresdivmultiplier);
 }
 
 void voltageMeterADCRefresh(void)
