@@ -135,7 +135,7 @@
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
-#define ADCVREF 3245
+#define ADC_VOLTAGE_REFERENCE_MV 3245
 #define VBAT_ADC_PIN            PC1
 #define RSSI_ADC_PIN            PC3
 #define CURRENT_METER_ADC_PIN   PC0
