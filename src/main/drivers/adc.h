@@ -19,6 +19,11 @@
 
 #include "drivers/io_types.h"
 
+
+#if !defined(ADC_VOLTAGE_REFERENCE_MV)
+#define ADC_VOLTAGE_REFERENCE_MV 3300
+#endif
+
 typedef enum {
     ADC_BATTERY = 0,
     ADC_CURRENT = 1,
