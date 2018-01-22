@@ -82,7 +82,7 @@ const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
 
 uint32_t timerClock(TIM_TypeDef *tim)
 {
-#if defined (STM32F411xE) || defined (STM32F446xx)
+#if defined (STM32F411xE)
     UNUSED(tim);
     return SystemCoreClock;
 #elif defined (STM32F40_41xxx) || defined(STM32F446xx)
