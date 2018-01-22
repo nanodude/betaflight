@@ -15,29 +15,22 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <platform.h>
+#include "drivers/io.h"
 
-#ifdef TARGET_CONFIG
+#include "drivers/timer.h"
+#include "drivers/timer_def.h"
+#include "drivers/dma.h"
 
-#include "config/parameter_group.h"
-#include "drivers/max7456.h"
-#include "io/serial.h"
-
-void targetConfiguration(void)
-{
-#ifdef OMNIBUSF4BASE
-    // OMNIBUS F4 AIO (1st gen) has a AB7456 chip that is detected as MAX7456
-    max7456ConfigMutable()->clockConfig = MAX7456_CLOCK_CONFIG_FULL;
-#endif
-
-#ifdef EXUAVF4PRO
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_VTX_TRAMP;
-    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_RCSPLIT;
-    serialConfigMutable()->portConfigs[4].functionMask = FUNCTION_RX_SERIAL;
-#endif
-}
-#endif
+const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MOTOR,             0, 1),
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MOTOR,             0, 1),
+    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MOTOR,             0, 1),
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MOTOR,             0, 1),
+    DEF_TIM(TIM3,  CH4, PB1,  0,                         0, 0),
+    DEF_TIM(TIM3,  CH2, PA4,  0,                         0, 0),
+    DEF_TIM(TIM2,  CH2, PA1,  0,                         0, 0),
+    DEF_TIM(TIM2,  CH3, PA2,  0,                         0, 0)
+};

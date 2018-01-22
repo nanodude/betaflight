@@ -15,29 +15,22 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include <platform.h>
 
 #ifdef TARGET_CONFIG
 
-#include "config/parameter_group.h"
-#include "drivers/max7456.h"
+
 #include "io/serial.h"
+
 
 void targetConfiguration(void)
 {
-#ifdef OMNIBUSF4BASE
-    // OMNIBUS F4 AIO (1st gen) has a AB7456 chip that is detected as MAX7456
-    max7456ConfigMutable()->clockConfig = MAX7456_CLOCK_CONFIG_FULL;
-#endif
 
-#ifdef EXUAVF4PRO
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_VTX_TRAMP;
-    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_RCSPLIT;
-    serialConfigMutable()->portConfigs[4].functionMask = FUNCTION_RX_SERIAL;
-#endif
+    serialConfigMutable()->portConfigs[0].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_MSP;
+
+
+
 }
 #endif

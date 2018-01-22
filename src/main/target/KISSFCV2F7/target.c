@@ -15,29 +15,28 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <platform.h>
+#include "drivers/io.h"
 
-#ifdef TARGET_CONFIG
+#include "drivers/dma.h"
+#include "drivers/timer.h"
+#include "drivers/timer_def.h"
 
-#include "config/parameter_group.h"
-#include "drivers/max7456.h"
-#include "io/serial.h"
+const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
-void targetConfiguration(void)
-{
-#ifdef OMNIBUSF4BASE
-    // OMNIBUS F4 AIO (1st gen) has a AB7456 chip that is detected as MAX7456
-    max7456ConfigMutable()->clockConfig = MAX7456_CLOCK_CONFIG_FULL;
-#endif
+	DEF_TIM(TIM9, CH1, PA2, TIM_USE_PWM | TIM_USE_PPM,   0, 0),
+	
+	DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MOTOR,               0, 0),
+	DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_MOTOR,               0, 0),
+	DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_MOTOR,               0, 0),	
+	DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MOTOR,               0, 0),
+	
+	DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_MOTOR,               0, 0),
+	DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MOTOR,               0, 0),
+	
+	DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_LED,                    0, 0)
 
-#ifdef EXUAVF4PRO
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_VTX_TRAMP;
-    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_RCSPLIT;
-    serialConfigMutable()->portConfigs[4].functionMask = FUNCTION_RX_SERIAL;
-#endif
-}
-#endif
+};
+
