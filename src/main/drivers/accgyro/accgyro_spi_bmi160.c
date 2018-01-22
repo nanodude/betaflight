@@ -223,7 +223,7 @@ static int16_t BMI160_do_foc(const busDevice_t *bus)
     spiBusWriteRegister(bus, BMI160_REG_CMD, BMI160_CMD_START_FOC);
 
     // Wait for FOC to complete
-    for (int i=0; i<50; i++) {
+    for (int i=0; i<200; i++) {
         val = spiBusReadRegister(bus, BMI160_REG_STATUS);
         if (val & BMI160_REG_STATUS_FOC_RDY) {
             break;
