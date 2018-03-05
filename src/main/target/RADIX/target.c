@@ -103,7 +103,7 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     //{ TIM8,  IO_TAG(PC8),  TIM_Channel_3, TIM_USE_MOTOR, 1, GPIO_AF_TIM8,  DMA2_Stream2, DMA_Channel_0, DMA2_ST2_HANDLER}, // S5_OUT
     //{ TIM3,  IO_TAG(PB0),  TIM_Channel_3, TIM_USE_MOTOR, 1, GPIO_AF_TIM3,  DMA1_Stream7, DMA_Channel_5, DMA1_ST7_HANDLER}, // S6_OUT
     //{ TIM11, IO_TAG(PB9),  TIM_Channel_1, TIM_USE_ANY, 1,   GPIO_AF_TIM11, NULL,         NULL,          NULL},             // Camera Control
-    DEF_TIM(TIM12, CH3, PB14, TIM_USE_PPM,   0, 0), // PPM In
+    DEF_TIM(TIM12, CH1, PB14, TIM_USE_PPM,   0, 0), // PPM In
     DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_MOTOR, 0, 0), // S1
     DEF_TIM(TIM5,  CH4, PA3,  TIM_USE_MOTOR, 0, 0), // S2
     DEF_TIM(TIM1,  CH3, PA10, TIM_USE_MOTOR, 0, 0), // S3
