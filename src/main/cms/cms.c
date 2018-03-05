@@ -541,8 +541,9 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
     if (room < 30)
         return;
 
+    room -= displayWrite(pDisplay, leftMenuColumn, top + currentCtx.cursorRow * linesPerMenuItem, ">");
     if (pDisplay->cursorRow != currentCtx.cursorRow) {
-        room -= displayWrite(pDisplay, leftMenuColumn, top + currentCtx.cursorRow * linesPerMenuItem, ">");
+        //room -= displayWrite(pDisplay, leftMenuColumn, top + currentCtx.cursorRow * linesPerMenuItem, ">");
         pDisplay->cursorRow = currentCtx.cursorRow;
     }
 
