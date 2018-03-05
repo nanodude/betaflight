@@ -25,14 +25,14 @@
 
 #define USBD_PRODUCT_STRING     "BrainFPV RADIX"
 
-#define TARGET_CONFIG
+#define USE_TARGET_CONFIG
 
 #define LED0_PIN                PA4
 #define LED1_PIN                NONE
 #define LED0_INVERTED
 
 #define BEEPER                  NONE
-#define LED_STRIP
+#define USE_LED_STRIP
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
@@ -50,7 +50,7 @@
 
 #define BRAINFPV
 #define OSD
-#define CMS
+#define USE_CMS
 #define OSD_CALLS_CMS
 #define USE_BRAINFPV_OSD
 #define VIDEO_BITS_PER_PIXEL 2
@@ -65,15 +65,15 @@
 #define BRAINFPV_OSD_SYNC_TH_MAX 50
 
 
-#define VTX_CONTROL
+#define USE_VTX_CONTROL
 #define VTX_SMARTAUDIO
 #define CAMERA_CONTROL_PIN    PB9
 
 #define USE_BRAINFPV_SPECTROGRAPH
 
 #define USE_EXTI
-#define GYRO
-#define ACC
+#define USE_GYRO
+#define USE_ACC
 
 #define USE_ACCGYRO_BMI160
 #define USE_GYRO_SPI_BMI160
