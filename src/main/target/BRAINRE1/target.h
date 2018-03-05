@@ -89,7 +89,7 @@
 #define BMI160_CS_PIN        PC14
 #define BMI160_INT_EXTI      PC13
 
-#define BARO
+#define USE_BARO
 #define DEFAULT_BARO_BMP280
 #define BARO_ZERO_ON_ARM
 #define USE_BARO_BMP280
