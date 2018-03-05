@@ -1311,9 +1311,11 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdResetStats();
             osdShowArmed();
             resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
+            armTime = millis();
         } else if (isSomeStatEnabled()) {
             osdShowStats();
             resumeRefreshAt = currentTimeUs + (60 * REFRESH_1S);
+            disarmTime = millis();
         }
 
         armState = ARMING_FLAG(ARMED);
