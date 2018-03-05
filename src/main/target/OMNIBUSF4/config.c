@@ -20,11 +20,12 @@
 
 #include <platform.h>
 
-#ifdef TARGET_CONFIG
+#ifdef USE_TARGET_CONFIG
 
-#include "config/parameter_group.h"
-#include "drivers/max7456.h"
 #include "io/serial.h"
+
+#include "pg/max7456.h"
+#include "pg/pg.h"
 
 void targetConfiguration(void)
 {
@@ -36,7 +37,7 @@ void targetConfiguration(void)
 #ifdef EXUAVF4PRO
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_VTX_TRAMP;
-    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_RCSPLIT;
+    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_RCDEVICE;
     serialConfigMutable()->portConfigs[4].functionMask = FUNCTION_RX_SERIAL;
 #endif
 }

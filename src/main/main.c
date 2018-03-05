@@ -66,7 +66,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 8 * 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 6 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -80,7 +80,7 @@ static THD_FUNCTION(BetaFlightThread, arg)
 #include "brainfpv/brainfpv_osd.h"
 #include "drivers/display.h"
 #include "io/displayport_max7456.h"
-#include "drivers/vcd.h"
+#include "pg/vcd.h"
 #include "config/config_eeprom.h"
 #include "config/feature.h"
 
@@ -88,7 +88,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse);
 
 extern binary_semaphore_t onScreenDisplaySemaphore;
 
-static THD_WORKING_AREA(waOSDThread, 8 * 1024);
+static THD_WORKING_AREA(waOSDThread, 6 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;

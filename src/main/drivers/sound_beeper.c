@@ -21,13 +21,16 @@
 #include "platform.h"
 
 #include "drivers/io.h"
+#include "drivers/pwm_output.h"
 
-#include "sound_beeper.h"
-#include "pwm_output.h"
+#include "pg/beeper_dev.h"
 
 #ifdef USE_BRAINFPV_FPGA
 #include "fpga_drv.h"
 #endif
+
+#include "sound_beeper.h"
+
 
 #ifndef USE_BRAINFPV_FPGA
 static IO_t beeperIO = DEFIO_IO(NONE);

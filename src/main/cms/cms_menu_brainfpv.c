@@ -99,11 +99,8 @@ OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 };
 
 CMS_Menu cmsx_menuBrainFPVOsd = {
-    .GUARD_text = "MENUBrainFPVOSD",
-    .GUARD_type = OME_MENU,
     .onEnter = NULL,
     .onExit = NULL,
-    .onGlobalExit = NULL,
     .entries = cmsx_menuBrainFPVOsdEntries,
 };
 
@@ -125,11 +122,8 @@ OSD_Entry cmsx_menuBrainFPVIrEntries[] =
 };
 
 CMS_Menu cmsx_menuBrainFPVIr = {
-    .GUARD_text = "MENUBrainFPVIR",
-    .GUARD_type = OME_MENU,
     .onEnter = NULL,
     .onExit = NULL,
-    .onGlobalExit = NULL,
     .entries = cmsx_menuBrainFPVIrEntries,
 };
 
@@ -149,11 +143,8 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
 };
 
 CMS_Menu cmsx_menuBrainFPV = {
-    .GUARD_text = "MENUBrainFPV",
-    .GUARD_type = OME_MENU,
     .onEnter = menuBrainFPVOnEnter,
     .onExit = menuBrainFPVOnExit,
-    .onGlobalExit = NULL,
     .entries = cmsx_menuBrainFPVEntires,
 };
 #endif // CMS

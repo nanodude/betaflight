@@ -31,8 +31,8 @@
 #define USE_SPI_DEVICE_1
 
 #define SPI1_SCK_PIN            PA5
-#define SPI1_MISO_PIN   	    PA6
-#define SPI1_MOSI_PIN   	    PA7
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_INSTANCE    SPI1
@@ -44,10 +44,10 @@
 #define MPU_INT_EXTI            PA1
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 #define GYRO_MPU6000_ALIGN      CW180_DEG
-#define ACC
+#define USE_ACC
 #define USE_ACC_SPI_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
@@ -65,7 +65,7 @@
 #define I2C1_SDA                PB9        // SDA pad
 #define BARO_I2C_INSTANCE       (I2CDEV_1)
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
@@ -95,10 +95,9 @@
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN   	    PB14
-#define SPI2_MOSI_PIN   	    PB15
+#define SPI2_MISO_PIN           PB14
+#define SPI2_MOSI_PIN           PB15
 
-#define OSD
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI2
 #define MAX7456_SPI_CS_PIN      PB12

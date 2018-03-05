@@ -17,7 +17,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "platform.h"
@@ -26,10 +25,10 @@
 
 #include "build/debug.h"
 
-#include "common/printf.h"
-
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
+#include "pg/max7456.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
+#include "pg/vcd.h"
 
 #include "drivers/bus_spi.h"
 #include "drivers/dma.h"
@@ -39,9 +38,18 @@
 #include "drivers/max7456_symbols.h"
 #include "drivers/nvic.h"
 #include "drivers/time.h"
-#include "drivers/vcd.h"
 
-#include "fc/config.h" // For systemConfig()
+
+// DEBUG_MAX7456_SIGNAL
+#define DEBUG_MAX7456_SIGNAL_MODEREG       0
+#define DEBUG_MAX7456_SIGNAL_SENSE         1
+#define DEBUG_MAX7456_SIGNAL_REINIT        2
+#define DEBUG_MAX7456_SIGNAL_ROWS          3
+
+// DEBUG_MAX7456_SPICLOCK
+#define DEBUG_MAX7456_SPICLOCK_OVERCLOCK   0
+#define DEBUG_MAX7456_SPICLOCK_DEVTYPE     1
+#define DEBUG_MAX7456_SPICLOCK_DIVISOR     2
 
 // VM0 bits
 #define VIDEO_BUFFER_DISABLE        0x01
@@ -206,18 +214,11 @@ static uint8_t  displayMemoryModeReg = 0;
 static uint8_t  hosRegValue; // HOS (Horizontal offset register) value
 static uint8_t  vosRegValue; // VOS (Vertical offset register) value
 
-static bool  max7456Lock        = false;
+static bool max7456Lock         = false;
 static bool fontIsLoading       = false;
 static IO_t max7456CsPin        = IO_NONE;
 
 static uint8_t max7456DeviceType;
-
-
-PG_REGISTER_WITH_RESET_TEMPLATE(max7456Config_t, max7456Config, PG_MAX7456_CONFIG, 0);
-
-PG_RESET_TEMPLATE(max7456Config_t, max7456Config,
-    .clockConfig = MAX7456_CLOCK_CONFIG_OC, // SPI clock based on device type and overclock state
-);
 
 
 static uint8_t max7456Send(uint8_t add, uint8_t data)
@@ -349,49 +350,44 @@ uint8_t max7456GetRowsCount(void)
 
 void max7456ReInit(void)
 {
-    uint8_t maxScreenRows;
     uint8_t srdata = 0;
-    uint16_t x;
     static bool firstInit = true;
 
     ENABLE_MAX7456;
 
     switch (videoSignalCfg) {
-        case VIDEO_SYSTEM_PAL:
-            videoSignalReg = VIDEO_MODE_PAL | OSD_ENABLE;
-            break;
+    case VIDEO_SYSTEM_PAL:
+        videoSignalReg = VIDEO_MODE_PAL | OSD_ENABLE;
+        break;
 
-        case VIDEO_SYSTEM_NTSC:
+    case VIDEO_SYSTEM_NTSC:
+        videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
+        break;
+
+    case VIDEO_SYSTEM_AUTO:
+        srdata = max7456Send(MAX7456ADD_STAT, 0x00);
+
+        if (VIN_IS_NTSC(srdata)) {
             videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
-            break;
-
-        case VIDEO_SYSTEM_AUTO:
-            srdata = max7456Send(MAX7456ADD_STAT, 0x00);
-
-            if (VIN_IS_NTSC(srdata)) {
-                videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
-            } else if (VIN_IS_PAL(srdata)) {
-                videoSignalReg = VIDEO_MODE_PAL | OSD_ENABLE;
-            } else {
-                // No valid input signal, fallback to default (XXX NTSC for now)
-                videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
-            }
-            break;
+        } else if (VIN_IS_PAL(srdata)) {
+            videoSignalReg = VIDEO_MODE_PAL | OSD_ENABLE;
+        } else {
+            // No valid input signal, fallback to default (XXX NTSC for now)
+            videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
+        }
+        break;
     }
 
     if (videoSignalReg & VIDEO_MODE_PAL) { //PAL
         maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
-        maxScreenRows = VIDEO_LINES_PAL;
     } else {              // NTSC
         maxScreenSize = VIDEO_BUFFER_CHARS_NTSC;
-        maxScreenRows = VIDEO_LINES_NTSC;
     }
 
-    // Set all rows to same charactor black/white level.
-
-    for (x = 0; x < maxScreenRows; x++) {
-        max7456Send(MAX7456ADD_RB0 + x, BWBRIGHTNESS);
-    }
+    // Set all rows to same charactor black/white level
+    max7456Brightness(0, 2);
+    // Re-enable MAX7456 (last function call disables it)
+    ENABLE_MAX7456;
 
     // Make sure the Max7456 is enabled
     max7456Send(MAX7456ADD_VM0, videoSignalReg);
@@ -402,10 +398,8 @@ void max7456ReInit(void)
     DISABLE_MAX7456;
 
     // Clear shadow to force redraw all screen in non-dma mode.
-
     memset(shadowBuffer, 0, maxScreenSize);
-    if (firstInit)
-    {
+    if (firstInit) {
         max7456RefreshAll();
         firstInit = false;
     }
@@ -415,7 +409,7 @@ void max7456ReInit(void)
 // Here we init only CS and try to init MAX for first time.
 // Also detect device type (MAX v.s. AT)
 
-void max7456Init(const vcdProfile_t *pVcdProfile)
+void max7456Init(const max7456Config_t *max7456Config, const vcdProfile_t *pVcdProfile, bool cpuOverclock)
 {
     max7456HardwareReset();
 
@@ -438,16 +432,16 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
         max7456DeviceType = MAX7456_DEVICE_TYPE_MAX;
     }
 
-#if defined(STM32F4) && !defined(DISABLE_OVERCLOCK)
+#if defined(USE_OVERCLOCK)
     // Determine SPI clock divisor based on config and the device type.
 
-    switch (max7456Config()->clockConfig) {
+    switch (max7456Config->clockConfig) {
     case MAX7456_CLOCK_CONFIG_HALF:
         max7456SpiClock = MAX7456_SPI_CLK * 2;
         break;
 
     case MAX7456_CLOCK_CONFIG_OC:
-        max7456SpiClock = (systemConfig()->cpu_overclock && (max7456DeviceType == MAX7456_DEVICE_TYPE_MAX)) ? MAX7456_SPI_CLK * 2 : MAX7456_SPI_CLK;
+        max7456SpiClock = (cpuOverclock && (max7456DeviceType == MAX7456_DEVICE_TYPE_MAX)) ? MAX7456_SPI_CLK * 2 : MAX7456_SPI_CLK;
         break;
 
     case MAX7456_CLOCK_CONFIG_FULL:
@@ -455,11 +449,12 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
         break;
     }
 
-#ifdef DEBUG_MAX7456_SPI_CLOCK
-    debug[0] = systemConfig()->cpu_overclock;
-    debug[1] = max7456DeviceType;
-    debug[2] = max7456SpiClock;
-#endif
+    DEBUG_SET(DEBUG_MAX7456_SPICLOCK, DEBUG_MAX7456_SPICLOCK_OVERCLOCK, cpuOverclock);
+    DEBUG_SET(DEBUG_MAX7456_SPICLOCK, DEBUG_MAX7456_SPICLOCK_DEVTYPE, max7456DeviceType);
+    DEBUG_SET(DEBUG_MAX7456_SPICLOCK, DEBUG_MAX7456_SPICLOCK_DIVISOR, max7456SpiClock);
+#else
+    UNUSED(max7456Config);
+    UNUSED(cpuOverclock);
 #endif
 
     spiSetDivisor(MAX7456_SPI_INSTANCE, max7456SpiClock);
@@ -486,10 +481,11 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
  */
 void max7456Invert(bool invert)
 {
-    if (invert)
+    if (invert) {
         displayMemoryModeReg |= INVERT_PIXEL_COLOR;
-    else
+    } else {
         displayMemoryModeReg &= ~INVERT_PIXEL_COLOR;
+    }
 
     ENABLE_MAX7456;
     max7456Send(MAX7456ADD_DMM, displayMemoryModeReg);
@@ -504,7 +500,7 @@ void max7456Invert(bool invert)
  */
 void max7456Brightness(uint8_t black, uint8_t white)
 {
-    uint8_t reg = (black << 2) | (3 - white);
+    const uint8_t reg = (black << 2) | (3 - white);
 
     ENABLE_MAX7456;
     for (int i = MAX7456ADD_RB0; i <= MAX7456ADD_RB15; i++) {
@@ -516,13 +512,11 @@ void max7456Brightness(uint8_t black, uint8_t white)
 //just fill with spaces with some tricks
 void max7456ClearScreen(void)
 {
-    uint16_t x;
-    uint32_t *p = (uint32_t*)&screenBuffer[0];
-    for (x = 0; x < VIDEO_BUFFER_CHARS_PAL/4; x++)
-        p[x] = 0x20202020;
+    memset(screenBuffer, 0x20, VIDEO_BUFFER_CHARS_PAL);
 }
 
-uint8_t* max7456GetScreenBuffer(void) {
+uint8_t* max7456GetScreenBuffer(void)
+{
     return screenBuffer;
 }
 
@@ -533,10 +527,11 @@ void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
-    uint8_t i = 0;
-    for (i = 0; *(buff+i); i++)
-        if (x+i < CHARS_PER_LINE) // Do not write over screen
+    for (int i = 0; *(buff+i); i++) {
+        if (x+i < CHARS_PER_LINE) {// Do not write over screen
             screenBuffer[y*CHARS_PER_LINE+x+i] = *(buff+i);
+        }
+    }
 }
 
 bool max7456DmaInProgress(void)
@@ -550,13 +545,11 @@ bool max7456DmaInProgress(void)
 
 void max7456DrawScreen(void)
 {
-    uint8_t stallCheck;
-    uint8_t videoSense;
     static uint32_t lastSigCheckMs = 0;
-    uint32_t nowMs;
     static uint32_t videoDetectTimeMs = 0;
     static uint16_t pos = 0;
-    int k = 0, buff_len=0;
+
+    static uint16_t reInitCount = 0;
 
     if (!max7456Lock && !fontIsLoading) {
 
@@ -564,10 +557,10 @@ void max7456DrawScreen(void)
 
         max7456Lock = true;
         ENABLE_MAX7456;
-        stallCheck = max7456Send(MAX7456ADD_VM0|MAX7456ADD_READ, 0x00);
+        const uint8_t stallCheck = max7456Send(MAX7456ADD_VM0|MAX7456ADD_READ, 0x00);
         DISABLE_MAX7456;
 
-        nowMs = millis();
+        const timeMs_t nowMs = millis();
 
         if (stallCheck != videoSignalReg) {
             max7456ReInit();
@@ -578,14 +571,12 @@ void max7456DrawScreen(void)
             // Adjust output format based on the current input format.
 
             ENABLE_MAX7456;
-            videoSense = max7456Send(MAX7456ADD_STAT, 0x00);
+            const uint8_t videoSense = max7456Send(MAX7456ADD_STAT, 0x00);
             DISABLE_MAX7456;
 
-#ifdef DEBUG_MAX7456_SIGNAL
-            debug[0] = videoSignalReg & VIDEO_MODE_MASK;
-            debug[1] = videoSense & 0x7;
-            debug[3] = max7456GetRowsCount();
-#endif
+            DEBUG_SET(DEBUG_MAX7456_SIGNAL, DEBUG_MAX7456_SIGNAL_MODEREG, videoSignalReg & VIDEO_MODE_MASK);
+            DEBUG_SET(DEBUG_MAX7456_SIGNAL, DEBUG_MAX7456_SIGNAL_SENSE, videoSense & 0x7);
+            DEBUG_SET(DEBUG_MAX7456_SIGNAL, DEBUG_MAX7456_SIGNAL_ROWS, max7456GetRowsCount());
 
             if (videoSense & STAT_LOS) {
                 videoDetectTimeMs = 0;
@@ -595,9 +586,7 @@ void max7456DrawScreen(void)
                     if (videoDetectTimeMs) {
                         if (millis() - videoDetectTimeMs > VIDEO_SIGNAL_DEBOUNCE_MS) {
                             max7456ReInit();
-#ifdef DEBUG_MAX7456_SIGNAL
-                            debug[2]++;
-#endif
+                            DEBUG_SET(DEBUG_MAX7456_SIGNAL, DEBUG_MAX7456_SIGNAL_REINIT, ++reInitCount);
                         }
                     } else {
                         // Wait for signal to stabilize
@@ -611,7 +600,8 @@ void max7456DrawScreen(void)
 
         //------------   end of (re)init-------------------------------------
 
-        for (k=0; k< MAX_CHARS2UPDATE; k++) {
+        int buff_len = 0;
+        for (int k = 0; k < MAX_CHARS2UPDATE; k++) {
             if (screenBuffer[pos] != shadowBuffer[pos]) {
                 spiBuff[buff_len++] = MAX7456ADD_DMAH;
                 spiBuff[buff_len++] = pos >> 8;
@@ -630,15 +620,13 @@ void max7456DrawScreen(void)
         }
 
         if (buff_len) {
-            #ifdef MAX7456_DMA_CHANNEL_TX
-            if (buff_len > 0)
-                max7456SendDma(spiBuff, NULL, buff_len);
-            #else
+#ifdef MAX7456_DMA_CHANNEL_TX
+            max7456SendDma(spiBuff, NULL, buff_len);
+#else
             ENABLE_MAX7456;
-            for (k=0; k < buff_len; k++)
-                spiTransferByte(MAX7456_SPI_INSTANCE, spiBuff[k]);
+            spiTransfer(MAX7456_SPI_INSTANCE, spiBuff, NULL, buff_len);
             DISABLE_MAX7456;
-            #endif // MAX7456_DMA_CHANNEL_TX
+#endif // MAX7456_DMA_CHANNEL_TX
         }
         max7456Lock = false;
     }
@@ -650,17 +638,15 @@ void max7456RefreshAll(void)
 {
     if (!max7456Lock) {
 #ifdef MAX7456_DMA_CHANNEL_TX
-    while (dmaTransactionInProgress);
+        while (dmaTransactionInProgress);
 #endif
-        uint16_t xx;
         max7456Lock = true;
         ENABLE_MAX7456;
         max7456Send(MAX7456ADD_DMAH, 0);
         max7456Send(MAX7456ADD_DMAL, 0);
         max7456Send(MAX7456ADD_DMM, displayMemoryModeReg | 1);
 
-        for (xx = 0; xx < maxScreenSize; ++xx)
-        {
+        for (int xx = 0; xx < maxScreenSize; ++xx) {
             max7456Send(MAX7456ADD_DMDI, screenBuffer[xx]);
             shadowBuffer[xx] = screenBuffer[xx];
         }
@@ -674,8 +660,6 @@ void max7456RefreshAll(void)
 
 void max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 {
-    uint8_t x;
-
 #ifdef MAX7456_DMA_CHANNEL_TX
     while (dmaTransactionInProgress);
 #endif
@@ -689,7 +673,7 @@ void max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 
     max7456Send(MAX7456ADD_CMAH, char_address); // set start address high
 
-    for (x = 0; x < 54; x++) {
+    for (int x = 0; x < 54; x++) {
         max7456Send(MAX7456ADD_CMAL, x); //set start address low
         max7456Send(MAX7456ADD_CMDI, font_data[x]);
 #ifdef LED0_TOGGLE
@@ -733,4 +717,4 @@ void max7456HardwareReset(void)
 #endif
 }
 
-#endif
+#endif // USE_MAX7456

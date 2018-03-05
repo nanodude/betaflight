@@ -17,10 +17,9 @@
 
 #pragma once
 
-#ifndef USE_OSD_SLAVE
 #include <stdbool.h>
 #include "common/time.h"
-#include "config/parameter_group.h"
+#include "pg/pg.h"
 
 #define MAX_PID_PROCESS_DENOM       16
 #define PID_CONTROLLER_BETAFLIGHT   1
@@ -108,10 +107,15 @@ typedef struct pidProfile_s {
     uint16_t itermLimit;
 } pidProfile_t;
 
+#ifndef USE_OSD_SLAVE
 PG_DECLARE_ARRAY(pidProfile_t, MAX_PROFILE_COUNT, pidProfiles);
+#endif
 
 typedef struct pidConfig_s {
     uint8_t pid_process_denom;              // Processing denominator for PID controller vs gyro sampling rate
+    uint8_t runaway_takeoff_prevention;          // off, on - enables pidsum runaway disarm logic
+    uint16_t runaway_takeoff_deactivate_delay;   // delay in ms for "in-flight" conditions before deactivation (successful flight)
+    uint8_t runaway_takeoff_deactivate_throttle; // minimum throttle percent required during deactivation phase
 } pidConfig_t;
 
 PG_DECLARE(pidConfig_t, pidConfig);
@@ -120,13 +124,14 @@ union rollAndPitchTrims_u;
 void pidController(const pidProfile_t *pidProfile, const union rollAndPitchTrims_u *angleTrim, timeUs_t currentTimeUs);
 
 extern float axisPID_P[3], axisPID_I[3], axisPID_D[3];
+extern float axisPIDSum[3];
 bool airmodeWasActivated;
 extern uint32_t targetPidLooptime;
 
 // PIDweight is a scale factor for PIDs which is derived from the throttle and TPA setting, and 100 = 100% scale means no PID reduction
 extern uint8_t PIDweight[3];
 
-void pidResetErrorGyroState(void);
+void pidResetITerm(void);
 void pidStabilisationState(pidStabilisationState_e pidControllerState);
 void pidSetItermAccelerator(float newItermAccelerator);
 void pidInitFilters(const pidProfile_t *pidProfile);
@@ -134,5 +139,3 @@ void pidInitConfig(const pidProfile_t *pidProfile);
 void pidInit(const pidProfile_t *pidProfile);
 void pidCopyProfile(uint8_t dstPidProfileIndex, uint8_t srcPidProfileIndex);
 bool crashRecoveryModeActive(void);
-
-#endif

@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 #include "brainfpv/video.h"
-#include "config/parameter_group.h"
+#include "pg/pg.h"
 
 typedef struct bfOsdConfig_s {
     uint8_t sync_threshold;

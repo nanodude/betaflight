@@ -30,11 +30,11 @@
 #define MPU6000_CS_PIN        PA4
 #define MPU6000_SPI_INSTANCE  SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_SPI_MPU6000
 #define ACC_MPU6000_ALIGN CW270_DEG
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 #define GYRO_MPU6000_ALIGN CW270_DEG
 
@@ -43,14 +43,14 @@
 #define MPU_INT_EXTI PC4
 #define USE_EXTI
 
-#define MAG
+#define USE_MAG
 #define USE_MAG_HMC5883
 #define MAG_I2C_INSTANCE           (I2CDEV_2)
 
 //#define MAG_HMC5883_ALIGN CW270_DEG_FLIP
 //#define MAG_HMC5883_ALIGN CW90_DEG
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_MS5611
 #define USE_BARO_BMP280
 #define BARO_I2C_INSTANCE           (I2CDEV_2)
@@ -120,7 +120,6 @@
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
 
-#define OSD
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI3
 #define MAX7456_SPI_CS_PIN      SPI3_NSS_PIN
@@ -139,12 +138,7 @@
 #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 8 // 27MHz
 
 #define SDCARD_DMA_STREAM_TX_FULL           DMA2_Stream1
-#define SDCARD_DMA_TX                       DMA2
-#define SDCARD_DMA_STREAM_TX                1
-#define SDCARD_DMA_CLK                      LL_AHB1_GRP1_PERIPH_DMA2
-
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
-#define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
+#define SDCARD_DMA_CHANNEL                  4
 
 #define USE_I2C
 #define USE_I2C_DEVICE_2  // External I2C

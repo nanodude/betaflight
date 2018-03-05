@@ -15,7 +15,7 @@
 
 #pragma once
 
-#define TARGET_CONFIG
+#define USE_TARGET_CONFIG
 
 #define TARGET_BOARD_IDENTIFIER "NOX1"
 #define USBD_PRODUCT_STRING "NoxF4V1"
@@ -25,13 +25,15 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
+#define USE_DSHOT_DMAR
+
 #define INVERTER_PIN_UART2      PC14
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_SPI_MPU6500
 #define USE_ACC_SPI_MPU6000
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_SPI_MPU6500
 #define USE_GYRO_SPI_MPU6000
 
@@ -45,13 +47,12 @@
 #define MPU_INT_EXTI            PA8
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_BMP280
 #define USE_BARO_SPI_BMP280
 #define BMP280_SPI_INSTANCE     SPI2
 #define BMP280_CS_PIN           PA9
 
-#define OSD
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI2
 #define MAX7456_SPI_CS_PIN      PA10
@@ -108,7 +109,7 @@
 
 #define SERIALRX_UART           SERIAL_PORT_USART2
 
-#define TRANSPONDER
+#define USE_TRANSPONDER
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS

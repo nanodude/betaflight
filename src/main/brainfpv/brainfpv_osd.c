@@ -58,13 +58,11 @@
 #include "drivers/light_led.h"
 #include "drivers/light_ws2811strip.h"
 #include "drivers/sound_beeper.h"
-#include "drivers/vcd.h"
 #include "drivers/max7456.h"
 #include "drivers/max7456_symbols.h"
 
 #include "sensors/sensors.h"
 #include "sensors/boardalignment.h"
-#include "sensors/sonar.h"
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -87,7 +85,10 @@
 #include "flight/navigation.h"
 
 #include "config/feature.h"
-#include "config/parameter_group_ids.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
+#include "pg/vcd.h"
+#include "pg/max7456.h"
 
 #include "fc/rc_controls.h"
 #include "rx/rx.h"
@@ -147,9 +148,11 @@ enum BrainFPVOSDMode {
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
-void max7456Init(const vcdProfile_t *vcdProfile)
+void max7456Init(const max7456Config_t *max7456Config, const vcdProfile_t *pVcdProfile, bool cpuOverclock)
 {
-    (void)vcdProfile;
+    (void)max7456Config;
+    (void)pVcdProfile;
+    (void)cpuOverclock;
 }
 
 void max7456Invert(bool invert)

@@ -198,9 +198,83 @@ TIM_TypeDef * const usedTimers[USED_TIMER_COUNT] = {
 #undef _DEF
 };
 
+// Map timer index to timer number (Straight copy of usedTimers array)
+const int8_t timerNumbers[USED_TIMER_COUNT] = {
+#define _DEF(i) i
+
+#if USED_TIMERS & TIM_N(1)
+    _DEF(1),
+#endif
+#if USED_TIMERS & TIM_N(2)
+    _DEF(2),
+#endif
+#if USED_TIMERS & TIM_N(3)
+    _DEF(3),
+#endif
+#if USED_TIMERS & TIM_N(4)
+    _DEF(4),
+#endif
+#if USED_TIMERS & TIM_N(5)
+    _DEF(5),
+#endif
+#if USED_TIMERS & TIM_N(6)
+    _DEF(6),
+#endif
+#if USED_TIMERS & TIM_N(7)
+    _DEF(7),
+#endif
+#if USED_TIMERS & TIM_N(8)
+    _DEF(8),
+#endif
+#if USED_TIMERS & TIM_N(9)
+    _DEF(9),
+#endif
+#if USED_TIMERS & TIM_N(10)
+    _DEF(10),
+#endif
+#if USED_TIMERS & TIM_N(11)
+    _DEF(11),
+#endif
+#if USED_TIMERS & TIM_N(12)
+    _DEF(12),
+#endif
+#if USED_TIMERS & TIM_N(13)
+    _DEF(13),
+#endif
+#if USED_TIMERS & TIM_N(14)
+    _DEF(14),
+#endif
+#if USED_TIMERS & TIM_N(15)
+    _DEF(15),
+#endif
+#if USED_TIMERS & TIM_N(16)
+    _DEF(16),
+#endif
+#if USED_TIMERS & TIM_N(17)
+    _DEF(17),
+#endif
+#undef _DEF
+};
+
+int8_t timerGetTIMNumber(const TIM_TypeDef *tim)
+{
+    uint8_t index = lookupTimerIndex(tim);
+
+    if (index < USED_TIMER_COUNT) {
+        return timerNumbers[index];
+    } else {
+        return 0;
+    }
+}
+
 static inline uint8_t lookupChannelIndex(const uint16_t channel)
 {
     return channel >> 2;
+}
+
+uint8_t timerLookupChannelIndex(const uint16_t channel)
+{
+    return lookupChannelIndex(channel);
 }
 
 rccPeriphTag_t timerRCC(TIM_TypeDef *tim)
@@ -616,8 +690,8 @@ static void timCCxHandler(TIM_TypeDef *tim, timerConfig_t *timerConfig)
                 timerConfig->forcedOverflowTimerValue = 0;
             } else {
                 capture = tim->ARR;
-            }
 
+            }
             timerOvrHandlerRec_t *cb = timerConfig->overflowCallbackActive;
             while (cb) {
                 cb->fn(cb, capture);
@@ -929,9 +1003,6 @@ uint16_t timerGetPrescalerByDesiredHertz(TIM_TypeDef *tim, uint32_t hz)
 
 HAL_StatusTypeDef TIM_DMACmd(TIM_HandleTypeDef *htim, uint32_t Channel, FunctionalState NewState)
 {
-    /* Check the parameters */
-    assert_param(IS_TIM_CCXN_INSTANCE(htim->Instance, Channel));
-
     switch (Channel) {
     case TIM_CHANNEL_1: {
         if (NewState != DISABLE) {
@@ -982,6 +1053,73 @@ HAL_StatusTypeDef TIM_DMACmd(TIM_HandleTypeDef *htim, uint32_t Channel, Function
     }
     /* Change the htim state */
     htim->State = HAL_TIM_STATE_READY;
+    /* Return function status */
+    return HAL_OK;
+}
+
+HAL_StatusTypeDef DMA_SetCurrDataCounter(TIM_HandleTypeDef *htim, uint32_t Channel, uint32_t *pData, uint16_t Length)
+{
+    if ((htim->State == HAL_TIM_STATE_BUSY)) {
+        return HAL_BUSY;
+    } else if ((htim->State == HAL_TIM_STATE_READY)) {
+        if (((uint32_t) pData == 0) && (Length > 0)) {
+            return HAL_ERROR;
+        } else {
+            htim->State = HAL_TIM_STATE_BUSY;
+        }
+    }
+    switch (Channel) {
+    case TIM_CHANNEL_1: {
+        /* Set the DMA Period elapsed callback */
+        htim->hdma[TIM_DMA_ID_CC1]->XferCpltCallback = HAL_TIM_DMADelayPulseCplt;
+
+        /* Set the DMA error callback */
+        htim->hdma[TIM_DMA_ID_CC1]->XferErrorCallback = HAL_TIM_DMAError;
+
+        /* Enable the DMA Stream */
+        HAL_DMA_Start_IT(htim->hdma[TIM_DMA_ID_CC1], (uint32_t) pData, (uint32_t) & htim->Instance->CCR1, Length);
+    }
+        break;
+
+    case TIM_CHANNEL_2: {
+        /* Set the DMA Period elapsed callback */
+        htim->hdma[TIM_DMA_ID_CC2]->XferCpltCallback = HAL_TIM_DMADelayPulseCplt;
+
+        /* Set the DMA error callback */
+        htim->hdma[TIM_DMA_ID_CC2]->XferErrorCallback = HAL_TIM_DMAError;
+
+        /* Enable the DMA Stream */
+        HAL_DMA_Start_IT(htim->hdma[TIM_DMA_ID_CC2], (uint32_t) pData, (uint32_t) & htim->Instance->CCR2, Length);
+    }
+        break;
+
+    case TIM_CHANNEL_3: {
+        /* Set the DMA Period elapsed callback */
+        htim->hdma[TIM_DMA_ID_CC3]->XferCpltCallback = HAL_TIM_DMADelayPulseCplt;
+
+        /* Set the DMA error callback */
+        htim->hdma[TIM_DMA_ID_CC3]->XferErrorCallback = HAL_TIM_DMAError;
+
+        /* Enable the DMA Stream */
+        HAL_DMA_Start_IT(htim->hdma[TIM_DMA_ID_CC3], (uint32_t) pData, (uint32_t) & htim->Instance->CCR3, Length);
+    }
+        break;
+
+    case TIM_CHANNEL_4: {
+        /* Set the DMA Period elapsed callback */
+        htim->hdma[TIM_DMA_ID_CC4]->XferCpltCallback = HAL_TIM_DMADelayPulseCplt;
+
+        /* Set the DMA error callback */
+        htim->hdma[TIM_DMA_ID_CC4]->XferErrorCallback = HAL_TIM_DMAError;
+
+        /* Enable the DMA Stream */
+        HAL_DMA_Start_IT(htim->hdma[TIM_DMA_ID_CC4], (uint32_t) pData, (uint32_t) & htim->Instance->CCR4, Length);
+    }
+        break;
+
+    default:
+        break;
+    }
     /* Return function status */
     return HAL_OK;
 }

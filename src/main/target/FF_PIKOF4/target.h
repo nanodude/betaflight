@@ -23,7 +23,7 @@
 #define TARGET_BOARD_IDENTIFIER "PIK4"
 #define USBD_PRODUCT_STRING     "PikoF4"
 #endif
-#define TARGET_CONFIG
+#define USE_TARGET_CONFIG
 /*--------------LED----------------*/
 #if defined(FF_PIKOF4OSD)
 #define LED0_PIN                PB5
@@ -65,14 +65,14 @@
 #define MPU6500_SPI_INSTANCE    SPI1
 #endif
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 #define GYRO_MPU6000_ALIGN      CW180_DEG
 
 #define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_SPI_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
@@ -82,7 +82,6 @@
 
 #if defined(FF_PIKOF4OSD)
 /*-------------OSD-----------------*/
-#define OSD
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI1
 #define MAX7456_SPI_CS_PIN      PA4
@@ -128,8 +127,6 @@
 #define SERIAL_PORT_COUNT       5
 
 
-#define CMS
-#define USE_MSP_DISPLAYPORT
 /*---------------------------------*/
 
 /*-------------SPIs----------------*/

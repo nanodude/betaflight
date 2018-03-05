@@ -19,7 +19,7 @@
 
 #include "common/axis.h"
 #include "common/time.h"
-#include "config/parameter_group.h"
+#include "pg/pg.h"
 #include "drivers/bus.h"
 #include "drivers/sensor.h"
 
@@ -65,11 +65,16 @@ typedef struct gyroConfig_s {
     bool     gyro_high_fsr;
     bool     gyro_use_32khz;
     uint8_t  gyro_to_use;
+    uint16_t gyro_soft_lpf_hz_2;
     uint16_t gyro_soft_notch_hz_1;
     uint16_t gyro_soft_notch_cutoff_1;
     uint16_t gyro_soft_notch_hz_2;
     uint16_t gyro_soft_notch_cutoff_2;
     gyroOverflowCheck_e checkOverflow;
+    uint16_t gyro_filter_q;
+    uint16_t gyro_filter_r;
+    uint16_t gyro_filter_p;
+    int16_t  gyro_offset_yaw;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
@@ -78,6 +83,7 @@ bool gyroInit(void);
 
 void gyroInitFilters(void);
 void gyroUpdate(timeUs_t currentTimeUs);
+bool gyroGetAccumulationAverage(float *accumulation);
 const busDevice_t *gyroSensorBus(void);
 struct mpuConfiguration_s;
 const struct mpuConfiguration_s *gyroMpuConfiguration(void);
@@ -90,3 +96,5 @@ void gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 bool gyroOverflowDetected(void);
+uint16_t gyroAbsRateDps(int axis);
+

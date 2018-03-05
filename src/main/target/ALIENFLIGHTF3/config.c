@@ -20,7 +20,7 @@
 
 #include <platform.h>
 
-#ifdef TARGET_CONFIG
+#ifdef USE_TARGET_CONFIG
 
 #include "common/axis.h"
 
@@ -28,11 +28,12 @@
 
 #include "drivers/light_led.h"
 #include "drivers/pwm_esc_detect.h"
-
-#include "fc/config.h"
+#include "drivers/sound_beeper.h"
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
+
+#include "pg/beeper_dev.h"
 
 #include "rx/rx.h"
 
@@ -93,8 +94,8 @@ void targetConfiguration(void)
         parseRcChannels("TAER1234", rxConfigMutable());
     } else {
         rxConfigMutable()->serialrx_provider = SERIALRX_SBUS;
-        rxConfigMutable()->sbus_inversion = 0;
-        serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIALRX_UART)].functionMask = FUNCTION_TELEMETRY_FRSKY | FUNCTION_RX_SERIAL;
+        rxConfigMutable()->serialrx_inverted = true;
+        serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIALRX_UART)].functionMask = FUNCTION_TELEMETRY_FRSKY_HUB | FUNCTION_RX_SERIAL;
         telemetryConfigMutable()->telemetry_inverted = false;
         featureSet(FEATURE_TELEMETRY);
         beeperDevConfigMutable()->isOpenDrain = false;

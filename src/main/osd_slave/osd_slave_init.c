@@ -30,8 +30,6 @@
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
 
 #include "drivers/adc.h"
 #include "drivers/bus.h"
@@ -54,12 +52,13 @@
 #include "drivers/transponder_ir.h"
 #include "drivers/usb_io.h"
 
-#include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
-#include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
 #include "fc/runtime_config.h"
+
+#include "interface/cli.h"
+#include "interface/msp.h"
 
 #include "msp/msp_serial.h"
 
@@ -75,6 +74,12 @@
 #include "io/transponder_ir.h"
 
 #include "osd_slave/osd_slave_init.h"
+
+#include "pg/adc.h"
+#include "pg/bus_i2c.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
+#include "pg/vcd.h"
 
 #include "scheduler/scheduler.h"
 
@@ -196,7 +201,7 @@ void init(void)
 #endif /* USE_SPI */
 
 #ifdef USE_I2C
-    i2cHardwareConfigure();
+    i2cHardwareConfigure(i2cConfig());
 
     // Note: Unlike UARTs which are configured when client is present,
     // I2C buses are initialized unconditionally if they are configured.
@@ -244,7 +249,7 @@ void init(void)
     LED0_OFF;
     LED1_OFF;
 
-    mspOsdSlaveInit();
+    mspInit();
     mspSerialInit();
 
 #ifdef USE_CLI
@@ -260,7 +265,7 @@ void init(void)
     osdSlaveInit(osdDisplayPort);
 #endif
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     ledStripInit();
 
     if (feature(FEATURE_LED_STRIP)) {
@@ -272,7 +277,7 @@ void init(void)
     usbCableDetectInit();
 #endif
 
-#ifdef TRANSPONDER
+#ifdef USE_TRANSPONDER
     if (feature(FEATURE_TRANSPONDER)) {
         transponderInit();
         transponderStartRepeating();
@@ -287,7 +292,7 @@ void init(void)
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
 
-    osdSlaveTasksInit();
+    fcTasksInit();
 
     systemState |= SYSTEM_STATE_READY;
 }
