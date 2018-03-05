@@ -913,6 +913,17 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
         osdConfig->item_pos[i] = OSD_POS(10, 7);
     }
 
+    osdConfig->item_pos[OSD_RSSI_VALUE]         = OSD_POS(8, 1)   | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(12, 1)  | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(8, 6)   | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_ITEM_TIMER_1]       = OSD_POS(22, 1)  | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_ITEM_TIMER_2]       = OSD_POS(1, 1)   | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_FLYMODE]            = OSD_POS(13, 10) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_CRAFT_NAME]         = OSD_POS(10, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_CURRENT_DRAW]       = OSD_POS(1, 11)  | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_MAH_DRAWN]          = OSD_POS(1, 10)  | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = OSD_POS(12, 2)  | VISIBLE_FLAG;
+
     // Always enable warnings elements by default
     osdConfig->item_pos[OSD_WARNINGS] = OSD_POS(9, 10) | VISIBLE_FLAG;
 
@@ -1377,6 +1388,7 @@ void osdUpdate(timeUs_t currentTimeUs)
 {
     static uint32_t counter = 0;
 
+#ifndef USE_BRAINFPV_OSD
     if (isBeeperOn()) {
         showVisualBeeper = true;
     }
@@ -1388,7 +1400,6 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif // MAX7456_DMA_CHANNEL_TX
 
-#ifndef USE_BRAINFPV_OSD
     // redraw values in buffer
 #ifdef USE_MAX7456
 #define DRAW_FREQ_DENOM 5
