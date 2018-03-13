@@ -123,6 +123,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
 
 const char * const gitTag = __GIT_TAG__;
 
+void video_qspi_enable(void);
 extern binary_semaphore_t onScreenDisplaySemaphore;
 
 extern uint8_t *draw_buffer;
@@ -278,53 +279,62 @@ void osdUpdateLocal()
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
 
 void osdMain(void) {
-    static uint32_t key_time = 0;
-    uint32_t currentTime = micros();
-    enum SpecCommand spec_command = SPEC_COMMAND_NONE;
-    static enum BrainFPVOSDMode mode = MODE_BETAFLIGHT;
-    clearGraphics();
+    uint32_t key_time = 0;
+    uint32_t currentTime;
 
-    /* Hide OSD when OSDSW mode is active */
-    if (IS_RC_MODE_ACTIVE(BOXOSD))
-      return;
-
-#if defined(USE_BRAINFPV_SPECTROGRAPH)
-    if (bfOsdConfig()->spec_enabled) {
-        if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
-            mode = MODE_SPEC;
+    while (1) {
+        if (chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(500)) == MSG_TIMEOUT) {
+            // No trigger received within 500ms, re-enable the video
+            video_qspi_enable();
         }
-        else {
-            if ((mode == MODE_SPEC) && !ARMING_FLAG(ARMED)) {
-                if (IS_HI(ROLL) && ((millis() - key_time) > 250)) {
-                    spec_command = SPEC_COMMAND_SWAXIS;
-                    key_time = millis();
-                }
-                if (IS_LO(ROLL)) {
-                    mode = MODE_BETAFLIGHT;
+
+        currentTime = micros();
+        enum SpecCommand spec_command = SPEC_COMMAND_NONE;
+        static enum BrainFPVOSDMode mode = MODE_BETAFLIGHT;
+        clearGraphics();
+
+        /* Hide OSD when OSDSW mode is active */
+        if (IS_RC_MODE_ACTIVE(BOXOSD))
+          continue;
+
+ #if defined(USE_BRAINFPV_SPECTROGRAPH)
+        if (bfOsdConfig()->spec_enabled) {
+            if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
+                mode = MODE_SPEC;
+            }
+            else {
+                if ((mode == MODE_SPEC) && !ARMING_FLAG(ARMED)) {
+                    if (IS_HI(ROLL) && ((millis() - key_time) > 250)) {
+                        spec_command = SPEC_COMMAND_SWAXIS;
+                        key_time = millis();
+                    }
+                    if (IS_LO(ROLL)) {
+                        mode = MODE_BETAFLIGHT;
+                    }
                 }
             }
         }
-    }
-#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+ #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
-    if (millis() < 5000) {
-        brainFpvOsdWelcome();
-    }
-    else {
-        switch (mode) {
-            case MODE_BETAFLIGHT:
-                osdUpdate(currentTime);
-                if (!cmsInMenu){
-                    osdUpdateLocal();
-                }
-                break;
-            case MODE_SPEC:
-#if defined(USE_BRAINFPV_SPECTROGRAPH)
-                spectrographOSD(spec_command);
-#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
-                break;
-            default:
-                break;
+        if (millis() < 5000) {
+            brainFpvOsdWelcome();
+        }
+        else {
+            switch (mode) {
+                case MODE_BETAFLIGHT:
+                    osdUpdate(currentTime);
+                    if (!cmsInMenu){
+                        osdUpdateLocal();
+                    }
+                    break;
+                case MODE_SPEC:
+ #if defined(USE_BRAINFPV_SPECTROGRAPH)
+                    spectrographOSD(spec_command);
+ #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

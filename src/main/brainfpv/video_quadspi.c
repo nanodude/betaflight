@@ -38,9 +38,11 @@
 #include "drivers/exti.h"
 #include "drivers/nvic.h"
 #include "drivers/light_led.h"
+#include "drivers/time.h"
 
 static IO_t debugPin = IO_NONE;
-
+static IO_t hsync_io;
+static IO_t vsync_io;
 
 #if defined(INCLUDE_VIDEO_QUADSPI) | 1
 
@@ -53,6 +55,10 @@ static IO_t debugPin = IO_NONE;
 
 // How many frames until we redraw
 #define VSYNC_REDRAW_CNT 2
+
+// Minimum micro seconds between VSYNCS
+#define MIN_DELTA_VSYNC 10000
+#define MAX_SPURIOUS_VSYNCS 10
 
 extiCallbackRec_t vsyncIntCallbackRec;
 extiCallbackRec_t hsyncIntCallbackRec;
@@ -108,6 +114,7 @@ uint8_t *disp_buffer;
 const struct video_type_boundary *video_type_boundary_act = &video_type_boundary_pal;
 
 // Private variables
+static uint8_t spurious_vsync_cnt = 0;
 static int16_t active_line = 0;
 static uint32_t buffer_offset;
 static int8_t y_offset = 0;
@@ -124,15 +131,44 @@ uint8_t white_ntsc = 110;
 // Private functions
 static void swap_buffers();
 
+// Re-enable the video if it has been disabled
+void video_qspi_enable(void)
+{
+    // re-enable interrupts
+    spurious_vsync_cnt = 0;
+    EXTIEnable(vsync_io, true);
+    EXTIEnable(hsync_io, true);
+}
+
 /**
  * @brief Vsync interrupt service routine
  */
 void Vsync_ISR(extiCallbackRec_t *cb)
 {
     (void)cb;
+    static uint32_t t_last = 0;
+    static uint16_t Vsync_update = 0;
+
+    uint32_t t_now;
 
     CH_IRQ_PROLOGUE();
-    static uint16_t Vsync_update = 0;
+
+    t_now = microsISR();
+
+    if (t_now - t_last < MIN_DELTA_VSYNC) {
+        spurious_vsync_cnt += 1;
+        if (spurious_vsync_cnt >= MAX_SPURIOUS_VSYNCS) {
+            // spurious detections: disable interrupts
+            EXTIEnable(vsync_io, false);
+            EXTIEnable(hsync_io, false);
+        }
+        return;
+    }
+    else {
+        spurious_vsync_cnt = 0;
+    }
+    t_last = t_now;
+
 
     // discard spurious vsync pulses (due to improper grounding), so we don't overload the CPU
     if (active_line > 0 && active_line < video_type_cfg_ntsc.graphics_hight_real - 10) {
@@ -175,7 +211,6 @@ void Vsync_ISR(extiCallbackRec_t *cb)
     // Get ready for the first line. We will start outputting data at line zero.
     active_line = 0 - (video_type_cfg_act->graphics_line_start + y_offset);
     buffer_offset = 0;
-//    CH_IRQ_EPILOGUE();
 }
 
 void Hsync_ISR(extiCallbackRec_t *cb)
@@ -308,19 +343,20 @@ void Video_Init()
     QSPI_Cmd(ENABLE);
 
     // VSYNC interrupt
-    IO_t vsync_io = IOGetByTag(IO_TAG(VIDEO_VSYNC));
+    vsync_io = IOGetByTag(IO_TAG(VIDEO_VSYNC));
     IOInit(vsync_io, OWNER_OSD, 0);
     IOConfigGPIO(vsync_io, IOCFG_IN_FLOATING);
     EXTIHandlerInit(&vsyncIntCallbackRec, Vsync_ISR);
     EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Falling);
 
     // HSYNC interrupt
-    IO_t hsync_io = IOGetByTag(IO_TAG(VIDEO_HSYNC));
+    hsync_io = IOGetByTag(IO_TAG(VIDEO_HSYNC));
     IOInit(hsync_io, OWNER_OSD, 0);
     IOConfigGPIO(hsync_io, IOCFG_IN_FLOATING);
     EXTIHandlerInit(&hsyncIntCallbackRec, Hsync_ISR);
     EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Falling);
 
+    // Enable interrupts
     EXTIEnable(vsync_io, true);
     EXTIEnable(hsync_io, true);
 }
@@ -341,68 +377,4 @@ uint16_t Video_GetType(void)
     return video_type_act;
 }
 
-///**
-//*  Set the black and white levels
-//*/
-//void PIOS_Video_SetLevels(uint8_t black_pal_in, uint8_t white_pal_in, uint8_t black_ntsc_in, uint8_t white_ntsc_in)
-//{
-//    if (video_type_act == VIDEO_TYPE_PAL)
-//        dev_cfg->set_bw_levels(black_pal_in, white_pal_in);
-//    else
-//        dev_cfg->set_bw_levels(black_ntsc_in, white_ntsc_in);
-//    black_pal = black_pal_in;
-//    white_pal = white_pal_in;
-//    black_ntsc = black_ntsc_in;
-//    white_ntsc = white_ntsc_in;
-//}
-
-///**
-//*  Set the offset in x direction
-//*/
-//void PIOS_Video_SetXOffset(int8_t x_offset_in)
-//{
-//    if (x_offset_in > 20)
-//        x_offset_in = 20;
-//    if (x_offset_in < -20)
-//        x_offset_in = -20;
-
-//    if (dev_cfg->set_x_offset) {
-//        dev_cfg->set_x_offset(x_offset_in);
-//    }
-//}
-
-///**
-//*  Set the offset in y direction
-//*/
-//void PIOS_Video_SetYOffset(int8_t y_offset_in)
-//{
-//    if (y_offset_in > 20)
-//        y_offset_in = 20;
-//    if (y_offset_in < -20)
-//        y_offset_in = -20;
-//    y_offset = y_offset_in + PIOS_VIDEO_QUADSPI_Y_OFFSET;
-//}
-
-///**
-//*  Set the x scale
-//*/
-//void PIOS_Video_SetXScale(uint8_t pal_x_scale, uint8_t ntsc_x_scale)
-//{
-//    if (!dev_cfg->set_x_scale)
-//        return;
-//    if (video_type_act == VIDEO_TYPE_PAL)
-//        dev_cfg->set_x_scale(pal_x_scale);
-//    else
-//        dev_cfg->set_x_scale(ntsc_x_scale);
-//}
-
-///**
-//*  Set the 3D mode configuration
-//*/
-//void PIOS_Video_Set3DConfig(enum pios_video_3d_mode mode, uint8_t right_eye_x_shift)
-//{
-//    if (!dev_cfg->set_3d_config)
-//        return;
-//    dev_cfg->set_3d_config(mode, right_eye_x_shift);
-//}
 #endif /* INCLUDE_VIDEO_QUADSPI */
