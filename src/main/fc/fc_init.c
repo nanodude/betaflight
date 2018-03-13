@@ -224,7 +224,9 @@ void spiPreInit(void)
     spiPreInitCs(IO_TAG(L3GD20_CS_PIN));
 #endif
 #ifdef USE_MAX7456
+#ifndef USE_BRAINFPV_OSD
     spiPreInitCsOutPU(IO_TAG(MAX7456_SPI_CS_PIN)); // XXX 3.2 workaround for Kakute F4. See comment for spiPreInitCSOutPU.
+#endif
 #endif
 #ifdef USE_SDCARD 
     spiPreInitCs(sdcardConfig()->chipSelectTag);
