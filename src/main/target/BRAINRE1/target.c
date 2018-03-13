@@ -121,8 +121,13 @@ void brainFPVUpdateSettings(void) {
     else
         bfOsdConfigUse = bfOsdConfig();
 
+    if (!bfOsdConfigUse->invert){
+        BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->black_level, bfOsdConfigUse->white_level);
+    }
+    else {
+        BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->white_level, bfOsdConfigUse->black_level);
+    }
 
-    BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->black_level, bfOsdConfigUse->white_level);
     BRAINFPVFPGA_SetSyncThreshold(bfOsdConfigUse->sync_threshold);
     BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
     BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);

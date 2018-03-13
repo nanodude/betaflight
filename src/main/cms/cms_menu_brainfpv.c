@@ -88,6 +88,7 @@ OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
     {"FONT", OME_TAB, NULL, &entryOSDFont, 0},
     {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel, 0},
     {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel, 0},
+    {"INVERT", OME_Bool, NULL, &bfOsdConfigCms.invert, 0},
     {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh, 0},
     {"OSD X OFF", OME_INT8, NULL, &entryXoff, 0},
     {"OSD X SC", OME_UINT8, NULL, &entryXScale, 0},

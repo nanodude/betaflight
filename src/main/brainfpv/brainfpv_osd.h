@@ -25,6 +25,7 @@ typedef struct bfOsdConfig_s {
     uint8_t sticks_display;
     uint8_t show_logo_on_arm;
     uint8_t show_pilot_logo;
+    uint8_t invert;
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     uint8_t spec_enabled;
 #endif

@@ -896,6 +896,7 @@ const clivalue_t valueTable[] = {
     { "brainfpv_osd_sync_thresh",   VAR_UINT8  | MASTER_VALUE, .config.minmax = { BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, sync_threshold) },
     { "brainfpv_osd_white_level",   VAR_UINT8  | MASTER_VALUE, .config.minmax = { 100, 255 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, white_level) },
     { "brainfpv_osd_black_level",   VAR_UINT8  | MASTER_VALUE, .config.minmax = { 15, 40 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, black_level) },
+    { "brainfpv_osd_invert",        VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, invert) },
     { "brainfpv_osd_x_offset",      VAR_INT8   | MASTER_VALUE, .config.minmax = { -8, 7 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, x_offset) },
     { "brainfpv_osd_x_scale",       VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 15 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, x_scale) },
     { "brainfpv_osd_sbs3d",         VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, sbs_3d_enabled) },
