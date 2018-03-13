@@ -145,7 +145,7 @@ enum BrainFPVOSDMode {
 /*******************************************************************************/
 // MAX7456 Emulation
 #define MAX_X(x) (x * 12)
-#define MAX_Y(y) (y * 18 + 5)
+#define MAX_Y(y) (y * 18)
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
@@ -172,7 +172,7 @@ bool max7456DmaInProgress(void)
     return false;
 }
 
-void    max7456DrawScreen(void)
+void max7456DrawScreen(void)
 {}
 
 void  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
