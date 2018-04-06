@@ -569,7 +569,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (vtxDevice && vtxSettingsConfig()->lowPowerDisarm) {
                 vtxCommonGetPowerIndex(vtxDevice, &vtxPower);
             }
-            tfp_sprintf(buff, "%c:%s:%2d", vtxBandLetter, vtxChannelName, vtxPower);
+            tfp_sprintf(buff, "%c:%s:%1d", vtxBandLetter, vtxChannelName, vtxPower);
             break;
         }
 #endif
@@ -675,6 +675,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
 #define OSD_WARNINGS_MAX_SIZE 11
 #define OSD_FORMAT_MESSAGE_BUFFER_SIZE (OSD_WARNINGS_MAX_SIZE + 1)
+
+            STATIC_ASSERT(OSD_FORMAT_MESSAGE_BUFFER_SIZE <= sizeof(buff), osd_warnings_size_exceeds_buffer_size);
 
             const uint16_t enabledWarnings = osdConfig()->enabledWarnings;
 
@@ -1312,7 +1314,10 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdShowArmed();
             resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
             armTime = millis();
-        } else if (isSomeStatEnabled()) {
+
+        } else if (isSomeStatEnabled()
+                   && (!(getArmingDisableFlags() & ARMING_DISABLED_RUNAWAY_TAKEOFF)
+                       || !VISIBLE(osdConfig()->item_pos[OSD_WARNINGS]))) { // suppress stats if runaway takeoff triggered disarm and WARNINGS element is visible
             osdShowStats();
             resumeRefreshAt = currentTimeUs + (60 * REFRESH_1S);
             disarmTime = millis();

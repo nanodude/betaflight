@@ -496,8 +496,8 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
     case MSP_VOLTAGE_METERS: {
         // write out id and voltage meter values, once for each meter we support
         uint8_t count = supportedVoltageMeterCount;
-#ifndef USE_OSD_SLAVE
-        count = supportedVoltageMeterCount - (VOLTAGE_METER_ID_ESC_COUNT - getMotorCount());
+#ifdef USE_ESC_SENSOR
+        count -= VOLTAGE_METER_ID_ESC_COUNT - getMotorCount();
 #endif
 
         for (int i = 0; i < count; i++) {
@@ -515,8 +515,8 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
     case MSP_CURRENT_METERS: {
         // write out id and current meter values, once for each meter we support
         uint8_t count = supportedCurrentMeterCount;
-#ifndef USE_OSD_SLAVE
-        count = supportedCurrentMeterCount - (VOLTAGE_METER_ID_ESC_COUNT - getMotorCount());
+#ifdef USE_ESC_SENSOR
+        count -= VOLTAGE_METER_ID_ESC_COUNT - getMotorCount();
 #endif
         for (int i = 0; i < count; i++) {
 
@@ -781,13 +781,13 @@ static bool mspProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst)
             }
 
             for (int i = 0; i < 3; i++) {
-                sbufWriteU16(dst, acc.accADC[i] / scale);
+                sbufWriteU16(dst, lrintf(acc.accADC[i] / scale));
             }
             for (int i = 0; i < 3; i++) {
                 sbufWriteU16(dst, gyroRateDps(i));
             }
             for (int i = 0; i < 3; i++) {
-                sbufWriteU16(dst, mag.magADC[i]);
+                sbufWriteU16(dst, lrintf(mag.magADC[i]));
             }
         }
         break;
@@ -1337,7 +1337,21 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 {
     UNUSED(cmdMSP);
     UNUSED(src);
-    return MSP_RESULT_ERROR;
+
+    switch(cmdMSP) {
+    case MSP_RESET_CONF:
+        resetEEPROM();
+        readEEPROM();
+        break;
+    case MSP_EEPROM_WRITE:
+        writeEEPROM();
+        readEEPROM();
+        break;
+    default:
+        // we do not know how to handle the (valid) message, indicate error MSP $M!
+        return MSP_RESULT_ERROR;
+    }
+    return MSP_RESULT_ACK;
 }
 
 #else
@@ -1773,6 +1787,9 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         {
             const uint8_t command = sbufReadU8(src);
             uint8_t disableRunawayTakeoff = 0;
+#ifndef USE_RUNAWAY_TAKEOFF
+            UNUSED(disableRunawayTakeoff);
+#endif
             if (sbufBytesRemaining(src)) {
                 disableRunawayTakeoff = sbufReadU8(src);
             }

@@ -379,22 +379,30 @@ static void printValuePointer(const clivalue_t *var, const void *valuePointer, b
     }
 }
 
-static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptrDefault)
+
+static bool valuePtrEqualsDefault(const clivalue_t *var, const void *ptr, const void *ptrDefault)
 {
-    bool result = false;
-    switch (type & VALUE_TYPE_MASK) {
-    case VAR_UINT8:
-        result = *(uint8_t *)ptr == *(uint8_t *)ptrDefault;
-        break;
+    bool result = true;
+    int elementCount = 1;
 
-    case VAR_INT8:
-        result = *(int8_t *)ptr == *(int8_t *)ptrDefault;
-        break;
+    if ((var->type & VALUE_MODE_MASK) == MODE_ARRAY) {
+        elementCount = var->config.array.length;
+    }
+    for (int i = 0; i < elementCount; i++) {
+        switch (var->type & VALUE_TYPE_MASK) {
+        case VAR_UINT8:
+            result = result && ((uint8_t *)ptr)[i] == ((uint8_t *)ptrDefault)[i];
+            break;
 
-    case VAR_UINT16:
-    case VAR_INT16:
-        result = *(int16_t *)ptr == *(int16_t *)ptrDefault;
-        break;
+        case VAR_INT8:
+            result = result && ((int8_t *)ptr)[i] == ((int8_t *)ptrDefault)[i];
+            break;
+
+        case VAR_UINT16:
+        case VAR_INT16:
+            result = result && ((int16_t *)ptr)[i] == ((int16_t *)ptrDefault)[i];
+            break;
+        }
     }
 
     return result;
@@ -438,7 +446,7 @@ static void dumpPgValue(const clivalue_t *value, uint8_t dumpMask)
     const char *format = "set %s = ";
     const char *defaultFormat = "#set %s = ";
     const int valueOffset = getValueOffset(value);
-    const bool equalsDefault = valuePtrEqualsDefault(value->type, pg->copy + valueOffset, pg->address + valueOffset);
+    const bool equalsDefault = valuePtrEqualsDefault(value, pg->copy + valueOffset, pg->address + valueOffset);
 
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
@@ -2920,59 +2928,64 @@ STATIC_UNIT_TESTED void cliSet(char *cmdline)
                         const uint8_t arrayLength = val->config.array.length;
                         char *valPtr = eqptr;
 
-                        for (int i = 0; i < arrayLength; i++) {
+                        int i = 0;
+                        while (i < arrayLength && valPtr != NULL) {
                             // skip spaces
                             valPtr = skipSpace(valPtr);
-                            // find next comma (or end of string)
-                            char *valEndPtr = strchr(valPtr, ',');
 
-                            // comma found or last item?
-                            if ((valEndPtr != NULL) || (i == arrayLength - 1)){
-                                // process substring [valPtr, valEndPtr[
-                                // note: no need to copy substrings for atoi()
-                                //       it stops at the first character that cannot be converted...
-                                switch (val->type & VALUE_TYPE_MASK) {
-                                default:
-                                case VAR_UINT8: {
+                            // process substring starting at valPtr
+                            // note: no need to copy substrings for atoi()
+                            //       it stops at the first character that cannot be converted...
+                            switch (val->type & VALUE_TYPE_MASK) {
+                            default:
+                            case VAR_UINT8:
+                                {
                                     // fetch data pointer
                                     uint8_t *data = (uint8_t *)cliGetValuePointer(val) + i;
                                     // store value
                                     *data = (uint8_t)atoi((const char*) valPtr);
-                                    }
-                                    break;
+                                }
 
-                                case VAR_INT8: {
+                                break;
+                            case VAR_INT8:
+                                {
                                     // fetch data pointer
                                     int8_t *data = (int8_t *)cliGetValuePointer(val) + i;
                                     // store value
                                     *data = (int8_t)atoi((const char*) valPtr);
-                                    }
-                                    break;
+                                }
 
-                                case VAR_UINT16: {
+                                break;
+                            case VAR_UINT16:
+                                {
                                     // fetch data pointer
                                     uint16_t *data = (uint16_t *)cliGetValuePointer(val) + i;
                                     // store value
                                     *data = (uint16_t)atoi((const char*) valPtr);
-                                    }
-                                    break;
+                                }
 
-                                case VAR_INT16: {
+                                break;
+                            case VAR_INT16:
+                                {
                                     // fetch data pointer
                                     int16_t *data = (int16_t *)cliGetValuePointer(val) + i;
                                     // store value
                                     *data = (int16_t)atoi((const char*) valPtr);
-                                    }
-                                    break;
                                 }
-                                // mark as changed
-                                valueChanged = true;
 
-                                // prepare to parse next item
-                                valPtr = valEndPtr + 1;
+                                break;
                             }
+
+                            // find next comma (or end of string)
+                            valPtr = strchr(valPtr, ',') + 1;
+
+                            i++;
                         }
                     }
+
+                    // mark as changed
+                    valueChanged = true;
+
                     break;
                 }
 
