@@ -162,7 +162,7 @@ static uint16_t spektrumReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint
     return data;
 }
 
-#ifdef SPEKTRUM_BIND
+#ifdef USE_SPEKTRUM_BIND
 
 bool spekShouldBind(uint8_t spektrum_sat_bind)
 {
@@ -245,7 +245,7 @@ void spektrumBind(rxConfig_t *rxConfig)
     IOWrite(bindIO, true);
 
     // Bind window is around 20-140ms after powerup
-    delay(1);
+    delay(60);
     LED1_OFF;
 
     for (int i = 0; i < rxConfig->spektrum_sat_bind; i++) {
