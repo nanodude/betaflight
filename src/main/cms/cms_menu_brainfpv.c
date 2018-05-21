@@ -65,7 +65,7 @@ static long menuBrainFPVOnExit(const OSD_Entry *self)
     return 0;
 }
 
-OSD_UINT8_t entryAhiSteps =  {&bfOsdConfigCms.ahi_steps, 0, 4, 1};
+OSD_UINT8_t entryAhiSteps =  {&bfOsdConfigCms.ahi_steps, 0, 9, 1};
 const char *STICKS_DISPLAY_NAMES[] = {"OFF", "MODE2", "MODE1"};
 OSD_TAB_t entrySticksDisplay = {&bfOsdConfigCms.sticks_display, 2, &STICKS_DISPLAY_NAMES[0]};
 const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "BOLD"};
