@@ -118,6 +118,8 @@ struct re1_shadow_reg {
     uint8_t reg_ircfg;
 };
 
+static bool fpga_initialized = false;
+
 static volatile struct re1_shadow_reg shadow_reg;
 static IO_t re1FPGACsPin = IO_NONE;
 static IO_t re1FPGACdonePin = IO_NONE;
@@ -207,6 +209,8 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG, 0x08);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_IRCFG, 0x00);
+
+    fpga_initialized = true;
 
     return 0;
 }
@@ -368,6 +372,10 @@ uint8_t BRAINFPVFPGA_GetHWRevision()
  */
 int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds)
 {
+    if (!fpga_initialized) {
+        return 0;
+    }
+
     if (BRAINFPVFPGA_ClaimBus() != 0)
         return -1;
 
@@ -387,6 +395,9 @@ int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds)
 #define LED_BLOCK_SIZE 16
 int32_t BRAINFPVFPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, uint8_t blue)
 {
+    if (!fpga_initialized) {
+        return 0;
+    }
 
     uint8_t LED_DATA[LED_BLOCK_SIZE * 3];
 
@@ -519,6 +530,10 @@ int32_t BRAINFPVFPGA_SetBuzzerType(enum re1fpga_buzzer_types type)
  */
 int32_t BRAINFPVFPGA_Buzzer(bool enable)
 {
+    if (!fpga_initialized) {
+        return 0;
+    }
+
     uint8_t data = enable;
 
     return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x01);
@@ -529,6 +544,10 @@ int32_t BRAINFPVFPGA_Buzzer(bool enable)
  */
 int32_t BRAINFPVFPGA_BuzzerToggle()
 {
+    if (!fpga_initialized) {
+        return 0;
+    }
+
     uint8_t data = shadow_reg.reg_ctl ^ 0x01;
     return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x01);
 }
@@ -538,6 +557,10 @@ int32_t BRAINFPVFPGA_BuzzerToggle()
  */
 int32_t BRAINFPVFPGA_AlarmLED(bool enable)
 {
+    if (!fpga_initialized) {
+        return 0;
+    }
+
     uint8_t data = 0;
 
     if (enable)
@@ -551,6 +574,10 @@ int32_t BRAINFPVFPGA_AlarmLED(bool enable)
  */
 int32_t BRAINFPVFPGA_AlarmLEDToggle()
 {
+    if (!fpga_initialized) {
+        return 0;
+    }
+
     uint8_t data = shadow_reg.reg_ctl ^ 0x04;
     return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x04);
 }
@@ -560,6 +587,10 @@ int32_t BRAINFPVFPGA_AlarmLEDToggle()
  */
 int32_t BRAINFPVFPGA_SetNotificationLedColor(enum re1fpga_led_colors led_colors)
 {
+    if (!fpga_initialized) {
+        return 0;
+    }
+
     uint8_t value;
 
     if (led_colors == BRAINFPVFPGA_STATUS_BLUE_CUSTOM_GREEN)
