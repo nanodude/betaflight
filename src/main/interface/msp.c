@@ -280,19 +280,23 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
 static void serializeDataflashSummaryReply(sbuf_t *dst)
 {
 #ifdef USE_FLASHFS
-    const flashGeometry_t *geometry = flashfsGetGeometry();
-    uint8_t flags = (flashfsIsReady() ? 1 : 0) | 2 /* FlashFS is supported */;
-
-    sbufWriteU8(dst, flags);
-    sbufWriteU32(dst, geometry->sectors);
-    sbufWriteU32(dst, geometry->totalSize);
-    sbufWriteU32(dst, flashfsGetOffset()); // Effectively the current number of bytes stored on the volume
-#else
-    sbufWriteU8(dst, 0); // FlashFS is neither ready nor supported
-    sbufWriteU32(dst, 0);
-    sbufWriteU32(dst, 0);
-    sbufWriteU32(dst, 0);
+    if (flashfsGetSize() > 0) {
+        uint8_t flags = (flashfsIsReady() ? 1 : 0) | 2 /* FlashFS is supported */;
+        const flashGeometry_t *geometry = flashfsGetGeometry();
+        sbufWriteU8(dst, flags);
+        sbufWriteU32(dst, geometry->sectors);
+        sbufWriteU32(dst, geometry->totalSize);
+        sbufWriteU32(dst, flashfsGetOffset()); // Effectively the current number of bytes stored on the volume
+    } else
 #endif
+
+    // FlashFS is not configured or valid device is not detected
+    {
+        sbufWriteU8(dst, 0);
+        sbufWriteU32(dst, 0);
+        sbufWriteU32(dst, 0);
+        sbufWriteU32(dst, 0);
+    }    
 }
 
 #ifdef USE_FLASHFS
@@ -1121,9 +1125,9 @@ static bool mspProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst)
 #ifdef USE_BLACKBOX
         sbufWriteU8(dst, 1); //Blackbox supported
         sbufWriteU8(dst, blackboxConfig()->device);
-        sbufWriteU8(dst, blackboxGetRateNum());
+        sbufWriteU8(dst, 1); // Rate numerator, not used anymore
         sbufWriteU8(dst, blackboxGetRateDenom());
-        sbufWriteU16(dst, blackboxConfig()->p_denom);
+        sbufWriteU16(dst, blackboxConfig()->p_ratio);
 #else
         sbufWriteU8(dst, 0); // Blackbox not supported
         sbufWriteU8(dst, 0);
@@ -1726,11 +1730,11 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
             const int rateNum = sbufReadU8(src); // was rate_num
             const int rateDenom = sbufReadU8(src); // was rate_denom
             if (sbufBytesRemaining(src) >= 2) {
-                // p_denom specified, so use it directly
-                blackboxConfigMutable()->p_denom = sbufReadU16(src);
+                // p_ratio specified, so use it directly
+                blackboxConfigMutable()->p_ratio = sbufReadU16(src);
             } else {
-                // p_denom not specified in MSP, so calculate it from old rateNum and rateDenom
-                blackboxConfigMutable()->p_denom = blackboxCalculatePDenom(rateNum, rateDenom);
+                // p_ratio not specified in MSP, so calculate it from old rateNum and rateDenom
+                blackboxConfigMutable()->p_ratio = blackboxCalculatePDenom(rateNum, rateDenom);
             }
         }
         break;
