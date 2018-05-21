@@ -32,6 +32,6 @@ void targetConfiguration(void)
 {
     gyroConfigMutable()->gyro_sync_denom = 1;
     pidConfigMutable()->pid_process_denom = 1;
-    blackboxConfigMutable()->p_denom = 128;
+    blackboxConfigMutable()->p_ratio = 128;
 }
 #endif
