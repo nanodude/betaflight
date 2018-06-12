@@ -27,7 +27,8 @@
 //LED & BEE------------------------------- 
 #define LED0_PIN                PC15
 
-#define BEEPER              PA4
+#define USE_BEEPER
+#define BEEPER_PIN              PA4
 #define BEEPER_INVERTED
 
 //define camera control
@@ -82,8 +83,8 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-#define M25P16_CS_PIN            PB12
-#define M25P16_SPI_INSTANCE      SPI2
+#define FLASH_CS_PIN            PB12
+#define FLASH_SPI_INSTANCE      SPI2
 
 //GPS ----------------------------------------------
 #define USE_GPS

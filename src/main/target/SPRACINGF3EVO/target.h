@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -25,10 +28,20 @@
 #define TARGET_BOARD_IDENTIFIER "SPEV"
 #endif
 
-//Making it fit into flash:
-#undef USE_RTC_TIME
+// Removed to make the firmware fit into flash (in descending order of priority):
+#undef USE_GYRO_OVERFLOW_CHECK
+#undef USE_GYRO_LPF2
+
+#undef USE_TELEMETRY_HOTT
+#undef USE_TELEMETRY_MAVLINK
+#undef USE_TELEMETRY_LTM
+#undef USE_SERIALRX_XBUS
+
+#undef USE_EXTENDED_CMS_MENUS
 #undef USE_COPY_PROFILE_CMS_MENU
+#undef USE_RTC_TIME
 #undef USE_RX_MSP
+#undef USE_ESC_SENSOR_INFO
 
 
 #if !defined(AIORACERF3)
@@ -49,7 +62,8 @@
 
 #define LED0_PIN                PB8
 
-#define BEEPER                  PC15
+#define USE_BEEPER
+#define BEEPER_PIN              PC15
 #define BEEPER_INVERTED
 
 #define USE_EXTI
@@ -59,8 +73,6 @@
 
 #define USE_MAG_DATA_READY_SIGNAL
 #define ENSURE_MAG_DATA_READY_IS_HIGH
-
-#define USE_ESC_SENSOR
 
 #define USE_GYRO
 #define USE_GYRO_SPI_MPU6500
@@ -162,7 +174,6 @@
 #define CURRENT_METER_ADC_PIN   PA5
 #endif
 
-#define DISABLE_EXTENDED_CMS_OSD_MENU
 #define USE_OSD_OVER_MSP_DISPLAYPORT
 #define USE_MSP_CURRENT_METER
 

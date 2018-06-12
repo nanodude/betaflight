@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -31,7 +34,8 @@
 
 #define LED0_PIN                PC14
 
-#define BEEPER                  PC15
+#define USE_BEEPER
+#define BEEPER_PIN              PC15
 #define BEEPER_INVERTED
 
 #define USE_EXTI
@@ -80,6 +84,12 @@
 #define SPI2_MOSI_PIN           PB15
 
 #ifdef FURYF3OSD
+
+// Removed to make the firmware fit into flash (in descending order of priority):
+#undef USE_RTC_TIME
+#undef USE_RX_MSP
+#undef USE_ESC_SENSOR_INFO
+
     // include the max7456 driver
     #define USE_MAX7456
     #define MAX7456_SPI_INSTANCE    SPI1
@@ -89,8 +99,8 @@
 
     #define USE_FLASHFS
     #define USE_FLASH_M25P16
-    #define M25P16_CS_PIN           PB12
-    #define M25P16_SPI_INSTANCE     SPI2
+    #define FLASH_CS_PIN            PB12
+    #define FLASH_SPI_INSTANCE      SPI2
 
     #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
@@ -165,7 +175,6 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define USE_ESC_SENSOR
 #define REMAP_TIM17_DMA
 
 #define TARGET_IO_PORTA         0xffff

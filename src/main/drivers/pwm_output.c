@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -28,19 +31,31 @@
 #include "timer.h"
 #include "drivers/pwm_output.h"
 
-static pwmWriteFn *pwmWrite;
-static pwmOutputPort_t motors[MAX_SUPPORTED_MOTORS];
-static pwmCompleteWriteFn *pwmCompleteWrite = NULL;
+static FAST_RAM_ZERO_INIT pwmWriteFn *pwmWrite;
+static FAST_RAM_ZERO_INIT pwmOutputPort_t motors[MAX_SUPPORTED_MOTORS];
+static FAST_RAM_ZERO_INIT pwmCompleteWriteFn *pwmCompleteWrite = NULL;
 
 #ifdef USE_DSHOT
-loadDmaBufferFn *loadDmaBuffer;
+FAST_RAM_ZERO_INIT loadDmaBufferFn *loadDmaBuffer;
+#define DSHOT_COMMAND_DELAY_US 1000
+#define DSHOT_ESCINFO_DELAY_US 5000
+#define DSHOT_BEEP_DELAY_US 100000
+
+typedef struct dshotCommandControl_s {
+    timeUs_t nextCommandAt; 
+    timeUs_t delayAfterCommand; 
+    uint8_t command[MAX_SUPPORTED_MOTORS];
+    uint8_t repeats;    
+} dshotCommandControl_t;
+
+dshotCommandControl_t dshotCommandControl;
 #endif
 
 #ifdef USE_SERVOS
 static pwmOutputPort_t servos[MAX_SUPPORTED_SERVOS];
 #endif
 
-#ifdef BEEPER
+#ifdef USE_BEEPER
 static pwmOutputPort_t beeperPwm;
 static uint16_t freqBeep = 0;
 #endif
@@ -48,7 +63,7 @@ static uint16_t freqBeep = 0;
 static bool pwmMotorsEnabled = false;
 static bool isDshot = false;
 #ifdef USE_DSHOT_DMAR
-bool useBurstDshot = false;
+FAST_RAM_ZERO_INIT bool useBurstDshot = false;
 #endif
 
 static void pwmOCConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t value, uint8_t output)
@@ -135,12 +150,12 @@ static void pwmWriteStandard(uint8_t index, float value)
 }
 
 #ifdef USE_DSHOT
-static void pwmWriteDshot(uint8_t index, float value)
+static FAST_CODE void pwmWriteDshot(uint8_t index, float value)
 {
     pwmWriteDshotInt(index, lrintf(value));
 }
 
-static uint8_t loadDmaBufferDshot(uint32_t *dmaBuffer, int stride, uint16_t packet)
+static FAST_CODE uint8_t loadDmaBufferDshot(uint32_t *dmaBuffer, int stride, uint16_t packet)
 {
     for (int i = 0; i < 16; i++) {
         dmaBuffer[i * stride] = (packet & 0x8000) ? MOTOR_BIT_1 : MOTOR_BIT_0;  // MSB first
@@ -279,7 +294,7 @@ void motorDevInit(const motorDevConfig_t *motorConfig, uint16_t idlePulse, uint8
 
     for (int motorIndex = 0; motorIndex < MAX_SUPPORTED_MOTORS && motorIndex < motorCount; motorIndex++) {
         const ioTag_t tag = motorConfig->ioTags[motorIndex];
-        const timerHardware_t *timerHardware = timerGetByTag(tag, TIM_USE_ANY);
+        const timerHardware_t *timerHardware = timerGetByTag(tag);
 
         if (timerHardware == NULL) {
             /* not enough motors initialised for the mixer or a break in the motors */
@@ -303,7 +318,11 @@ void motorDevInit(const motorDevConfig_t *motorConfig, uint16_t idlePulse, uint8
         }
 #endif
 
+#if defined(STM32F1)
+        IOConfigGPIO(motors[motorIndex].io, IOCFG_AF_PP);
+#else
         IOConfigGPIOAF(motors[motorIndex].io, IOCFG_AF_PP, timerHardware->alternateFunction);
+#endif
 
         /* standard PWM outputs */
         // margin of safety is 4 periods when unsynced
@@ -367,27 +386,44 @@ uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
     }
 }
 
-void pwmWriteDshotCommand(uint8_t index, uint8_t motorCount, uint8_t command)
+void pwmWriteDshotCommand(uint8_t index, uint8_t motorCount, uint8_t command, bool blocking)
 {
-    if (isDshot && (command <= DSHOT_MAX_COMMAND)) {
-        unsigned repeats;
-        switch (command) {
-        case DSHOT_CMD_SPIN_DIRECTION_1:
-        case DSHOT_CMD_SPIN_DIRECTION_2:
-        case DSHOT_CMD_3D_MODE_OFF:
-        case DSHOT_CMD_3D_MODE_ON:
-        case DSHOT_CMD_SAVE_SETTINGS:
-        case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
-        case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
-            repeats = 10;
-            break;
-        default:
-            repeats = 1;
-            break;
-        }
+    timeUs_t timeNowUs = micros();
 
+    if (!isMotorProtocolDshot() || (command > DSHOT_MAX_COMMAND)) {   
+        return;
+    }
+
+    uint8_t repeats = 1;
+    timeUs_t timeDelayUs = DSHOT_COMMAND_DELAY_US;
+
+    switch (command) {
+    case DSHOT_CMD_SPIN_DIRECTION_1:
+    case DSHOT_CMD_SPIN_DIRECTION_2:
+    case DSHOT_CMD_3D_MODE_OFF:
+    case DSHOT_CMD_3D_MODE_ON:
+    case DSHOT_CMD_SAVE_SETTINGS:
+    case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
+    case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
+        repeats = 10;
+        timeDelayUs = DSHOT_COMMAND_DELAY_US;
+        break;
+    case DSHOT_CMD_BEACON1:
+    case DSHOT_CMD_BEACON2:
+    case DSHOT_CMD_BEACON3:
+    case DSHOT_CMD_BEACON4:
+    case DSHOT_CMD_BEACON5:
+        repeats = 1;
+        timeDelayUs = DSHOT_BEEP_DELAY_US;
+        break;
+    default:
+        break;
+    }
+
+    if (blocking) {
         for (; repeats; repeats--) {
             for (uint8_t i = 0; i < motorCount; i++) {
+                delayMicroseconds(DSHOT_COMMAND_DELAY_US);
                 if ((i == index) || (index == ALL_MOTORS)) {
                     motorDmaOutput_t *const motor = getMotorDmaOutput(i);
                     motor->requestTelemetry = true;
@@ -396,12 +432,58 @@ void pwmWriteDshotCommand(uint8_t index, uint8_t motorCount, uint8_t command)
             }
 
             pwmCompleteDshotMotorUpdate(0);
-            delay(1);
+        }
+        delayMicroseconds(timeDelayUs);
+    } else {
+        if (!pwmIsProcessingDshotCommand()) {
+            for (uint8_t i = 0; i < motorCount; i++) {
+                if ((index == i) || (index == ALL_MOTORS)) {
+                    dshotCommandControl.command[i] = command;
+                    dshotCommandControl.repeats = repeats;
+                    dshotCommandControl.nextCommandAt = timeNowUs + DSHOT_COMMAND_DELAY_US;
+                    dshotCommandControl.delayAfterCommand = timeDelayUs;
+                }
+            }
         }
     }
 }
 
-uint16_t prepareDshotPacket(motorDmaOutput_t *const motor, const uint16_t value)
+FAST_RAM bool pwmIsProcessingDshotCommand(void)
+{
+    return dshotCommandControl.nextCommandAt;
+}
+
+uint8_t pwmGetDshotCommand(uint8_t index)
+{
+    return dshotCommandControl.command[index];
+}
+
+bool FAST_CODE_NOINLINE pwmProcessDshotCommand(uint8_t motorCount)
+{
+    timeUs_t timeNowUs = micros();
+    if (cmpTimeUs(timeNowUs, dshotCommandControl.nextCommandAt) < 0) {
+        return false; //Skip motor update because it isn't time yet for a new command
+    }   
+  
+    //Timed motor update happening with dshot command
+    if (dshotCommandControl.repeats > 0) {
+        dshotCommandControl.repeats--;
+        dshotCommandControl.nextCommandAt = timeNowUs + DSHOT_COMMAND_DELAY_US;
+        if (dshotCommandControl.repeats == 0) { 
+            dshotCommandControl.nextCommandAt = timeNowUs + dshotCommandControl.delayAfterCommand;
+        }
+    } else {
+        for (uint8_t i = 0; i < motorCount; i++) {
+            dshotCommandControl.command[i] = 0;
+        }
+        dshotCommandControl.nextCommandAt = 0;
+        dshotCommandControl.delayAfterCommand = 0;
+    }
+
+    return true;
+}
+
+FAST_CODE uint16_t prepareDshotPacket(motorDmaOutput_t *const motor, const uint16_t value)
 {
     uint16_t packet = (value << 1) | (motor->requestTelemetry ? 1 : 0);
     motor->requestTelemetry = false;    // reset telemetry request to make sure it's triggered only once in a row
@@ -442,7 +524,7 @@ void servoDevInit(const servoDevConfig_t *servoConfig)
 
         IOInit(servos[servoIndex].io, OWNER_SERVO, RESOURCE_INDEX(servoIndex));
 
-        const timerHardware_t *timer = timerGetByTag(tag, TIM_USE_ANY);
+        const timerHardware_t *timer = timerGetByTag(tag);
 #if defined(USE_HAL_DRIVER)
         IOConfigGPIOAF(servos[servoIndex].io, IOCFG_AF_PP, timer->alternateFunction);
 #else
@@ -460,7 +542,7 @@ void servoDevInit(const servoDevConfig_t *servoConfig)
 
 #endif
 
-#ifdef BEEPER
+#ifdef USE_BEEPER
 void pwmWriteBeeper(bool onoffBeep)
 {
     if (!beeperPwm.io) {
@@ -483,7 +565,7 @@ void pwmToggleBeeper(void)
 
 void beeperPwmInit(const ioTag_t tag, uint16_t frequency)
 {
-    const timerHardware_t *timer = timerGetByTag(tag, TIM_USE_BEEPER);
+    const timerHardware_t *timer = timerGetByTag(tag);
     IO_t beeperIO = IOGetByTag(tag);
 
     if (beeperIO && timer) {

@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -36,6 +39,8 @@ typedef enum rc_alias {
     AUX8
 } rc_alias_e;
 
+#define PRIMARY_CHANNEL_COUNT (THROTTLE + 1)
+
 typedef enum {
     THROTTLE_LOW = 0,
     THROTTLE_HIGH
@@ -54,6 +59,30 @@ typedef enum {
     RC_SMOOTHING_AUTO,
     RC_SMOOTHING_MANUAL
 } rcSmoothing_t;
+
+typedef enum {
+    RC_SMOOTHING_TYPE_INTERPOLATION,
+    RC_SMOOTHING_TYPE_FILTER
+} rcSmoothingType_e;
+
+typedef enum {
+    RC_SMOOTHING_INPUT_PT1,
+    RC_SMOOTHING_INPUT_BIQUAD
+} rcSmoothingInputFilter_e;
+
+typedef enum {
+    RC_SMOOTHING_DERIVATIVE_OFF,
+    RC_SMOOTHING_DERIVATIVE_PT1,
+    RC_SMOOTHING_DERIVATIVE_BIQUAD
+} rcSmoothingDerivativeFilter_e;
+
+typedef enum {
+    RC_SMOOTHING_VALUE_INPUT_AUTO,
+    RC_SMOOTHING_VALUE_INPUT_ACTIVE,
+    RC_SMOOTHING_VALUE_DERIVATIVE_AUTO,
+    RC_SMOOTHING_VALUE_DERIVATIVE_ACTIVE,
+    RC_SMOOTHING_VALUE_AVERAGE_FRAME
+} rcSmoothingInfoType_e;
 
 #define ROL_LO (1 << (2 * ROLL))
 #define ROL_CE (3 << (2 * ROLL))
@@ -94,6 +123,8 @@ typedef struct flight3DConfig_s {
     uint16_t deadband3d_high;               // max 3d value
     uint16_t neutral3d;                     // center 3d value
     uint16_t deadband3d_throttle;           // default throttle deadband from MIDRC
+    uint16_t limit3d_low;                   // pwm output value for max negative thrust
+    uint16_t limit3d_high;                  // pwm output value for max positive thrust
     uint8_t switched_mode3d;                // enable '3D Switched Mode'
 } flight3DConfig_t;
 

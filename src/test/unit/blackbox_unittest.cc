@@ -25,6 +25,7 @@ extern "C" {
 
     #include "pg/pg.h"
     #include "pg/pg_ids.h"
+    #include "pg/rx.h"
 
     #include "drivers/accgyro/accgyro.h"
     #include "drivers/accgyro/gyro_sync.h"
@@ -72,7 +73,7 @@ TEST(BlackboxTest, TestInitIntervals)
     EXPECT_EQ(4096, blackboxSInterval);
 
     // 1kHz PIDloop
-    gyro.targetLooptime = gyroSetSampleRate(&gyroDev, GYRO_LPF_188HZ, 1, false);
+    gyro.targetLooptime = gyroSetSampleRate(&gyroDev, GYRO_HARDWARE_LPF_1KHZ_SAMPLE, 1, false);
     targetPidLooptime = gyro.targetLooptime * 1;
     blackboxInit();
     EXPECT_EQ(32, blackboxIInterval);

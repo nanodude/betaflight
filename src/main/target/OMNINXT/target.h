@@ -1,16 +1,21 @@
 /*
- * This is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This file is part of Cleanflight and Betaflight.
  *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -28,10 +33,10 @@
 
 #define LED0_PIN                PB2
 
-#define BEEPER                  PC13
+#define USE_BEEPER
+#define BEEPER_PIN              PC13
 #define BEEPER_INVERTED
 
-#define USE_DSHOT_DMAR
 #define ENABLE_DSHOT_DMAR       true
 
 #ifdef OMNINXT4
@@ -42,24 +47,29 @@
 #define USE_ACC
 #define USE_GYRO
 
+// For debugging with NUC405RG
+#define USE_FAKE_ACC
+#define USE_FAKE_GYRO
+
 #define USE_ACC_SPI_MPU6000
 #define USE_GYRO_SPI_MPU6000
+
 #define USE_ACC_SPI_MPU6500
 #define USE_GYRO_SPI_MPU6500
 
-#define MPU6000_SPI_INSTANCE    SPI1
-#define MPU6000_CS_PIN          PB12
-#define GYRO_MPU6000_ALIGN      CW0_DEG
-#define ACC_MPU6000_ALIGN       CW0_DEG
-
-#define MPU6500_SPI_INSTANCE    SPI1
-#define MPU6500_CS_PIN          PA8
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC_MPU6500_ALIGN       CW0_DEG
-
 #define USE_DUAL_GYRO
-#define GYRO_0_CS_PIN           MPU6000_CS_PIN  // Onboard IMU
-#define GYRO_1_CS_PIN           MPU6500_CS_PIN  // External IMU
+
+#define GYRO_1_SPI_INSTANCE     SPI1
+#define GYRO_1_CS_PIN           PB12          // Onboard IMU
+#define GYRO_1_ALIGN            CW0_DEG
+#define ACC_1_ALIGN             CW0_DEG
+
+#define GYRO_2_SPI_INSTANCE     SPI1
+#define GYRO_2_CS_PIN           PA8           // External IMU
+#define GYRO_2_ALIGN            CW0_DEG
+#define ACC_2_ALIGN             CW0_DEG
+
+#define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_1
 
 // MPU interrupts
 //#define USE_EXTI
@@ -90,8 +100,8 @@
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-#define M25P16_SPI_INSTANCE     SPI2
-#define M25P16_CS_PIN           PC14
+#define FLASH_SPI_INSTANCE      SPI2
+#define FLASH_CS_PIN            PC14
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
@@ -170,9 +180,7 @@
 
 #define CAMERA_CONTROL_PIN      PB15
 
-#if !defined(OMNINXT7)
 #define USE_TRANSPONDER
-#endif
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04

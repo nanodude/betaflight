@@ -1,24 +1,30 @@
 /*
- * This is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This file is part of Cleanflight and Betaflight.
  *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
 
 #define USE_TARGET_CONFIG
 
-// OMNIBUSF4FW1/OFW1 for Public Test Version (not a valid target)
 // OMNIBUSF4FW for Version 2
+// OMNIBUSF4FW1/OFW1 for Public Test Version
+// (Not a valid target, .mk file must be supplied by a user)
 
 #if defined(OMNIBUSF4FW)
 #define TARGET_BOARD_IDENTIFIER "OBFW"
@@ -34,7 +40,8 @@
 #define LED0_PIN                PB5
 #endif
 
-#define BEEPER                  PB4
+#define USE_BEEPER
+#define BEEPER_PIN              PB4
 #define BEEPER_INVERTED
 
 #define USE_ACC
@@ -47,17 +54,17 @@
 
 #define USE_DUAL_GYRO
 
-#define MPU6500_CS_PIN          PD2
-#define GYRO_0_CS_PIN           MPU6500_CS_PIN
-#define MPU6500_SPI_INSTANCE    SPI3
-#define MPU6000_CS_PIN          PA4
-#define GYRO_1_CS_PIN           MPU6000_CS_PIN
-#define MPU6000_SPI_INSTANCE    SPI1
+#define GYRO_1_CS_PIN           PD2
+#define GYRO_1_SPI_INSTANCE     SPI3
+#define GYRO_2_CS_PIN           PA4
+#define GYRO_2_SPI_INSTANCE     SPI1
 
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-#define ACC_MPU6500_ALIGN       CW180_DEG
-#define GYRO_MPU6000_ALIGN      CW0_DEG_FLIP
-#define ACC_MPU6000_ALIGN       CW0_DEG_FLIP
+#define GYRO_1_ALIGN            CW180_DEG
+#define ACC_1_ALIGN             CW180_DEG
+#define GYRO_2_ALIGN            CW0_DEG_FLIP
+#define ACC_2_ALIGN             CW0_DEG_FLIP
+
+#define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_1
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -84,8 +91,8 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#define M25P16_SPI_INSTANCE     SPI2
-#define M25P16_CS_PIN           PB12
+#define FLASH_SPI_INSTANCE      SPI2
+#define FLASH_CS_PIN            PB12
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
@@ -175,4 +182,4 @@
 #define TARGET_IO_PORTD BIT(2)
 
 #define USABLE_TIMER_CHANNEL_COUNT 15
-#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(9) | TIM_N(10) | TIM_N(11) )
+#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(9) | TIM_N(10) | TIM_N(11))

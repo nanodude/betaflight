@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -34,13 +37,7 @@
 #include "pg/pg_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
-#include "drivers/accgyro/accgyro_adxl345.h"
-#include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_fake.h"
-#include "drivers/accgyro/accgyro_l3g4200d.h"
-#include "drivers/accgyro/accgyro_l3gd20.h"
-#include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_mma845x.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu3050.h"
 #include "drivers/accgyro/accgyro_mpu6050.h"
@@ -51,6 +48,23 @@
 #include "drivers/accgyro/accgyro_spi_mpu6000.h"
 #include "drivers/accgyro/accgyro_spi_mpu6500.h"
 #include "drivers/accgyro/accgyro_spi_mpu9250.h"
+
+#ifdef USE_ACC_ADXL345
+#include "drivers/accgyro_legacy/accgyro_adxl345.h"
+#endif
+
+#ifdef USE_ACC_BMA280
+#include "drivers/accgyro_legacy/accgyro_bma280.h"
+#endif
+
+#ifdef USE_ACC_LSM303DLHC
+#include "drivers/accgyro_legacy/accgyro_lsm303dlhc.h"
+#endif
+
+#ifdef USE_ACC_MMA8452
+#include "drivers/accgyro_legacy/accgyro_mma845x.h"
+#endif
+
 #include "drivers/bus_spi.h"
 
 #include "fc/config.h"
@@ -68,7 +82,7 @@
 #endif
 
 
-FAST_RAM acc_t acc;                       // acc access functions
+FAST_RAM_ZERO_INIT acc_t acc;                       // acc access functions
 
 static float accumulatedMeasurements[XYZ_AXIS_COUNT];
 static int accumulatedMeasurementCount;
@@ -133,7 +147,6 @@ bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 #endif
 
 retry:
-    dev->accAlign = ALIGN_DEFAULT;
 
     switch (accHardwareToUse) {
     case ACC_DEFAULT:
@@ -334,6 +347,17 @@ bool accInit(uint32_t gyroSamplingInverval)
     acc.dev.bus = *gyroSensorBus();
     acc.dev.mpuDetectionResult = *gyroMpuDetectionResult();
     acc.dev.acc_high_fsr = accelerometerConfig()->acc_high_fsr;
+
+#ifdef USE_DUAL_GYRO
+    if (gyroConfig()->gyro_to_use == GYRO_CONFIG_USE_GYRO_2) {
+        acc.dev.accAlign = ACC_2_ALIGN;
+    } else {
+        acc.dev.accAlign = ACC_1_ALIGN;
+    }
+#else
+    acc.dev.accAlign = ALIGN_DEFAULT;
+#endif
+
     if (!accDetect(&acc.dev, accelerometerConfig()->acc_hardware)) {
         return false;
     }
@@ -494,7 +518,7 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
 
     if (accLpfCutHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            acc.accADC[axis] = lrintf(biquadFilterApply(&accFilter[axis], (float)acc.accADC[axis]));
+            acc.accADC[axis] = biquadFilterApply(&accFilter[axis], acc.accADC[axis]);
         }
     }
 
