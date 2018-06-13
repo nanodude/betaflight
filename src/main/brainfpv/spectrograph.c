@@ -46,7 +46,6 @@
 #include "flight/mixer.h"
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/navigation.h"
 
 #include "brainfpv/spectrograph.h"
 

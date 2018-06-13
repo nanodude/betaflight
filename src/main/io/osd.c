@@ -668,7 +668,7 @@ static bool osdDrawSingleElement(uint8_t item)
             brainFpvOsdCenterMark();
             brainfpv_item = true;
             break;
-
+#endif
         case OSD_ARTIFICIAL_HORIZON:
 #if !defined(USE_BRAINFPV_OSD)
         {
@@ -1447,10 +1447,10 @@ static void osdShowArmed(void)
 STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
-    static uint8_t lastSec = 0;
-    uint8_t sec;
-    static uint32_t armTime = 0;
-    static uint32_t disarmTime = 0;
+    static bool osdStatsEnabled = false;
+    static bool osdStatsVisible = false;
+    static timeUs_t osdStatsRefreshTimeUs;
+    static uint16_t endBatteryVoltage;
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -1460,7 +1460,6 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdResetStats();
             osdShowArmed();
             resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
-
         } else if (isSomeStatEnabled()
                    && (!(getArmingDisableFlags() & ARMING_DISABLED_RUNAWAY_TAKEOFF)
                        || !VISIBLE(osdConfig()->item_pos[OSD_WARNINGS]))) { // suppress stats if runaway takeoff triggered disarm and WARNINGS element is visible
@@ -1501,7 +1500,6 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
     }
     lastTimeUs = currentTimeUs;
 
-#if !defined(USE_BRAINFPV_OSD)
     if (resumeRefreshAt) {
         if (cmp32(currentTimeUs, resumeRefreshAt) < 0) {
             // in timeout period, check sticks for activity to resume display.
@@ -1517,35 +1515,14 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             stats.armed_time = 0;
         }
     }
-#else
-    uint32_t now = millis();
-    if (ARMING_FLAG(ARMED)) {
-        if (now - armTime < 500) {
-            osdShowArmed();
-            return;
-        }
-    }
-    else {
-        bool enter_menu = (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH));
-        if ((disarmTime > 0) && (now - disarmTime < 10000) && !enter_menu && !cmsInMenu) {
-            osdShowStats();
-            return;
-        }
-    }
-#endif
 
     blinkState = (currentTimeUs / 200000) % 2;
-
-#ifdef OSD_CALLS_CMS
-    cmsUpdate(currentTimeUs);
-#endif
 
 #ifdef USE_ESC_SENSOR
     if (feature(FEATURE_ESC_SENSOR)) {
         escDataCombined = getEscSensorData(ESC_SENSOR_COMBINED);
     }
 #endif
-
 
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
@@ -1560,6 +1537,7 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
 #endif
     lastArmState = ARMING_FLAG(ARMED);
 }
+
 
 /*
  * Called periodically by the scheduler
@@ -1616,8 +1594,12 @@ void osdUpdate(timeUs_t currentTimeUs)
     osdRefresh(currentTimeUs);
 #endif
 
-
 #ifdef USE_CMS
+
+#ifdef OSD_CALLS_CMS
+    cmsUpdate(currentTimeUs);
+#endif
+
     // do not allow ARM if we are in menu
     if (displayIsGrabbed(osdDisplayPort)) {
         setArmingDisabled(ARMING_DISABLED_OSD_MENU);

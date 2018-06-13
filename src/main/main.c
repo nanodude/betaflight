@@ -77,7 +77,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 6 * 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 4 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -97,7 +97,7 @@ static THD_FUNCTION(BetaFlightThread, arg)
 
 void osdInit(displayPort_t *osdDisplayPortToUse);
 
-static THD_WORKING_AREA(waOSDThread, 6 * 1024);
+static THD_WORKING_AREA(waOSDThread, 4 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
@@ -134,18 +134,6 @@ uint8_t safe_boot = 0;
 
 int main()
 {
-  // Check safe-boot request
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_BKPSRAM, ENABLE);
-  PWR_BackupAccessCmd(ENABLE);
-  RTC_ClearFlag(RTC_FLAG_TAMP1F);
-  uint16_t rcc = RTC_ReadBackupRegister(RTC_BKP_DR3);
-  if (rcc == 0xFFFF) {
-    safe_boot = 1;
-    RTC_WriteBackupRegister (RTC_BKP_DR3, 0);
-  }
-
   halInit();
   chSysInit();
 

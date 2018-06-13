@@ -82,7 +82,6 @@
 #include "flight/mixer.h"
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/navigation.h"
 
 #include "config/feature.h"
 #include "pg/pg.h"
@@ -214,6 +213,12 @@ uint8_t* max7456GetScreenBuffer(void)
 {
     return dummyBuffer;
 }
+
+bool max7456BuffersSynced(void)
+{
+    return true;
+}
+
 /*******************************************************************************/
 
 void brainFpvOsdInit(void)
