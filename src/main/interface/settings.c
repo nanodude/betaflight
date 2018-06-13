@@ -1100,9 +1100,12 @@ const clivalue_t valueTable[] = {
     { "brainfpv_sticks_display",    VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 2 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, sticks_display) },
     { "brainfpv_show_logo_on_arm",  VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, show_logo_on_arm) },
     { "brainfpv_show_pilot_logo",    VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, show_pilot_logo) },
+#endif
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, spec_enabled) },
 #endif
+
+
 //PG USB
 #ifdef USE_USB_CDC_HID
     { "usb_hid_cdc", VAR_UINT8 | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_USB_CONFIG, offsetof(usbDev_t, type) },
