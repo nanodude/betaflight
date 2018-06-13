@@ -437,23 +437,7 @@ SRC += $(TARGET_SRC)
 endif
 
 ifneq ($(filter SPECTROGRAPH,$(FEATURES)),)
-DSPLIB := $(ROOT)/lib/main/DSP_Lib
-DEVICE_FLAGS += -DARM_MATH_CM4 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -D__FPU_PRESENT=1 -DUNALIGNED_SUPPORT_DISABLE
-
-INCLUDE_DIRS += $(DSPLIB)/Include
-
 SRC += brainfpv/spectrograph.c
-
-SRC += $(DSPLIB)/Source/TransformFunctions/arm_rfft_fast_f32.c
-SRC += $(DSPLIB)/Source/TransformFunctions/arm_cfft_f32.c
-SRC += $(DSPLIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
-SRC += $(DSPLIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
-SRC += $(DSPLIB)/Source/CommonTables/arm_common_tables.c
-
-SRC += $(DSPLIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
-SRC += $(DSPLIB)/Source/StatisticsFunctions/arm_max_f32.c
-
-SRC += $(wildcard $(DSPLIB)/Source/*/*.S)
 endif
 
 ifneq ($(filter MSC,$(FEATURES)),)
