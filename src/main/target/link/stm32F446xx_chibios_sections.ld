@@ -73,7 +73,7 @@ SECTIONS
 
     startup : ALIGN(16) SUBALIGN(16)
     {
-        PROVIDE (isr_vector_table_base = .);
+        PROVIDE (system_isr_vector_table_base = .);
         KEEP(*(.isr_vector)) /* Startup code */
     } > START
 
