@@ -130,6 +130,7 @@ extern uint8_t *draw_buffer;
 extern uint8_t *disp_buffer;
 
 extern bool cmsInMenu;
+bool osd_arming_or_stats = false;
 bool brainfpv_user_avatar_set = false;
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
@@ -322,14 +323,14 @@ void osdMain(void) {
         }
  #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
-        if (millis() < 5000) {
+        if (millis() < 7000) {
             brainFpvOsdWelcome();
         }
         else {
             switch (mode) {
                 case MODE_BETAFLIGHT:
                     osdUpdate(currentTime);
-                    if (!cmsInMenu){
+                    if (!cmsInMenu && !osd_arming_or_stats){
                         osdUpdateLocal();
                     }
                     break;

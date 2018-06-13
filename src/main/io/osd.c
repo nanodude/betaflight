@@ -104,8 +104,10 @@
 #include "cms/cms.h"
 #endif
 
+#if defined(USE_BRAINFPV_OSD)
+extern bool osd_arming_or_stats;
 extern bool brainfpv_user_avatar_set;
-
+#endif
 
 const char * const osdTimerSourceNames[] = {
     "ON TIME  ",
@@ -1449,6 +1451,9 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
     static timeUs_t lastTimeUs = 0;
     static bool osdStatsEnabled = false;
     static bool osdStatsVisible = false;
+#ifdef USE_BRAINFPV_OSD
+    static bool osdShowArmScreen = false;
+#endif
     static timeUs_t osdStatsRefreshTimeUs;
     static uint16_t endBatteryVoltage;
 
@@ -1459,6 +1464,9 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdStatsVisible = false;
             osdResetStats();
             osdShowArmed();
+#ifdef USE_BRAINFPV_OSD
+            osdShowArmScreen = true;
+#endif
             resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
         } else if (isSomeStatEnabled()
                    && (!(getArmingDisableFlags() & ARMING_DISABLED_RUNAWAY_TAKEOFF)
@@ -1507,12 +1515,27 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
                 resumeRefreshAt = currentTimeUs;
             }
             displayHeartbeat(osdDisplayPort);
+#ifdef USE_BRAINFPV_OSD
+            if (osdStatsVisible) {
+                osdShowStats(endBatteryVoltage);
+                osd_arming_or_stats = true;
+            }
+            if (osdShowArmScreen) {
+                osdShowArmed();
+                osd_arming_or_stats = true;
+            }
+#endif
             return;
         } else {
             displayClearScreen(osdDisplayPort);
             resumeRefreshAt = 0;
             osdStatsEnabled = false;
             stats.armed_time = 0;
+#ifdef USE_BRAINFPV_OSD
+            osdShowArmScreen = false;
+            osdStatsVisible = false;
+            osd_arming_or_stats = false;
+#endif
         }
     }
 
