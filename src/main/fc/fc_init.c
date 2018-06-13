@@ -246,7 +246,6 @@ void init(void)
 
     initEEPROM();
 
-    ensureEEPROMContainsValidData();
     readEEPROM();
     ensureEEPROMStructureIsValid();
 
