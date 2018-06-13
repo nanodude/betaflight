@@ -129,7 +129,6 @@ static IO_t re1FPGAResetPin = IO_NONE;
 
 static int32_t BRAINFPVFPGA_WriteReg(uint8_t reg, uint8_t data, uint8_t mask);
 static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data);
-static uint8_t BRAINFPVFPGA_ReadReg(uint8_t reg);
 int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
 int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes);
 
@@ -333,29 +332,11 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
         case BRAINFPVFPGA_REG_IRCFG:
             shadow_reg.reg_ircfg = data;
             break;
+        case BRAINFPVFPGA_REG_IRDATA:
+            break;
     }
 
     return 0;
-}
-
-/**
- * @brief Read a register from BRAINFPVFPGA
- * @returns The register value
- * @param reg[in] Register address to be read
- */
-static uint8_t BRAINFPVFPGA_ReadReg(enum re1fpga_register reg)
-{
-    uint8_t data;
-    uint8_t out = 0x00;
-
-    BRAINFPVFPGA_ClaimBus();
-
-    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x80 | reg);
-    spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, &out, &data, 1);   // receive response
-
-    BRAINFPVFPGA_ReleaseBus();
-
-    return data;
 }
 
 /**
