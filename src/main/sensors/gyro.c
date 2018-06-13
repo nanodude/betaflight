@@ -1126,7 +1126,7 @@ static FAST_CODE FAST_CODE_NOINLINE void gyroUpdateSensor(gyroSensor_t *gyroSens
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (spec_data_processed) {
-        if (debugMode == DEBUG_GYRO_NOTCH) {
+        if (gyroDebugMode == DEBUG_GYRO_RAW) {
             spec_gyro_data_roll[spec_idx] = debug[0];
             spec_gyro_data_pitch[spec_idx] = debug[1];
             spec_gyro_data_yaw[spec_idx] = debug[2];
