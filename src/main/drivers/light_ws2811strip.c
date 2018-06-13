@@ -213,16 +213,26 @@ void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
 static uint8_t last_active_led = 0;
 static uint8_t led_data[WS2811_LED_STRIP_LENGTH * 3];
 
-void ws2811UpdateStrip(void)
+void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
 {
     static rgbColor24bpp_t *rgb24;
     uint8_t pos = 0;
 
     for (int i=0; i<WS2811_LED_STRIP_LENGTH; i++) {
         rgb24 = hsvToRgb24(&ledColorBuffer[i]);
-        led_data[pos++] = rgb24->rgb.g;
-        led_data[pos++] = rgb24->rgb.r;
-        led_data[pos++] = rgb24->rgb.b;
+        switch(ledFormat) {
+            case LED_RGB:
+                led_data[pos++] = rgb24->rgb.r;
+                led_data[pos++] = rgb24->rgb.g;
+                led_data[pos++] = rgb24->rgb.b;
+                break;
+            case LED_GRB:
+            default:
+                led_data[pos++] = rgb24->rgb.g;
+                led_data[pos++] = rgb24->rgb.r;
+                led_data[pos++] = rgb24->rgb.b;
+                break;
+        }
         if ((rgb24->rgb.g != 0) || (rgb24->rgb.r != 0) || (rgb24->rgb.b != 0)) {
             if (i > last_active_led) {
                 last_active_led = i;
