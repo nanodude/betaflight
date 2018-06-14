@@ -22,6 +22,7 @@ typedef struct bfOsdConfig_s {
     uint8_t bmi160foc;
     uint16_t bmi160foc_ret;
     uint8_t altitude_scale;
+    uint8_t speed_scale;
     uint8_t sticks_display;
     uint8_t show_logo_on_arm;
     uint8_t show_pilot_logo;

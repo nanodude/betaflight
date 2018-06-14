@@ -84,6 +84,7 @@ OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
     {"------- OSD --------", OME_Label, NULL, NULL, 0},
     {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
     {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale, 0},
+    {"SPEED SCALE", OME_Bool, NULL, &bfOsdConfigCms.speed_scale, 0},
     {"SHOW STICKS", OME_TAB, NULL, &entrySticksDisplay, 0},
     {"FONT", OME_TAB, NULL, &entryOSDFont, 0},
     {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel, 0},
