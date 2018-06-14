@@ -1052,7 +1052,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_WARNINGS] = OSD_POS(9, 8) | VISIBLE_FLAG;
 
     // Default to old fixed positions for these elements
-    osdConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(13, 6);
+    osdConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(13, 6)  | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON] = OSD_POS(14, 2);
     osdConfig->item_pos[OSD_HORIZON_SIDEBARS]   = OSD_POS(14, 6);
 
