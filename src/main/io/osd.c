@@ -522,6 +522,19 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_HOME_DIR:
+#if defined(USE_BRAINFPV_OSD)
+        {
+            bool valid = false;
+            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && (GPS_distanceToHome > 0)) {
+                valid = true;
+            }
+            int home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+            if (valid || !blinkState) {
+                brainFfpvOsdHomeArrow(home_dir, elemPosX, elemPosY);
+            }
+            brainfpv_item = true;
+        }
+#else
         if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
             if (GPS_distanceToHome > 0) {
                 const int h = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
@@ -537,7 +550,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
         buff[1] = 0;
-
+#endif
         break;
 
     case OSD_HOME_DIST:
