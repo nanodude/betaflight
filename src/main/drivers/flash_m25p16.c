@@ -78,9 +78,9 @@ static bool isLargeFlash = false;
 
 // Option to skip some sectors
 #ifdef M25P16_FIRST_SECTOR
-#define TRANSLATE_ADDR(addr) (addr + M25P16_FIRST_SECTOR * geometry.sectorSize)
+#define TRANSLATE_ADDR(fdevice, addr) (addr + M25P16_FIRST_SECTOR * fdevice->geometry.sectorSize)
 #else
-#define TRANSLATE_ADDR(addr) (addr)
+#define TRANSLATE_ADDR(fdevice, addr) (addr)
 #endif
 
 
@@ -217,7 +217,7 @@ bool m25p16_detect(flashDevice_t *fdevice, uint32_t chipID)
     }
 
 #ifdef M25P16_FIRST_SECTOR
-    fdevice->geometry.sectors = geometry.sectors - M25P16_FIRST_SECTOR;
+    fdevice->geometry.sectors = fdevice->geometry.sectors - M25P16_FIRST_SECTOR;
 #endif
     fdevice->geometry.flashType = FLASH_TYPE_NOR;
     fdevice->geometry.pageSize = M25P16_PAGESIZE;
@@ -249,7 +249,7 @@ static void m25p16_setCommandAddress(uint8_t *buf, uint32_t address, bool useLon
  */
 static void m25p16_eraseSector(flashDevice_t *fdevice, uint32_t address)
 {
-    address = TRANSLATE_ADDR(address);
+    address = TRANSLATE_ADDR(fdevice, address);
     uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
     m25p16_setCommandAddress(&out[1], address, isLargeFlash);
 
@@ -273,7 +273,7 @@ static void m25p16_eraseCompletely(flashDevice_t *fdevice)
 
 static void m25p16_pageProgramBegin(flashDevice_t *fdevice, uint32_t address)
 {
-    address = TRANSLATE_ADDR(address);
+    address = TRANSLATE_ADDR(fdevice, address);
 
     fdevice->currentWriteAddress = address;
 }
@@ -321,7 +321,7 @@ static void m25p16_pageProgramFinish(flashDevice_t *fdevice)
  */
 static void m25p16_pageProgram(flashDevice_t *fdevice, uint32_t address, const uint8_t *data, int length)
 {
-    address = TRANSLATE_ADDR(address);
+    address = TRANSLATE_ADDR(fdevice, address);
     m25p16_pageProgramBegin(fdevice, address);
 
     m25p16_pageProgramContinue(fdevice, data, length);
@@ -339,7 +339,7 @@ static void m25p16_pageProgram(flashDevice_t *fdevice, uint32_t address, const u
  */
 static int m25p16_readBytes(flashDevice_t *fdevice, uint32_t address, uint8_t *buffer, int length)
 {
-    address = TRANSLATE_ADDR(address);
+    address = TRANSLATE_ADDR(fdevice, address);
 
     uint8_t command[5] = { M25P16_INSTRUCTION_READ_BYTES };
 
