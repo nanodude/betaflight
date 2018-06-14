@@ -31,7 +31,8 @@
 #define LED1_PIN                NONE
 #define LED0_INVERTED
 
-#define BEEPER                  NONE
+#define USE_BEEPER
+#define BEEPER_PIN              NONE
 #define USE_LED_STRIP
 
 #define USE_ESCSERIAL

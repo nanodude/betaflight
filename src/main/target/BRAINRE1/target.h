@@ -30,7 +30,9 @@
 #define LED0_INVERTED
 #define LED1_INVERTED
 
-#define BEEPER NONE
+#define USE_BEEPER
+#define BEEPER_PIN              NONE
+
 #define USE_LED_STRIP
 
 #define USE_ESCSERIAL
@@ -39,9 +41,9 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_FIRST_SECTOR     4
-#define M25P16_SPI_SHARED
-#define M25P16_CS_PIN           PB15
-#define M25P16_SPI_INSTANCE     SPI3
+#define FLASH_SPI_SHARED
+#define FLASH_CS_PIN           PB15
+#define FLASH_SPI_INSTANCE     SPI3
 
 #define USE_BRAINFPV_FPGA
 #define BRAINFPVFPGA_SPI_INSTANCE SPI3
