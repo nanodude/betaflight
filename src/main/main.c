@@ -77,7 +77,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 4 * 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 2 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -97,7 +97,7 @@ static THD_FUNCTION(BetaFlightThread, arg)
 
 void osdInit(displayPort_t *osdDisplayPortToUse);
 
-static THD_WORKING_AREA(waOSDThread, 4 * 1024);
+static THD_WORKING_AREA(waOSDThread, 1 * 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
