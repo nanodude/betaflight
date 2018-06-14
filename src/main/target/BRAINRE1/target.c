@@ -85,7 +85,6 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/failsafe.h"
-#include "flight/navigation.h"
 
 #include "fpga_drv.h"
 #include "brainfpv/ir_transponder.h"
