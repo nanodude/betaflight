@@ -39,6 +39,7 @@ MEMORY
     ram5            : ORIGIN = 0x00000000, LENGTH = 0
     ram6            : ORIGIN = 0x00000000, LENGTH = 0
     ram7            : ORIGIN = 0x00000000, LENGTH = 0
+    SYSTEM_MEMORY (rx): ORIGIN = 0x1FFF0000, LENGTH = 29K
 }
 
 /* RAM region to be used for Main stack. This stack accommodates the processing

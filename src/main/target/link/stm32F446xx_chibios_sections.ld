@@ -73,9 +73,18 @@ SECTIONS
 
     startup : ALIGN(16) SUBALIGN(16)
     {
-        PROVIDE (system_isr_vector_table_base = .);
+        PROVIDE (isr_vector_table_base = .);
         KEEP(*(.isr_vector)) /* Startup code */
     } > START
+    
+    /* System memory (read-only bootloader) interrupt vector */
+	.system_isr_vector (NOLOAD) :
+	{
+	    . = ALIGN(4);
+	    PROVIDE (system_isr_vector_table_base = .);
+	    KEEP(*(.system_isr_vector)) /* Bootloader code */
+	    . = ALIGN(4);
+	} >SYSTEM_MEMORY
 
     images : ALIGN(16) SUBALIGN(16)
     {

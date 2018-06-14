@@ -169,13 +169,8 @@
                 .thumb_func
                 .global ResetHandler
 ResetHandler:
-                /* Jump to STM32 bootloader */
-                ldr r0, =0x2001FFFC         // mj666
-                ldr r1, =0xDEADBEEF         // mj666
-                ldr r2, [r0, #0]            // mj666
-                str r0, [r0, #0]            // mj666
-                cmp r2, r1                  // mj666
-                beq Reboot_Loader           // mj666
+  				// Check if we need to jump to bootloader. Defined in C code
+  				bl checkForBootLoaderRequest
 
                 /* Interrupts are globally masked initially.*/
                 cpsid   i
