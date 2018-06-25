@@ -117,7 +117,7 @@ static THD_FUNCTION(OSDThread, arg)
 #include "brainfpv/spectrograph.h"
 extern binary_semaphore_t spectrographDataReadySemaphore;
 
-static THD_WORKING_AREA(waSpecThread, 1024);
+static THD_WORKING_AREA(waSpecThread, 512);
 static THD_FUNCTION(SpecThread, arg)
 {
     (void)arg;
