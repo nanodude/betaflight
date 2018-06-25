@@ -72,7 +72,7 @@ PG_RESET_TEMPLATE(gpsRescueConfig_t, gpsRescueConfig,
 );
 
 static uint16_t      rescueThrottle;
-static uint16_t      rescueYaw;
+static int16_t       rescueYaw;
 
 int32_t       gpsRescueAngle[ANGLE_INDEX_COUNT] = { 0, 0 };
 uint16_t      hoverThrottle = 0;
@@ -303,6 +303,11 @@ void idleTasks()
         return;
     }
 
+    // Don't update any rescue flight statistics if we haven't applied a proper altitude offset yet
+    if (!isAltitudeOffset()) {
+        return;
+    }
+
     gpsRescueAngle[AI_PITCH] = 0;
     gpsRescueAngle[AI_ROLL] = 0;
 
@@ -394,10 +399,11 @@ void setBearing(int16_t deg)
 {
     int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - deg;
 
-    if (dif <= -180)
+    if (dif <= -180) {
         dif += 360;
-    if (dif >= +180)
+    } else if (dif > 180) {
         dif -= 360;
+    }
 
     dif *= -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
 

@@ -46,8 +46,10 @@
 #ifndef USE_BRAINFPV_FPGA
 #if defined(STM32F1) || defined(STM32F3)
 uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
-#else
+#elif defined(STM32F7)
 FAST_RAM_ZERO_INIT uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+#else
+uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #endif
 #else
 #include "fpga_drv.h"
