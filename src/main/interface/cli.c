@@ -3659,11 +3659,11 @@ static void cliTasks(char *cmdline)
         cliPrintLinef("Total (excluding SERIAL) %25d.%1d%% %4d.%1d%%", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
     }
 #if defined(USE_CHIBIOS)
-    cliPrintf("BrainFPV tasks remaining stacks:\n");
+    cliPrintLinef("BrainFPV tasks remaining stacks:");
     thread_t *threadp = chRegFirstThread();
     while (threadp != NULL) {
         uint32_t rem = ChibiGetTaskStackUsage(threadp);
-        cliPrintf("%s: %d Bytes free\n", chRegGetThreadNameX(threadp), rem);
+        cliPrintLinef("%s: %d Bytes free", chRegGetThreadNameX(threadp), rem);
         threadp = chRegNextThread(threadp);
     }
 #endif /* defined(USE_CHIBIOS) */
