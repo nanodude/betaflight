@@ -140,7 +140,7 @@ static void activateConfig(void)
     setAccelerationTrims(&accelerometerConfigMutable()->accZero);
     accInitFilters();
 
-    imuConfigure(throttleCorrectionConfig()->throttle_correction_angle);
+    imuConfigure(throttleCorrectionConfig()->throttle_correction_angle, throttleCorrectionConfig()->throttle_correction_value);
 #endif // USE_OSD_SLAVE
 
 #ifdef USE_LED_STRIP
@@ -167,6 +167,18 @@ static void validateAndFixConfig(void)
     }
 #endif
 
+    if (!isSerialConfigValid(serialConfig())) {
+        pgResetFn_serialConfig(serialConfigMutable());
+    }
+
+    if (
+#if defined(USE_GPS)
+        !findSerialPortConfig(FUNCTION_GPS) &&
+#endif
+        true) {
+        featureClear(FEATURE_GPS);
+    }
+
 #ifndef USE_OSD_SLAVE
     if (systemConfig()->activeRateProfile >= CONTROL_RATE_PROFILE_COUNT) {
         systemConfigMutable()->activeRateProfile = 0;
@@ -183,8 +195,12 @@ static void validateAndFixConfig(void)
         currentPidProfile->dterm_notch_hz = 0;
     }
 
-    if ((motorConfig()->dev.motorPwmProtocol == PWM_TYPE_BRUSHED) && (motorConfig()->mincommand < 1000)) {
-        motorConfigMutable()->mincommand = 1000;
+    if (motorConfig()->dev.motorPwmProtocol == PWM_TYPE_BRUSHED) {
+        featureClear(FEATURE_3D);
+
+        if (motorConfig()->mincommand < 1000) {
+            motorConfigMutable()->mincommand = 1000;
+        }
     }
 
     if ((motorConfig()->dev.motorPwmProtocol == PWM_TYPE_STANDARD) && (motorConfig()->dev.motorPwmRate > BRUSHLESS_MOTORS_PWM_RATE)) {
@@ -236,31 +252,28 @@ static void validateAndFixConfig(void)
 #endif // USE_SOFTSPI
 
 #if defined(USE_ADC)
-    if (feature(FEATURE_RSSI_ADC)) {
+    if (featureConfigured(FEATURE_RSSI_ADC)) {
         rxConfigMutable()->rssi_channel = 0;
         rxConfigMutable()->rssi_src_frame_errors = false;
     } else
 #endif
     if (rxConfigMutable()->rssi_channel
 #if defined(USE_PWM) || defined(USE_PPM)
-        || feature(FEATURE_RX_PPM) || feature(FEATURE_RX_PARALLEL_PWM)
+        || featureConfigured(FEATURE_RX_PPM) || featureConfigured(FEATURE_RX_PARALLEL_PWM)
 #endif
         ) {
         rxConfigMutable()->rssi_src_frame_errors = false;
     }
 
-    if ((
-#if defined(USE_RC_SMOOTHING_FILTER)
-        rxConfig()->rc_smoothing_type == RC_SMOOTHING_TYPE_INTERPOLATION &&
-#endif
-        rxConfig()->rcInterpolation == RC_SMOOTHING_OFF) || rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_T) {
+    if (!rcSmoothingIsEnabled() || rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_T) {
         for (unsigned i = 0; i < MAX_PROFILE_COUNT; i++) {
             pidProfilesMutable(i)->dtermSetpointWeight = 0;
         }
     }
 
 #if defined(USE_THROTTLE_BOOST)
-    if (!(rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_RPYT
+    if (!rcSmoothingIsEnabled() ||
+        !(rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_RPYT
         || rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_T
         || rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_RPT)) {
         for (unsigned i = 0; i < MAX_PROFILE_COUNT; i++) {
@@ -268,11 +281,22 @@ static void validateAndFixConfig(void)
         }
     }
 #endif
-#endif // USE_OSD_SLAVE
 
-    if (!isSerialConfigValid(serialConfig())) {
-        pgResetFn_serialConfig(serialConfigMutable());
+    if (
+        featureConfigured(FEATURE_3D) || !featureConfigured(FEATURE_GPS)
+#if !defined(USE_GPS) || !defined(USE_GPS_RESCUE)
+        || true
+#endif
+        ) {
+        if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_GPS_RESCUE) {
+            failsafeConfigMutable()->failsafe_procedure = FAILSAFE_PROCEDURE_DROP_IT;
+        }
+
+        if (isModeActivationConditionPresent(BOXGPSRESCUE)) {
+            removeModeActivationCondition(BOXGPSRESCUE);
+        }
     }
+#endif // USE_OSD_SLAVE
 
 #if defined(USE_ESC_SENSOR)
     if (!findSerialPortConfig(FUNCTION_ESC_SENSOR)) {
@@ -293,10 +317,6 @@ static void validateAndFixConfig(void)
 
 #if !defined(USE_SOFTSERIAL1) && !defined(USE_SOFTSERIAL2)
     featureClear(FEATURE_SOFTSERIAL);
-#endif
-
-#ifndef USE_GPS
-    featureClear(FEATURE_GPS);
 #endif
 
 #ifndef USE_RANGEFINDER

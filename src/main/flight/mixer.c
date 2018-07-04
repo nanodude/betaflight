@@ -54,6 +54,7 @@
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
+#include "flight/gps_rescue.h"
 #include "flight/mixer.h"
 #include "flight/mixer_tricopter.h"
 #include "flight/pid.h"
@@ -124,6 +125,8 @@ float motor_disarmed[MAX_SUPPORTED_MOTORS];
 
 mixerMode_e currentMixerMode;
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
+
+static FAST_RAM_ZERO_INIT int throttleAngleCorrection;
 
 
 static const motorMixer_t mixerQuadX[] = {
@@ -606,7 +609,7 @@ static void calculateThrottleAndCurrentMotorEndpoints(timeUs_t currentTimeUs)
             pidResetITerm();
         }
     } else {
-        throttle = rcCommand[THROTTLE] - rxConfig()->mincheck;
+        throttle = rcCommand[THROTTLE] - rxConfig()->mincheck + throttleAngleCorrection;
         currentThrottleInputRange = rcCommandThrottleRange;
         motorRangeMin = motorOutputLow;
         motorRangeMax = motorOutputHigh;
@@ -810,6 +813,14 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs, uint8_t vbatPidCompensa
     }
 #endif
 
+#ifdef USE_GPS_RESCUE
+    // If gps rescue is active then override the throttle. This prevents things
+    // like throttle boost or throttle limit from negatively affecting the throttle.
+    if (FLIGHT_MODE(GPS_RESCUE_MODE)) {
+        throttle = gpsRescueGetThrottle();
+    }
+#endif
+
     motorMixRange = motorMixMax - motorMixMin;
     if (motorMixRange > 1.0f) {
         for (int i = 0; i < motorCount; i++) {
@@ -887,4 +898,9 @@ uint16_t convertMotorToExternal(float motorValue)
     }
 
     return externalValue;
+}
+
+void mixerSetThrottleAngleCorrection(int correctionValue)
+{
+    throttleAngleCorrection = correctionValue;
 }

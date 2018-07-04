@@ -20,25 +20,12 @@
 
 #pragma once
 
-typedef enum {
-    INTERPOLATION_CHANNELS_RP,
-    INTERPOLATION_CHANNELS_RPY,
-    INTERPOLATION_CHANNELS_RPYT,
-    INTERPOLATION_CHANNELS_T,
-    INTERPOLATION_CHANNELS_RPT,
-} interpolationChannels_e;
+#include "pg/pg.h"
+#include "common/time.h"
 
-extern uint16_t currentRxRefreshRate;
+typedef struct rcdeviceConfig_s {
+    uint8_t initDeviceAttempts;
+    timeMs_t initDeviceAttemptInterval;
+} rcdeviceConfig_t;
 
-void processRcCommand(void);
-float getSetpointRate(int axis);
-float getRcDeflection(int axis);
-float getRcDeflectionAbs(int axis);
-float getThrottlePIDAttenuation(void);
-void updateRcCommands(void);
-void resetYawAxis(void);
-void initRcProcessing(void);
-bool isMotorsReversed(void);
-bool rcSmoothingIsEnabled(void);
-int rcSmoothingGetValue(int whichValue);
-bool rcSmoothingAutoCalculate(void);
+PG_DECLARE(rcdeviceConfig_t, rcdeviceConfig);

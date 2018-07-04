@@ -1336,7 +1336,7 @@ static void osdGetBlackboxStatusString(char * buff)
 
 #ifdef USE_FLASHFS
     case BLACKBOX_DEVICE_FLASH:
-        storageDeviceIsWorking = flashfsIsReady();
+        storageDeviceIsWorking = flashfsIsSupported();
         if (storageDeviceIsWorking) {
             const flashGeometry_t *geometry = flashfsGetGeometry();
             storageTotal = geometry->totalSize / 1024;

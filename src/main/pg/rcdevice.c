@@ -18,27 +18,13 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "pg/pg_ids.h"
+#include "pg/rcdevice.h"
 
-typedef enum {
-    INTERPOLATION_CHANNELS_RP,
-    INTERPOLATION_CHANNELS_RPY,
-    INTERPOLATION_CHANNELS_RPYT,
-    INTERPOLATION_CHANNELS_T,
-    INTERPOLATION_CHANNELS_RPT,
-} interpolationChannels_e;
+PG_REGISTER_WITH_RESET_FN(rcdeviceConfig_t, rcdeviceConfig, PG_RCDEVICE_CONFIG, 0);
 
-extern uint16_t currentRxRefreshRate;
-
-void processRcCommand(void);
-float getSetpointRate(int axis);
-float getRcDeflection(int axis);
-float getRcDeflectionAbs(int axis);
-float getThrottlePIDAttenuation(void);
-void updateRcCommands(void);
-void resetYawAxis(void);
-void initRcProcessing(void);
-bool isMotorsReversed(void);
-bool rcSmoothingIsEnabled(void);
-int rcSmoothingGetValue(int whichValue);
-bool rcSmoothingAutoCalculate(void);
+void pgResetFn_rcdeviceConfig(rcdeviceConfig_t *rcdeviceConfig)
+{
+    rcdeviceConfig->initDeviceAttempts = 4;
+    rcdeviceConfig->initDeviceAttemptInterval = 1000;
+}

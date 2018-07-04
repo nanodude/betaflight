@@ -109,4 +109,6 @@ void sensorUpdate(void);
 
 void rescueAttainPosition(void);
 
-void gpsRescueInjectRcCommands(void);
+float gpsRescueGetYawRate(void);
+float gpsRescueGetThrottle(void);
+bool gpsRescueIsConfigured(void);
