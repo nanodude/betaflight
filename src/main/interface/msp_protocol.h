@@ -62,7 +62,7 @@
 #define MSP_PROTOCOL_VERSION                0
 
 #define API_VERSION_MAJOR                   1  // increment when major changes are made
-#define API_VERSION_MINOR                   39 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
+#define API_VERSION_MINOR                   40 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
 
 #define API_VERSION_LENGTH                  2
 
@@ -161,10 +161,9 @@
 #define MSP_RX_MAP                      64 //out message get channel map (also returns number of channels total)
 #define MSP_SET_RX_MAP                  65 //in message set rx map, numchannels to set comes from MSP_RX_MAP
 
-// FIXME - Provided for backwards compatibility with configurator code until configurator is updated.
 // DEPRECATED - DO NOT USE "MSP_BF_CONFIG" and MSP_SET_BF_CONFIG.  In Cleanflight, isolated commands already exist and should be used instead.
-#define MSP_BF_CONFIG                   66 //out message baseflight-specific settings that aren't covered elsewhere
-#define MSP_SET_BF_CONFIG               67 //in message baseflight-specific settings save
+// DEPRECATED - #define MSP_BF_CONFIG                   66 //out message baseflight-specific settings that aren't covered elsewhere
+// DEPRECATED - #define MSP_SET_BF_CONFIG               67 //in message baseflight-specific settings save
 
 #define MSP_REBOOT                      68 //in message reboot settings
 

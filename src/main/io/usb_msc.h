@@ -18,22 +18,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
+#pragma once
 
-#include "platform.h"
-
-#include "drivers/serial.h"
-
-#include "io/serial.h"
-
-#include "config/feature.h"
-
-#include "fc/config.h"
-
-#ifdef USE_TARGET_CONFIG
-void targetConfiguration(void)
-{
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP; // To connect to FC.
-}
-#endif
+bool mscCheckFilesystemReady(void);

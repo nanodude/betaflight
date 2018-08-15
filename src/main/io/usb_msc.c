@@ -18,15 +18,25 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdbool.h>
 
-typedef enum {
-    SYSTEM_STATE_INITIALISING   = 0,
-    SYSTEM_STATE_CONFIG_LOADED  = (1 << 0),
-    SYSTEM_STATE_TRANSPONDER_ENABLED = (1 << 3),
-    SYSTEM_STATE_READY          = (1 << 7)
-} systemState_e;
+#include "platform.h"
 
-extern uint8_t systemState;
+#include "drivers/sdcard.h"
 
-void init(void);
+#include "io/flashfs.h"
+
+#if defined(USE_USB_MSC)
+
+bool mscCheckFilesystemReady(void)
+{
+    return false
+#if defined(USE_SDCARD)
+        || sdcard_isFunctional()
+#endif
+#if defined(USE_FLASHFS)
+        || flashfsGetSize() > 0
+#endif
+        ;
+}
+#endif
