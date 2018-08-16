@@ -155,11 +155,13 @@ enum BrainFPVOSDMode {
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
-void max7456Init(const max7456Config_t *max7456Config, const vcdProfile_t *pVcdProfile, bool cpuOverclock)
+bool max7456Init(const struct max7456Config_s *max7456Config, const struct vcdProfile_s *vcdProfile, bool cpuOverclock)
 {
     (void)max7456Config;
-    (void)pVcdProfile;
+    (void)vcdProfile;
     (void)cpuOverclock;
+
+    return true;
 }
 
 void max7456Invert(bool invert)
