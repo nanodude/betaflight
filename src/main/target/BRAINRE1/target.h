@@ -25,6 +25,11 @@
 
 #define USE_TARGET_CONFIG
 
+#undef USE_HUFFMAN
+#undef USE_PINIO
+#undef USE_PINIOBOX
+#undef USE_USB_MSC
+
 #define LED0_PIN                    PB13
 #define LED1_PIN                    PC8
 #define LED0_INVERTED
