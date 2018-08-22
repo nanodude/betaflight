@@ -521,7 +521,7 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
 
     uint8_t i;
     OSD_Entry *p;
-    uint8_t top = smallScreen ? 1 : (pDisplay->rows - pageMaxRow)/2;
+    uint8_t top = smallScreen ? 1 : (pDisplay->rows - pageMaxRow)/2 - 1;
 
     // Polled (dynamic) value display denominator.
 
