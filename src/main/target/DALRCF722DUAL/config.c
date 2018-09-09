@@ -18,19 +18,22 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-struct dispatchEntry_s;
-typedef void dispatchFunc(struct dispatchEntry_s* self);
+#include "platform.h" 
 
-typedef struct dispatchEntry_s {
-    dispatchFunc *dispatch;
-    uint32_t delayedUntil;
-    struct dispatchEntry_s *next;
-    bool inQue;
-} dispatchEntry_t;
 
-bool dispatchIsEnabled(void);
-void dispatchEnable(void);
-void dispatchProcess(uint32_t currentTime);
-void dispatchAdd(dispatchEntry_t *entry, int delayUs);
+#ifdef TARGET_VALIDATECONFIG
+
+#include "fc/config.h"
+
+#include "sensors/gyro.h"
+
+void targetValidateConfiguration(void)
+{
+    if (gyroConfig()->gyro_use_32khz && gyroConfig()->gyroMovementCalibrationThreshold < 148) {
+        gyroConfigMutable()->gyroMovementCalibrationThreshold = 148;
+    }
+}
+
+#endif
