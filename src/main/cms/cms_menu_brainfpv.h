@@ -19,4 +19,5 @@
 
 extern CMS_Menu cmsx_menuBrainFPV;
 extern CMS_Menu cmsx_menuBrainFPVOsd;
+extern CMS_Menu cmsx_menuBrainFPVHdFrame;
 extern OSD_UINT16_t entryIRTrackmate;

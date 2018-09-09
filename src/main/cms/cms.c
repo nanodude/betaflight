@@ -49,6 +49,7 @@
 #include "brainfpv/osd_utils.h"
 #include "brainfpv/ir_transponder.h"
 #include "cms/cms_menu_brainfpv.h"
+extern bool brainfpv_hd_frame_menu;
 #endif
 
 #include "common/maths.h"
@@ -520,7 +521,7 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
 
     uint8_t i;
     OSD_Entry *p;
-    uint8_t top = smallScreen ? 1 : (pDisplay->rows - pageMaxRow)/2;
+    uint8_t top = smallScreen ? 1 : (pDisplay->rows - pageMaxRow)/2 - 1;
 
     // Polled (dynamic) value display denominator.
 
@@ -1024,6 +1025,12 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             brainfpv_settings_updated = true;
             brainfpv_settings_updated_from_cms = true;
         }
+    }
+    if (currentCtx.menu == &cmsx_menuBrainFPVHdFrame) {
+        brainfpv_hd_frame_menu = true;
+    }
+    else {
+        brainfpv_hd_frame_menu = false;
     }
 #endif
     return res;

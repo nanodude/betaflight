@@ -107,6 +107,32 @@ CMS_Menu cmsx_menuBrainFPVOsd = {
     .entries = cmsx_menuBrainFPVOsdEntries,
 };
 
+const char * HD_FRAME_NAMES[] = {"OFF", "FULL", "CORNER"};
+OSD_TAB_t entryHdFrameMode = {&bfOsdConfigCms.hd_frame, 2, &HD_FRAME_NAMES[0]};
+OSD_UINT8_t entryHdFrameWidth = {&bfOsdConfigCms.hd_frame_width, 20, 255, 1};
+OSD_UINT8_t entryHdFrameHeight = {&bfOsdConfigCms.hd_frame_height, 20, 255, 1};
+OSD_INT8_t entryHdFrameHOffset = {&bfOsdConfigCms.hd_frame_h_offset, -100, 100, 1};
+OSD_INT8_t entryHdFrameVOffset = {&bfOsdConfigCms.hd_frame_v_offset, -100, 100, 1};
+
+OSD_Entry cmsx_menuBrainFPVHdFrameEntries[] =
+{
+    {"-- HD CAM FRAME --", OME_Label, NULL, NULL, 0},
+    {"MODE", OME_TAB, NULL, &entryHdFrameMode, 0},
+    {"WIDTH", OME_UINT8, NULL, &entryHdFrameWidth, 0},
+    {"HEIGHT", OME_UINT8, NULL, &entryHdFrameHeight, 0},
+    {"H OFFSET", OME_INT8, NULL, &entryHdFrameHOffset, 0},
+    {"V OFFSET", OME_INT8, NULL, &entryHdFrameVOffset, 0},
+
+    {"BACK", OME_Back, NULL, NULL, 0},
+    {NULL, OME_END, NULL, NULL, 0}
+};
+
+CMS_Menu cmsx_menuBrainFPVHdFrame = {
+    .onEnter = NULL,
+    .onExit = NULL,
+    .entries = cmsx_menuBrainFPVHdFrameEntries,
+};
+
 
 const char * IR_NAMES[] = {"OFF", "I-LAP", "TRACKMATE"};
 OSD_TAB_t entryIRSys = {&bfOsdConfigCms.ir_system, 2, &IR_NAMES[0]};
@@ -134,6 +160,7 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
     {"--- BRAINFPV ---", OME_Label, NULL, NULL, 0},
     {"OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
+    {"HD FRAME", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVHdFrame, 0},
 
     {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVIr, 0},
 #if defined(USE_BRAINFPV_SPECTROGRAPH)

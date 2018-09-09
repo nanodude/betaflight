@@ -121,7 +121,12 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .spec_enabled = 0,
   .show_logo_on_arm = 1,
   .show_pilot_logo = 1,
-  .invert = 0
+  .invert = 0,
+  .hd_frame = 0,
+  .hd_frame_width = 100,
+  .hd_frame_height = 55,
+  .hd_frame_h_offset = 0,
+  .hd_frame_v_offset = 0,
 );
 
 const char * const gitTag = __GIT_TAG__;
@@ -135,12 +140,15 @@ extern uint8_t *disp_buffer;
 extern bool cmsInMenu;
 bool osd_arming_or_stats = false;
 bool brainfpv_user_avatar_set = false;
+bool brainfpv_hd_frame_menu = false;
+extern bfOsdConfig_t bfOsdConfigCms;
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch,
         uint8_t n_pitch_steps);
 void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 void draw_map_uav_center();
+void draw_hd_frame(const bfOsdConfig_t * config);
 
 
 enum BrainFPVOSDMode {
@@ -198,13 +206,26 @@ uint8_t max7456GetRowsCount(void)
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bfOsdConfig()->font);
+    uint8_t font = bfOsdConfig()->font;
+
+    if (font >= NUM_FONTS) {
+        font = NUM_FONTS - 1;
+    }
+
+    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, font);
 }
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 {
     char buff[2] = {c, 0};
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bfOsdConfig()->font);
+
+    uint8_t font = bfOsdConfig()->font;
+
+    if (font >= NUM_FONTS) {
+        font = NUM_FONTS - 1;
+    }
+
+    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, font);
 }
 
 void max7456ClearScreen(void)
@@ -309,6 +330,10 @@ void osdUpdateLocal()
         draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rcData[YAW], rcData[PITCH]);
         draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rcData[ROLL], rcData[THROTTLE]);
     }
+
+    if (bfOsdConfig()->hd_frame) {
+        draw_hd_frame(bfOsdConfig());
+    }
 }
 
 
@@ -364,6 +389,9 @@ void osdMain(void) {
                     osdUpdate(currentTime);
                     if (!cmsInMenu && !osd_arming_or_stats){
                         osdUpdateLocal();
+                    }
+                    if (cmsInMenu && brainfpv_hd_frame_menu) {
+                        draw_hd_frame(&bfOsdConfigCms);
                     }
                     break;
                 case MODE_SPEC:
@@ -595,6 +623,54 @@ void draw_map_uav_center()
 
     // draw H to indicate home
     write_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+}
+
+#define HD_FRAME_CORNER_LEN 10
+void draw_hd_frame(const bfOsdConfig_t * config)
+{
+    uint16_t x1, x2;
+    uint16_t y1, y2;
+
+    if (config->hd_frame == 0) {
+        return;
+    }
+
+    x1 = GRAPHICS_X_MIDDLE - config->hd_frame_width - config->hd_frame_h_offset;
+    if (x1 > GRAPHICS_RIGHT) {
+        x1 = 0;
+    }
+
+    y1 = GRAPHICS_Y_MIDDLE - config->hd_frame_height + config->hd_frame_v_offset;
+    if (y1 > GRAPHICS_BOTTOM) {
+        y1 = 0;
+    }
+
+    x2 = x1 + 2 * config->hd_frame_width;
+    y2 = y1 + 2 * config->hd_frame_height;
+
+    switch (config->hd_frame) {
+        case 1:
+            // FULL frame
+            write_hline_lm(x1, x2, y1, 1, 1);
+            write_hline_lm(x1, x2, y2, 1, 1);
+            write_vline_lm(x1, y1, y2, 1, 1);
+            write_vline_lm(x2, y1, y2, 1, 1);
+            break;
+        default:
+            // Corners
+            write_hline_lm(x1, x1 + HD_FRAME_CORNER_LEN, y1, 1, 1);
+            write_hline_lm(x2 - HD_FRAME_CORNER_LEN, x2, y1, 1, 1);
+
+            write_hline_lm(x1, x1 + HD_FRAME_CORNER_LEN, y2, 1, 1);
+            write_hline_lm(x2 - HD_FRAME_CORNER_LEN, x2, y2, 1, 1);
+
+            write_vline_lm(x1, y1, y1 + HD_FRAME_CORNER_LEN, 1, 1);
+            write_vline_lm(x1, y2 - HD_FRAME_CORNER_LEN, y2, 1, 1);
+
+            write_vline_lm(x2, y1, y1 + HD_FRAME_CORNER_LEN, 1, 1);
+            write_vline_lm(x2, y2 - HD_FRAME_CORNER_LEN, y2, 1, 1);
+            break;
+    }
 }
 
 #endif /* USE_BRAINFPV_OSD */
