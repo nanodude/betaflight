@@ -1118,6 +1118,11 @@ const clivalue_t valueTable[] = {
     { "brainfpv_sticks_display",    VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 2 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, sticks_display) },
     { "brainfpv_show_logo_on_arm",  VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, show_logo_on_arm) },
     { "brainfpv_show_pilot_logo",    VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, show_pilot_logo) },
+    { "brainfpv_hd_frame_mode",      VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 2 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, hd_frame) },
+    { "brainfpv_hd_frame_width",     VAR_UINT8  | MASTER_VALUE, .config.minmax = { 20, 255 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, hd_frame_width) },
+    { "brainfpv_hd_frame_height",    VAR_UINT8  | MASTER_VALUE, .config.minmax = { 20, 255 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, hd_frame_height) },
+    { "brainfpv_hd_frame_h_offset",  VAR_INT8   | MASTER_VALUE, .config.minmax = { -100, 100 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, hd_frame_h_offset) },
+    { "brainfpv_hd_frame_v_offset",  VAR_INT8   | MASTER_VALUE, .config.minmax = { -100, 100 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, hd_frame_v_offset) },
 #endif
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, spec_enabled) },
