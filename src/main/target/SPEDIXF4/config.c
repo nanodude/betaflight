@@ -18,13 +18,19 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "pg/pg_ids.h"
-#include "pg/rcdevice.h"
+#include <stdbool.h>
+#include <stdint.h>
 
-PG_REGISTER_WITH_RESET_FN(rcdeviceConfig_t, rcdeviceConfig, PG_RCDEVICE_CONFIG, 0);
+#include "platform.h"
 
-void pgResetFn_rcdeviceConfig(rcdeviceConfig_t *rcdeviceConfig)
+#ifdef USE_TARGET_CONFIG
+
+#include "fc/config.h"
+
+#include "telemetry/telemetry.h"
+
+void targetConfiguration(void)
 {
-    rcdeviceConfig->initDeviceAttempts = 6;
-    rcdeviceConfig->initDeviceAttemptInterval = 1000;
+	telemetryConfigMutable()->halfDuplex = 0;
 }
+#endif
