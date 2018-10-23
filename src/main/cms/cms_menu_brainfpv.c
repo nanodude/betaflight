@@ -80,7 +80,7 @@ OSD_UINT16_t entryMapMaxDist =  {&bfOsdConfigCms.map_max_dist_m, 10, 32767, 10};
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
-    {"------- OSD --------", OME_Label, NULL, NULL, 0},
+    {"-- BRAIN OSD --------", OME_Label, NULL, NULL, 0},
     {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
     {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale, 0},
     {"SPEED SCALE", OME_Bool, NULL, &bfOsdConfigCms.speed_scale, 0},
@@ -159,7 +159,7 @@ CMS_Menu cmsx_menuBrainFPVIr = {
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
     {"--- BRAINFPV ---", OME_Label, NULL, NULL, 0},
-    {"OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
+    {"BRAIN OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
     {"HD FRAME", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVHdFrame, 0},
 
     {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVIr, 0},
