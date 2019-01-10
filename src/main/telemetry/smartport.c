@@ -176,7 +176,7 @@ static frSkyTableInfo_t frSkyEscDataIdTableInfo = {frSkyEscDataIdTable, ESC_DATA
 
 #define SMARTPORT_BAUD 57600
 #define SMARTPORT_UART_MODE MODE_RXTX
-#define SMARTPORT_SERVICE_TIMEOUT_MS 1 // max allowed time to find a value to send
+#define SMARTPORT_SERVICE_TIMEOUT_US 1000 // max allowed time to find a value to send
 
 static serialPort_t *smartPortSerialPort = NULL; // The 'SmartPort'(tm) Port.
 static serialPortConfig_t *portConfig;
@@ -290,7 +290,6 @@ bool smartPortPayloadContainsMSP(const smartPortPayload_t *payload)
 {
     return payload->frameId == FSSP_MSPC_FRAME_SMARTPORT || payload->frameId == FSSP_MSPC_FRAME_FPORT;
 }
-
 
 void smartPortWriteFrameSerial(const smartPortPayload_t *payload, serialPort_t *port, uint16_t checksum)
 {
@@ -461,32 +460,43 @@ static void smartPortSendMspResponse(uint8_t *data) {
 }
 #endif
 
-void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clearToSend, const uint32_t *requestTimeout)
+void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clearToSend, const timeUs_t *requestTimeout)
 {
     static uint8_t smartPortIdCycleCnt = 0;
     static uint8_t t1Cnt = 0;
     static uint8_t t2Cnt = 0;
+    static uint8_t skipRequests = 0;
 #ifdef USE_ESC_SENSOR
     static uint8_t smartPortIdOffset = 0;
 #endif
 
 #if defined(USE_MSP_OVER_TELEMETRY)
-    if (payload && smartPortPayloadContainsMSP(payload)) {
+    if (skipRequests) {
+        skipRequests--;
+    } else if (payload && smartPortPayloadContainsMSP(payload)) {
         // Do not check the physical ID here again
         // unless we start receiving other sensors' packets
         // Pass only the payload: skip frameId
-         uint8_t *frameStart = (uint8_t *)&payload->valueId;
-         smartPortMspReplyPending = handleMspFrame(frameStart, SMARTPORT_MSP_PAYLOAD_SIZE);
+        uint8_t *frameStart = (uint8_t *)&payload->valueId;
+        smartPortMspReplyPending = handleMspFrame(frameStart, SMARTPORT_MSP_PAYLOAD_SIZE, &skipRequests);
+         
+        // Don't send MSP response after write to eeprom
+        // CPU just got out of suspended state after writeEEPROM()
+        // We don't know if the receiver is listening again
+        // Skip a few telemetry requests before sending response
+        if (skipRequests) {
+            *clearToSend = false;
+        }
     }
 #else
     UNUSED(payload);
 #endif
 
     bool doRun = true;
-    while (doRun && *clearToSend) {
+    while (doRun && *clearToSend && !skipRequests) {
         // Ensure we won't get stuck in the loop if there happens to be nothing available to send in a timely manner - dump the slot if we loop in there for too long.
         if (requestTimeout) {
-            if (millis() >= *requestTimeout) {
+            if (cmpTimeUs(micros(), *requestTimeout) >= 0) {
                 *clearToSend = false;
 
                 return;
@@ -796,7 +806,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 break;
             case FSSP_DATAID_GPS_ALT    :
                 if (STATE(GPS_FIX)) {
-                    smartPortSendPackage(id, gpsSol.llh.alt * 100); // given in 0.1m , requested in 10 = 1m (should be in mm, probably a bug in opentx, tested on 2.0.1.7)
+                    smartPortSendPackage(id, gpsSol.llh.alt); // given in 0.01m
                     *clearToSend = false;
                 }
                 break;
@@ -821,7 +831,7 @@ static bool serialCheckQueueEmpty(void)
 
 void handleSmartPortTelemetry(void)
 {
-    const uint32_t requestTimeout = millis() + SMARTPORT_SERVICE_TIMEOUT_MS;
+    const timeUs_t requestTimeout = micros() + SMARTPORT_SERVICE_TIMEOUT_US;
 
     if (telemetryState == TELEMETRY_STATE_INITIALIZED_SERIAL && smartPortSerialPort) {
         smartPortPayload_t *payload = NULL;
