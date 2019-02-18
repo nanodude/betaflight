@@ -129,6 +129,11 @@
 // Divide to under 25MHz for normal operation:
 #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
 
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define FLASH_SPI_INSTANCE      SPI3
+#define FLASH_CS_PIN            PD2
+
 // *************** UART *****************************
 
 #define USE_VCP
@@ -184,7 +189,6 @@
 #define CURRENT_METER_SCALE_DEFAULT 179
 
 #define USE_ESCSERIAL
-#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
