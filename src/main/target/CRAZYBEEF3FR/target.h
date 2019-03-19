@@ -31,32 +31,33 @@
 #define USBD_PRODUCT_STRING     "CrazyBee F3 FR"
 #endif
 
-// Removed to make the firmware fit into flash (in descending order of priority):
-//#undef USE_GYRO_OVERFLOW_CHECK
-//#undef USE_GYRO_LPF2
-
-//#undef USE_ITERM_RELAX
-//#undef USE_RC_SMOOTHING_FILTER
-
-//#undef USE_MSP_DISPLAYPORT
-//#undef USE_MSP_OVER_TELEMETRY
-
-//#undef USE_HUFFMAN
-//#undef USE_PINIO
-//#undef USE_PINIOBOX
-
-//#undef USE_TELEMETRY_HOTT
-//#undef USE_TELEMETRY_MAVLINK
-#undef USE_TELEMETRY_LTM
-#undef USE_SERIALRX_XBUS
+#undef USE_SERIALRX_CRSF
+#undef USE_SERIALRX_SUMD
 #undef USE_SERIALRX_SUMH
+#undef USE_SERIALRX_XBUS
+#undef USE_TELEMETRY_CRSF
+#undef USE_TELEMETRY_MAVLINK
 #undef USE_PWM
 
-//#undef USE_BOARD_INFO
-//#undef USE_EXTENDED_CMS_MENUS
-//#undef USE_RTC_TIME
-//#undef USE_RX_MSP
-//#undef USE_ESC_SENSOR_INFO
+
+#if defined(CRAZYBEEF3FS)
+#undef USE_SERIALRX_SBUS
+#undef USE_SERIALRX_FPORT
+#undef USE_SERIALRX_SPEKTRUM
+#undef USE_TELEMETRY_FRSKY_HUB
+#undef USE_TELEMETRY_SMARTPORT
+#undef USE_TELEMETRY_SRXL
+#elif defined(CRAZYBEEF3DX)
+#undef USE_SERIALRX_SBUS
+#undef USE_SERIALRX_FPORT
+#undef USE_SERIALRX_IBUS
+#undef USE_TELEMETRY_FRSKY_HUB
+#undef USE_TELEMETRY_SMARTPORT
+#else
+#undef USE_SERIALRX_SPEKTRUM
+#undef USE_SERIALRX_IBUS
+#undef USE_TELEMETRY_SRXL
+#endif
 
 #define ENABLE_DSHOT_DMAR       true
 
@@ -66,16 +67,17 @@
 #define BEEPER_INVERTED
 
 #define USE_EXTI
-#define MPU_INT_EXTI PC13
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN         PC13
 #define USE_MPU_DATA_READY_SIGNAL
-#define MPU6000_SPI_INSTANCE    SPI1
-#define MPU6000_CS_PIN          PA4
+#define GYRO_1_SPI_INSTANCE     SPI1
+#define GYRO_1_CS_PIN           PA4
 #define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
-#define GYRO_MPU6000_ALIGN      CW90_DEG
+#define GYRO_1_ALIGN            CW90_DEG
 #define USE_ACC
 #define USE_ACC_SPI_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG
+#define ACC_1_ALIGN             CW90_DEG
 
 #define USE_VCP
 #if defined(CRAZYBEEF3DX)
@@ -115,10 +117,9 @@
 #define FLYSKY_2A_CHANNEL_COUNT 14
 #define RX_SPI_INSTANCE         SPI2
 #define RX_NSS_PIN              SPI2_NSS_PIN
-#define RX_IRQ_PIN              PA8
+#define RX_SPI_EXTI_PIN         PA8
 #define BINDPLUG_PIN            PA9
-#define USE_RX_FLYSKY_SPI_LED
-#define RX_FLYSKY_SPI_LED_PIN   PA10
+#define RX_SPI_LED_PIN          PA10
 #define DEFAULT_FEATURES        (FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_MOTOR_STOP)
 #elif defined(CRAZYBEEF3DX)
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
@@ -131,15 +132,13 @@
 #define USE_RX_FRSKY_SPI_D
 #define USE_RX_FRSKY_SPI_X
 #define USE_RX_FRSKY_SPI_TELEMETRY
+#define USE_RX_SFHSS_SPI
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SPI	
 #define RX_SPI_DEFAULT_PROTOCOL RX_SPI_FRSKY_X
 #define RX_SPI_INSTANCE         SPI2
 #define RX_NSS_PIN              SPI2_NSS_PIN
-#define RX_SCK_PIN              SPI2_SCK_PIN
-#define RX_MISO_PIN             SPI2_MISO_PIN
-#define RX_MOSI_PIN             SPI2_MOSI_PIN
-#define RX_FRSKY_SPI_GDO_0_PIN  PA8
-#define RX_FRSKY_SPI_LED_PIN    PA10
+#define RX_SPI_EXTI_PIN         PA8
+#define RX_SPI_LED_PIN          PA10
 #define BINDPLUG_PIN            PA9
 #define DEFAULT_FEATURES        (FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_MOTOR_STOP)
 #endif

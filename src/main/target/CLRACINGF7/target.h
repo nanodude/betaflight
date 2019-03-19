@@ -29,33 +29,27 @@
 #define BEEPER_PIN                  PB4
 #define BEEPER_INVERTED
 
-//define camera control
-#define CAMERA_CONTROL_PIN PB3
-
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN         PC4
 #define USE_MPU_DATA_READY_SIGNAL
-//MPU-6000
+
 #define USE_ACC
-#define USE_ACC_SPI_MPU6000
 #define USE_GYRO
+
+//MPU-6000
+#define USE_ACC_SPI_MPU6000
 #define USE_GYRO_SPI_MPU6000
 
-#define GYRO_MPU6000_ALIGN      CW0_DEG
-#define ACC_MPU6000_ALIGN       CW0_DEG
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
-
 // ICM-20602
-#define USE_ACC_MPU6500
 #define USE_ACC_SPI_MPU6500
-#define USE_GYRO_MPU6500
 #define USE_GYRO_SPI_MPU6500
 
-#define ACC_MPU6500_ALIGN       CW0_DEG
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define MPU6500_CS_PIN          SPI1_NSS_PIN
-#define MPU6500_SPI_INSTANCE    SPI1
+#define GYRO_1_CS_PIN           PA4
+#define GYRO_1_SPI_INSTANCE     SPI1
+
+#define GYRO_1_ALIGN            CW0_DEG
+#define ACC_1_ALIGN             CW0_DEG
 
 #define USE_MAG
 #define USE_MAG_HMC5883
@@ -67,12 +61,6 @@
 #define MAX7456_SPI_CS_PIN      PA15
 #define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
 #define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
-
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define FLASH_CS_PIN            PB12
-#define FLASH_SPI_INSTANCE      SPI2
 
 #define USE_VCP
 

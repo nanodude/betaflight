@@ -135,7 +135,13 @@ INCLUDE_DIRS    := $(INCLUDE_DIRS) \
                    $(ROOT)/src/main/vcpf4
 endif
 
-ifneq ($(filter SDCARD,$(FEATURES)),)
+ifneq ($(filter SDCARD_SPI,$(FEATURES)),)
+INCLUDE_DIRS    := $(INCLUDE_DIRS) \
+                   $(FATFS_DIR)
+VPATH           := $(VPATH):$(FATFS_DIR)
+endif
+
+ifneq ($(filter SDCARD_SDIO,$(FEATURES)),)
 INCLUDE_DIRS    := $(INCLUDE_DIRS) \
                    $(FATFS_DIR)
 VPATH           := $(VPATH):$(FATFS_DIR)
@@ -172,7 +178,7 @@ endif
 DEVICE_FLAGS    += -DHSE_VALUE=$(HSE_VALUE)
 
 MCU_COMMON_SRC = \
-            target/system_stm32f4xx.c \
+            startup/system_stm32f4xx.c \
             drivers/accgyro/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
             drivers/bus_i2c_stm32f10x.c \
@@ -182,10 +188,12 @@ MCU_COMMON_SRC = \
             drivers/light_ws2811strip_stdperiph.c \
             drivers/transponder_ir_io_stdperiph.c \
             drivers/pwm_output_dshot.c \
+            drivers/pwm_output_dshot_shared.c \
             drivers/serial_uart_init.c \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
-            drivers/timer_stm32f4xx.c
+            drivers/timer_stm32f4xx.c \
+            drivers/persistent.c
 
 ifeq ($(PERIPH_DRIVER), HAL)
 VCP_SRC = \
@@ -210,12 +218,12 @@ MSC_SRC = \
             msc/usbd_msc_desc.c \
             msc/usbd_storage.c
 
-ifneq ($(filter SDCARD,$(FEATURES)),)
+ifneq ($(filter SDCARD_SPI,$(FEATURES)),)
 MSC_SRC += \
             msc/usbd_storage_sd_spi.c
 endif
 
-ifneq ($(filter SDIO,$(FEATURES)),)
+ifneq ($(filter SDCARD_SDIO,$(FEATURES)),)
 MSC_SRC += \
             msc/usbd_storage_sdio.c
 MCU_COMMON_SRC += \

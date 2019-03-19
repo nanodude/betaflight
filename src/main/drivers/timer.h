@@ -24,8 +24,10 @@
 #include <stdint.h>
 
 #include "drivers/io_types.h"
-#include "rcc_types.h"
+#include "drivers/rcc_types.h"
 #include "drivers/timer_def.h"
+
+#include "pg/timerio.h"
 
 #define CC_CHANNELS_PER_TIMER         4 // TIM_Channel_1..4
 #define CC_INDEX_FROM_CHANNEL(x)      ((uint8_t)((x) >> 2))
@@ -63,15 +65,16 @@ typedef uint32_t timCNT_t;
 #endif
 
 typedef enum {
-    TIM_USE_ANY           = 0x0,
-    TIM_USE_NONE          = 0x0,
-    TIM_USE_PPM           = 0x1,
-    TIM_USE_PWM           = 0x2,
-    TIM_USE_MOTOR         = 0x4,
-    TIM_USE_SERVO         = 0x8,
-    TIM_USE_LED           = 0x10,
-    TIM_USE_TRANSPONDER   = 0x20,
-    TIM_USE_BEEPER        = 0x40
+    TIM_USE_ANY            = 0x0,
+    TIM_USE_NONE           = 0x0,
+    TIM_USE_PPM            = 0x1,
+    TIM_USE_PWM            = 0x2,
+    TIM_USE_MOTOR          = 0x4,
+    TIM_USE_SERVO          = 0x8,
+    TIM_USE_LED            = 0x10,
+    TIM_USE_TRANSPONDER    = 0x20,
+    TIM_USE_BEEPER         = 0x40,
+    TIM_USE_CAMERA_CONTROL = 0x80,
 } timerUsageFlag_e;
 
 // use different types from capture and overflow - multiple overflow handlers are implemented as linked list
@@ -105,13 +108,21 @@ typedef struct timerHardware_s {
     uint8_t alternateFunction;
 #endif
 #if defined(USE_DSHOT) || defined(USE_LED_STRIP) || defined(USE_TRANSPONDER)
+#if defined(USE_DMA_SPEC)
+#if defined(STM32F4) || defined(STM32F7)
+    DMA_Stream_TypeDef *dmaRefConfigured;
+    uint32_t dmaChannelConfigured;
+#else
+    DMA_Channel_TypeDef *dmaRefConfigured;
+#endif
+#else
 #if defined(STM32F4) || defined(STM32F7)
     DMA_Stream_TypeDef *dmaRef;
     uint32_t dmaChannel;
 #else
     DMA_Channel_TypeDef *dmaRef;
 #endif
-    uint8_t dmaIrqHandler;
+#endif
 #if defined(STM32F3) || defined(STM32F4) || defined(STM32F7)
     // TIMUP
 #ifdef STM32F3
@@ -151,7 +162,49 @@ typedef enum {
 
 #define MHZ_TO_HZ(x) ((x) * 1000000)
 
+#if !defined(USE_UNIFIED_TARGET)
 extern const timerHardware_t timerHardware[];
+#endif
+
+#if defined(USE_TIMER_MGMT)
+#if defined(STM32F4)
+
+#define FULL_TIMER_CHANNEL_COUNT 78
+
+#elif defined(STM32F7)
+
+#define FULL_TIMER_CHANNEL_COUNT 78
+
+#endif
+
+extern const timerHardware_t fullTimerHardware[];
+
+#define TIMER_CHANNEL_COUNT FULL_TIMER_CHANNEL_COUNT
+#define TIMER_HARDWARE fullTimerHardware
+
+#if defined(STM32F7) || defined(STM32F4)
+
+#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(6) | TIM_N(7) | TIM_N(8) | TIM_N(9) | TIM_N(10) | TIM_N(11) | TIM_N(12) | TIM_N(13) | TIM_N(14) )
+
+#elif defined(STM32F3)
+
+#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(6) | TIM_N(7) | TIM_N(8) | TIM_N(15) | TIM_N(16) | TIM_N(17) )
+
+#elif defined(STM32F1)
+
+#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) )
+
+#else
+    #error "No timer / channel tag definition found for CPU"
+#endif
+
+#else
+
+#define TIMER_CHANNEL_COUNT USABLE_TIMER_CHANNEL_COUNT
+#define TIMER_HARDWARE timerHardware
+
+#endif // USE_TIMER_MGMT
+
 extern const timerDef_t timerDefinitions[];
 
 typedef enum {
@@ -204,7 +257,11 @@ void configTimeBase(TIM_TypeDef *tim, uint16_t period, uint32_t hz);  // TODO - 
 rccPeriphTag_t timerRCC(TIM_TypeDef *tim);
 uint8_t timerInputIrq(TIM_TypeDef *tim);
 
+#if defined(USE_TIMER_MGMT)
+timerIOConfig_t *timerIoConfigByTag(ioTag_t ioTag);
+#endif
 const timerHardware_t *timerGetByTag(ioTag_t ioTag);
+const timerHardware_t *timerGetByTagAndIndex(ioTag_t ioTag, unsigned timerIndex);
 ioTag_t timerioTagGetByUsage(timerUsageFlag_e usageFlag, uint8_t index);
 
 #if defined(USE_HAL_DRIVER)

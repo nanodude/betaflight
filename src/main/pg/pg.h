@@ -41,7 +41,7 @@ typedef enum {
 } pgRegistryInternal_e;
 
 // function that resets a single parameter group instance
-typedef void (pgResetFunc)(void * /* base */, int /* size */);
+typedef void (pgResetFunc)(void * /* base */);
 
 typedef struct pgRegistry_s {
     pgn_t pgn;             // The parameter group number, the top 4 bits are reserved for version
@@ -173,6 +173,8 @@ extern const uint8_t __pg_resetdata_end[];
     PG_REGISTER_ARRAY_I(_type, _size, _name, _pgn, _version, .reset = {.ptr = (void*)&pgResetTemplate_ ## _name}) \
     /**/
 #endif
+
+#define PG_ARRAY_ELEMENT_OFFSET(type, index, member) (index * sizeof(type) + offsetof(type, member))
 
 // Emit reset defaults for config.
 // Config must be registered with PG_REGISTER_<xxx>_WITH_RESET_TEMPLATE macro

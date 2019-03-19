@@ -54,7 +54,8 @@ OBJECT_DIR      := $(ROOT)/obj/main
 BIN_DIR         := $(ROOT)/obj
 CMSIS_DIR       := $(ROOT)/lib/main/CMSIS
 INCLUDE_DIRS    := $(SRC_DIR) \
-                   $(ROOT)/src/main/target
+                   $(ROOT)/src/main/target \
+                   $(ROOT)/src/main/startup
 LINKER_DIR      := $(ROOT)/src/main/target/link
 
 ## V                 : Set verbosity level based on the V= parameter
@@ -89,6 +90,13 @@ HSE_VALUE       ?= 8000000
 
 # used for turning on features like VCP and SDCARD
 FEATURES        =
+
+# used to disable features based on flash space shortage (larger number => more features disabled)
+FEATURE_CUT_LEVEL_SUPPLIED := $(FEATURE_CUT_LEVEL)
+FEATURE_CUT_LEVEL =
+
+# The list of targets to build for 'pre-push'
+PRE_PUSH_TARGET_LIST ?= BETAFLIGHTF3 OMNIBUSF4 SPRACINGF7DUAL SITL test-representative
 
 include $(ROOT)/make/targets.mk
 
@@ -163,6 +171,12 @@ ifneq ($(HSE_VALUE),)
 DEVICE_FLAGS  := $(DEVICE_FLAGS) -DHSE_VALUE=$(HSE_VALUE)
 endif
 
+ifneq ($(FEATURE_CUT_LEVEL_SUPPLIED),)
+DEVICE_FLAGS  := $(DEVICE_FLAGS) -DFEATURE_CUT_LEVEL=$(FEATURE_CUT_LEVEL_SUPPLIED)
+else ifneq ($(FEATURE_CUT_LEVEL),)
+DEVICE_FLAGS  := $(DEVICE_FLAGS) -DFEATURE_CUT_LEVEL=$(FEATURE_CUT_LEVEL)
+endif
+
 TARGET_DIR     = $(ROOT)/src/main/target/$(BASE_TARGET)
 TARGET_DIR_SRC = $(notdir $(wildcard $(TARGET_DIR)/*.c))
 
@@ -208,15 +222,17 @@ CC_DEBUG_OPTIMISATION   := $(OPTIMISE_DEFAULT)
 CC_DEFAULT_OPTIMISATION := $(OPTIMISATION_BASE) $(OPTIMISE_DEFAULT)
 CC_SPEED_OPTIMISATION   := $(OPTIMISATION_BASE) $(OPTIMISE_SPEED)
 CC_SIZE_OPTIMISATION    := $(OPTIMISATION_BASE) $(OPTIMISE_SIZE)
+CC_NO_OPTIMISATION      := 
 
 CFLAGS     += $(ARCH_FLAGS) \
               $(addprefix -D,$(OPTIONS)) \
               $(addprefix -I,$(INCLUDE_DIRS)) \
               $(DEBUG_FLAGS) \
-              -std=gnu99 \
+              -std=gnu11 \
               -Wall -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion \
               -ffunction-sections \
               -fdata-sections \
+              -fno-common \
               -pedantic \
               $(DEVICE_FLAGS) \
               -D_GNU_SOURCE \
@@ -232,6 +248,7 @@ CFLAGS     += $(ARCH_FLAGS) \
               $(EXTRA_FLAGS)
 
 ASFLAGS     = $(ARCH_FLAGS) \
+              $(DEBUG_FLAGS) \
               -x assembler-with-cpp \
               $(addprefix -I,$(INCLUDE_DIRS)) \
               $(DEVICE_FLAGS) \
@@ -320,28 +337,42 @@ $(TARGET_BIN): $(TARGET_ELF)
 	@echo "Creating BIN $(TARGET_BIN)" "$(STDOUT)"
 	$(V1) $(OBJCOPY) -O binary $< $@
 
-$(TARGET_ELF):  $(TARGET_OBJS)
+$(TARGET_ELF): $(TARGET_OBJS) $(LD_SCRIPT)
 	@echo "Linking $(TARGET)" "$(STDOUT)"
-	$(V1) $(CROSS_CC) -o $@ $^ $(LD_FLAGS)
+	$(V1) $(CROSS_CC) -o $@ $(filter-out %.ld,$^) $(LD_FLAGS)
 	$(V1) $(SIZE) $(TARGET_ELF)
 
 # Compile
 ifeq ($(DEBUG),GDB)
 $(OBJECT_DIR)/$(TARGET)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
-	$(V1) echo "%% (debug) $(notdir $<)" "$(STDOUT)" && \
-	$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_DEBUG_OPTIMISATION) $<
+	$(V1) $(if $(findstring $<,$(NOT_OPTIMISED_SRC)), \
+		echo "%% (not optimised) $<" "$(STDOUT)" && \
+		$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_NO_OPTIMISATION) $< \
+	, \
+		echo "%% (debug) $<" "$(STDOUT)" && \
+		$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_DEBUG_OPTIMISATION) $< \
+	)
 else
 $(OBJECT_DIR)/$(TARGET)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
-	$(V1) $(if $(findstring $(subst ./src/main/,,$<),$(SPEED_OPTIMISED_SRC)), \
-	echo "%% (speed optimised) $(notdir $<)" "$(STDOUT)" && \
-	$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_SPEED_OPTIMISATION) $<, \
-	$(if $(findstring $(subst ./src/main/,,$<),$(SIZE_OPTIMISED_SRC)), \
-	echo "%% (size optimised) $(notdir $<)" "$(STDOUT)" && \
-	$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_SIZE_OPTIMISATION) $<, \
-	echo "%% $(notdir $<)" "$(STDOUT)" && \
-	$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_DEFAULT_OPTIMISATION) $<))
+	$(V1) $(if $(findstring $<,$(NOT_OPTIMISED_SRC)), \
+		echo "%% (not optimised) $<" "$(STDOUT)" && \
+		$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_NO_OPTIMISATION) $< \
+	, \
+		$(if $(findstring $(subst ./src/main/,,$<),$(SPEED_OPTIMISED_SRC)), \
+			echo "%% (speed optimised) $<" "$(STDOUT)" && \
+			$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_SPEED_OPTIMISATION) $< \
+		, \
+			$(if $(findstring $(subst ./src/main/,,$<),$(SIZE_OPTIMISED_SRC)), \
+				echo "%% (size optimised) $<" "$(STDOUT)" && \
+				$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_SIZE_OPTIMISATION) $< \
+			, \
+				echo "%% (optimised) $<" "$(STDOUT)" && \
+				$(CROSS_CC) -c -o $@ $(CFLAGS) $(CC_DEFAULT_OPTIMISATION) $< \
+			) \
+		) \
+	)
 endif
 
 # Assemble
@@ -364,6 +395,10 @@ all_with_unsupported: $(VALID_TARGETS)
 
 ## unsupported : Build unsupported targets
 unsupported: $(UNSUPPORTED_TARGETS)
+
+## pre-push : The minimum verification that should be run before pushing, to check if CI has a chance of succeeding
+pre-push:
+	$(MAKE) $(addprefix clean_,$(PRE_PUSH_TARGET_LIST)) $(PRE_PUSH_TARGET_LIST) EXTRA_FLAGS=-Werror
 
 ## official          : Build all official (travis) targets
 official: $(OFFICIAL_TARGETS)
@@ -402,6 +437,9 @@ clean:
 	@echo "Cleaning $(TARGET) succeeded."
 
 ## clean_test        : clean up temporary / machine-generated files (tests)
+clean_test-%:
+	$(MAKE) clean_test
+
 clean_test:
 	$(V0) cd src/test && $(MAKE) clean || true
 
@@ -516,42 +554,65 @@ target-mcu:
 
 ## targets-by-mcu    : make all targets that have a MCU_TYPE mcu
 targets-by-mcu:
-	@echo "Building all $(MCU_TYPE) targets..."
 	$(V1) for target in $(VALID_TARGETS); do \
 		TARGET_MCU_TYPE=$$($(MAKE) -s TARGET=$${target} target-mcu); \
 		if [ "$${TARGET_MCU_TYPE}" = "$${MCU_TYPE}" ]; then \
-			echo "Building target $${target}..."; \
-			$(MAKE) TARGET=$${target}; \
-			if [ $$? -ne 0 ]; then \
-				echo "Building target $${target} failed, aborting."; \
-				exit 1; \
+			if [ "$${DO_BUILD}" = 1 ]; then \
+				echo "Building target $${target}..."; \
+				$(MAKE) TARGET=$${target}; \
+				if [ $$? -ne 0 ]; then \
+					echo "Building target $${target} failed, aborting."; \
+					exit 1; \
+				fi; \
+			else \
+				echo -n "$${target} "; \
 			fi; \
 		fi; \
 	done
+	@echo
 
 ## targets-f3        : make all F3 targets
 targets-f3:
+	$(V1) $(MAKE) -s targets-by-mcu MCU_TYPE=STM32F3 DO_BUILD=1
+
+targets-f3-print:
 	$(V1) $(MAKE) -s targets-by-mcu MCU_TYPE=STM32F3
 
 ## targets-f4        : make all F4 targets
 targets-f4:
+	$(V1) $(MAKE) -s targets-by-mcu MCU_TYPE=STM32F4 DO_BUILD=1
+
+targets-f4-print:
 	$(V1) $(MAKE) -s targets-by-mcu MCU_TYPE=STM32F4
 
 ## targets-f7        : make all F7 targets
 targets-f7:
+	$(V1) $(MAKE) -s targets-by-mcu MCU_TYPE=STM32F7 DO_BUILD=1
+
+targets-f7-print:
 	$(V1) $(MAKE) -s targets-by-mcu MCU_TYPE=STM32F7
 
-## test              : run the cleanflight test suite
-## junittest         : run the cleanflight test suite, producing Junit XML result files.
-test junittest:
+## test              : run the Betaflight test suite
+## junittest         : run the Betaflight test suite, producing Junit XML result files.
+## test-representative: run a representative subset of the Betaflight test suite (i.e. run all tests, but run each expanded test only for one target)
+## test-all: run the Betaflight test suite including all per-target expanded tests
+test junittest test-all test-representative:
+	$(V0) cd src/test && $(MAKE) $@
+
+## test_help         : print the help message for the test suite (including a list of the available tests)
+test_help:
+	$(V0) cd src/test && $(MAKE) help
+
+## test_%            : run test 'test_%' from the test suite
+test_%:
 	$(V0) cd src/test && $(MAKE) $@
 
 
 check-target-independence:
 	$(V1) for test_target in $(VALID_TARGETS); do \
-		FOUND=$$(grep -rE "\W$${test_target}\W?" src/main | grep -vE "(//)|(/\*).*\W$${test_target}\W?" | grep -vE "^src/main/target"); \
+		FOUND=$$(grep -rE "\W$${test_target}(\W.*)?$$" src/main | grep -vE "(//)|(/\*).*\W$${test_target}(\W.*)?$$" | grep -vE "^src/main/target"); \
 		if [ "$${FOUND}" != "" ]; then \
-			echo "Target dependencies found:"; \
+			echo "Target dependencies for target '$${test_target}' found:"; \
 			echo "$${FOUND}"; \
 			exit 1; \
 		fi; \
@@ -570,10 +631,19 @@ check-fastram-usage-correctness:
 		echo "Trivially initialized FAST_RAM variables found, use FAST_RAM_ZERO_INIT instead to save FLASH:"; \
 		echo "$${TRIVIALLY_INITIALIZED}\n$${EXPLICITLY_TRIVIALLY_INITIALIZED}"; \
 		exit 1; \
-	fi;
+	fi
+
+check-platform-included:
+	$(V1) PLATFORM_NOT_INCLUDED=$$(find src/main -type d -name target -prune -o -type f -name \*.c -exec grep -L "^#include \"platform.h\"" {} \;); \
+	if [ "$$(echo $${PLATFORM_NOT_INCLUDED} | grep -v -e '^$$' | wc -l)" -ne 0 ]; then \
+		echo "The following compilation units do not include the required target specific configuration provided by 'platform.h':"; \
+		echo "$${PLATFORM_NOT_INCLUDED}"; \
+		exit 1; \
+	fi
 
 # rebuild everything when makefile changes
-$(TARGET_OBJS) : Makefile
+$(TARGET_OBJS): Makefile $(TARGET_DIR)/target.mk $(wildcard make/*)
+
 
 # include auto-generated dependencies
 -include $(TARGET_DEPS)

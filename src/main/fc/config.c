@@ -36,8 +36,8 @@
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
-#include "fc/fc_core.h"
-#include "fc/fc_rc.h"
+#include "fc/core.h"
+#include "fc/rc.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 
@@ -50,6 +50,7 @@
 #include "io/beeper.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
+#include "io/gps.h"
 
 #include "pg/beeper.h"
 #include "pg/beeper_dev.h"
@@ -62,10 +63,11 @@
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/gyro.h"
+#include "sensors/rpm_filter.h"
 
-#ifndef USE_OSD_SLAVE
+#include "scheduler/scheduler.h"
+
 pidProfile_t *currentPidProfile;
-#endif
 
 #ifdef USE_BRAINFPV_OSD
 #include "brainfpv/brainfpv_osd.h"
@@ -77,10 +79,11 @@ pidProfile_t *currentPidProfile;
 
 #define DYNAMIC_FILTER_MAX_SUPPORTED_LOOP_TIME HZ_TO_INTERVAL_US(2000)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pilotConfig_t, pilotConfig, PG_PILOT_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(pilotConfig_t, pilotConfig, PG_PILOT_CONFIG, 1);
 
 PG_RESET_TEMPLATE(pilotConfig_t, pilotConfig,
-    .name = { 0 }
+    .name = { 0 },
+    .displayName = { 0 },
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 2);
@@ -92,10 +95,12 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .task_statistics = true,
     .cpu_overclock = 0,
     .powerOnArmingGraceTime = 5,
-    .boardIdentifier = TARGET_BOARD_IDENTIFIER
+    .boardIdentifier = TARGET_BOARD_IDENTIFIER,
+    .hseMhz = SYSTEM_HSE_VALUE,  // Not used for non-F4 targets
+    .configured = false,
+    .schedulerOptimizeRate = false,
 );
 
-#ifndef USE_OSD_SLAVE
 uint8_t getCurrentPidProfileIndex(void)
 {
     return systemConfig()->pidProfileIndex;
@@ -115,7 +120,6 @@ uint16_t getCurrentMinthrottle(void)
 {
     return motorConfig()->minthrottle;
 }
-#endif // USE_OSD_SLAVE
 
 void resetConfigs(void)
 {
@@ -128,7 +132,7 @@ void resetConfigs(void)
 
 static void activateConfig(void)
 {
-#ifndef USE_OSD_SLAVE
+    schedulerOptimizeRate(systemConfig()->schedulerOptimizeRate);
     loadPidProfile();
     loadControlRateProfile();
 
@@ -141,20 +145,21 @@ static void activateConfig(void)
     rcControlsInit();
 
     failsafeReset();
+#ifdef USE_ACC
     setAccelerationTrims(&accelerometerConfigMutable()->accZero);
     accInitFilters();
+#endif
 
     imuConfigure(throttleCorrectionConfig()->throttle_correction_angle, throttleCorrectionConfig()->throttle_correction_value);
-#endif // USE_OSD_SLAVE
 
-#ifdef USE_LED_STRIP
+#if defined(USE_LED_STRIP_STATUS_MODE)
     reevaluateLedConfig();
 #endif
 }
 
 static void validateAndFixConfig(void)
 {
-#if !defined(USE_QUAD_MIXER_ONLY) && !defined(USE_OSD_SLAVE)
+#if !defined(USE_QUAD_MIXER_ONLY)
     // Reset unsupported mixer mode to default.
     // This check will be gone when motor/servo mixers are loaded dynamically
     // by configurator as a part of configuration procedure.
@@ -175,21 +180,26 @@ static void validateAndFixConfig(void)
         pgResetFn_serialConfig(serialConfigMutable());
     }
 
+#if defined(USE_GPS)
+    serialPortConfig_t *gpsSerial = findSerialPortConfig(FUNCTION_GPS);
+    if (gpsConfig()->provider == GPS_MSP && gpsSerial) {
+        serialRemovePort(gpsSerial->identifier);
+    }
+#endif
     if (
 #if defined(USE_GPS)
-        !findSerialPortConfig(FUNCTION_GPS) &&
+        gpsConfig()->provider != GPS_MSP && !gpsSerial &&
 #endif
         true) {
-        featureClear(FEATURE_GPS);
+        featureDisable(FEATURE_GPS);
     }
 
-#ifndef USE_OSD_SLAVE
     if (systemConfig()->activeRateProfile >= CONTROL_RATE_PROFILE_COUNT) {
         systemConfigMutable()->activeRateProfile = 0;
     }
     loadControlRateProfile();
 
-    if (systemConfig()->pidProfileIndex >= MAX_PROFILE_COUNT) {
+    if (systemConfig()->pidProfileIndex >= PID_PROFILE_COUNT) {
         systemConfigMutable()->pidProfileIndex = 0;
     }
     loadPidProfile();
@@ -199,8 +209,23 @@ static void validateAndFixConfig(void)
         currentPidProfile->dterm_notch_hz = 0;
     }
 
+#ifdef USE_DYN_LPF
+    //PRevent invalid dynamic lowpass
+    if (currentPidProfile->dyn_lpf_dterm_min_hz > currentPidProfile->dyn_lpf_dterm_max_hz) {
+        currentPidProfile->dyn_lpf_dterm_min_hz = 0;
+    }
+#endif
+
+    if (currentPidProfile->motor_output_limit > 100 || currentPidProfile->motor_output_limit == 0) {
+        currentPidProfile->motor_output_limit = 100;
+    }
+
+    if (currentPidProfile->auto_profile_cell_count > MAX_AUTO_DETECT_CELL_COUNT || currentPidProfile->auto_profile_cell_count < AUTO_PROFILE_CELL_COUNT_CHANGE) {
+        currentPidProfile->auto_profile_cell_count = AUTO_PROFILE_CELL_COUNT_STAY;
+    }
+
     if (motorConfig()->dev.motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        featureClear(FEATURE_3D);
+        featureDisable(FEATURE_3D);
 
         if (motorConfig()->mincommand < 1000) {
             motorConfigMutable()->mincommand = 1000;
@@ -213,40 +238,40 @@ static void validateAndFixConfig(void)
 
     validateAndFixGyroConfig();
 
-    if (!(featureConfigured(FEATURE_RX_PARALLEL_PWM) || featureConfigured(FEATURE_RX_PPM) || featureConfigured(FEATURE_RX_SERIAL) || featureConfigured(FEATURE_RX_MSP) || featureConfigured(FEATURE_RX_SPI))) {
-        featureSet(DEFAULT_RX_FEATURE);
+    if (!(featureIsEnabled(FEATURE_RX_PARALLEL_PWM) || featureIsEnabled(FEATURE_RX_PPM) || featureIsEnabled(FEATURE_RX_SERIAL) || featureIsEnabled(FEATURE_RX_MSP) || featureIsEnabled(FEATURE_RX_SPI))) {
+        featureEnable(DEFAULT_RX_FEATURE);
     }
 
-    if (featureConfigured(FEATURE_RX_PPM)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_MSP | FEATURE_RX_SPI);
+    if (featureIsEnabled(FEATURE_RX_PPM)) {
+        featureDisable(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_MSP | FEATURE_RX_SPI);
     }
 
-    if (featureConfigured(FEATURE_RX_MSP)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM | FEATURE_RX_SPI);
+    if (featureIsEnabled(FEATURE_RX_MSP)) {
+        featureDisable(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM | FEATURE_RX_SPI);
     }
 
-    if (featureConfigured(FEATURE_RX_SERIAL)) {
-        featureClear(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_MSP | FEATURE_RX_PPM | FEATURE_RX_SPI);
+    if (featureIsEnabled(FEATURE_RX_SERIAL)) {
+        featureDisable(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_MSP | FEATURE_RX_PPM | FEATURE_RX_SPI);
     }
 
 #ifdef USE_RX_SPI
-    if (featureConfigured(FEATURE_RX_SPI)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM | FEATURE_RX_MSP);
+    if (featureIsEnabled(FEATURE_RX_SPI)) {
+        featureDisable(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM | FEATURE_RX_MSP);
     }
 #endif // USE_RX_SPI
 
-    if (featureConfigured(FEATURE_RX_PARALLEL_PWM)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_MSP | FEATURE_RX_PPM | FEATURE_RX_SPI);
+    if (featureIsEnabled(FEATURE_RX_PARALLEL_PWM)) {
+        featureDisable(FEATURE_RX_SERIAL | FEATURE_RX_MSP | FEATURE_RX_PPM | FEATURE_RX_SPI);
     }
 
 #ifdef USE_SOFTSPI
-    if (featureConfigured(FEATURE_SOFTSPI)) {
-        featureClear(FEATURE_RX_PPM | FEATURE_RX_PARALLEL_PWM | FEATURE_SOFTSERIAL);
+    if (featureIsEnabled(FEATURE_SOFTSPI)) {
+        featureDisable(FEATURE_RX_PPM | FEATURE_RX_PARALLEL_PWM | FEATURE_SOFTSERIAL);
         batteryConfigMutable()->voltageMeterSource = VOLTAGE_METER_NONE;
 #if defined(STM32F10X)
-        featureClear(FEATURE_LED_STRIP);
+        featureDisable(FEATURE_LED_STRIP);
         // rssi adc needs the same ports
-        featureClear(FEATURE_RSSI_ADC);
+        featureDisable(FEATURE_RSSI_ADC);
         // current meter needs the same ports
         if (batteryConfig()->currentMeterSource == CURRENT_METER_ADC) {
             batteryConfigMutable()->currentMeterSource = CURRENT_METER_NONE;
@@ -256,21 +281,21 @@ static void validateAndFixConfig(void)
 #endif // USE_SOFTSPI
 
 #if defined(USE_ADC)
-    if (featureConfigured(FEATURE_RSSI_ADC)) {
+    if (featureIsEnabled(FEATURE_RSSI_ADC)) {
         rxConfigMutable()->rssi_channel = 0;
         rxConfigMutable()->rssi_src_frame_errors = false;
     } else
 #endif
     if (rxConfigMutable()->rssi_channel
 #if defined(USE_PWM) || defined(USE_PPM)
-        || featureConfigured(FEATURE_RX_PPM) || featureConfigured(FEATURE_RX_PARALLEL_PWM)
+        || featureIsEnabled(FEATURE_RX_PPM) || featureIsEnabled(FEATURE_RX_PARALLEL_PWM)
 #endif
         ) {
         rxConfigMutable()->rssi_src_frame_errors = false;
     }
 
     if (!rcSmoothingIsEnabled() || rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_T) {
-        for (unsigned i = 0; i < MAX_PROFILE_COUNT; i++) {
+        for (unsigned i = 0; i < PID_PROFILE_COUNT; i++) {
             pidProfilesMutable(i)->pid[PID_ROLL].F = 0;
             pidProfilesMutable(i)->pid[PID_PITCH].F = 0;
         }
@@ -280,24 +305,24 @@ static void validateAndFixConfig(void)
         (rxConfig()->rcInterpolationChannels != INTERPOLATION_CHANNELS_RPY &&
          rxConfig()->rcInterpolationChannels != INTERPOLATION_CHANNELS_RPYT)) {
 
-        for (unsigned i = 0; i < MAX_PROFILE_COUNT; i++) {
+        for (unsigned i = 0; i < PID_PROFILE_COUNT; i++) {
             pidProfilesMutable(i)->pid[PID_YAW].F = 0;
         }
     }
-    
+
 #if defined(USE_THROTTLE_BOOST)
     if (!rcSmoothingIsEnabled() ||
         !(rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_RPYT
         || rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_T
         || rxConfig()->rcInterpolationChannels == INTERPOLATION_CHANNELS_RPT)) {
-        for (unsigned i = 0; i < MAX_PROFILE_COUNT; i++) {
+        for (unsigned i = 0; i < PID_PROFILE_COUNT; i++) {
             pidProfilesMutable(i)->throttle_boost = 0;
         }
     }
 #endif
 
     if (
-        featureConfigured(FEATURE_3D) || !featureConfigured(FEATURE_GPS)
+        featureIsEnabled(FEATURE_3D) || !featureIsEnabled(FEATURE_GPS)
 #if !defined(USE_GPS) || !defined(USE_GPS_RESCUE)
         || true
 #endif
@@ -310,83 +335,92 @@ static void validateAndFixConfig(void)
             removeModeActivationCondition(BOXGPSRESCUE);
         }
     }
-#endif // USE_OSD_SLAVE
 
 #if defined(USE_ESC_SENSOR)
     if (!findSerialPortConfig(FUNCTION_ESC_SENSOR)) {
-        featureClear(FEATURE_ESC_SENSOR);
+        featureDisable(FEATURE_ESC_SENSOR);
     }
 #endif
+
+    for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
+        const modeActivationCondition_t *mac = modeActivationConditions(i);
+
+        if (mac->linkedTo) {
+            if (mac->modeId == BOXARM || isModeActivationConditionLinked(mac->linkedTo)) {
+                removeModeActivationCondition(mac->modeId);
+            }
+        }
+    }
 
 // clear features that are not supported.
 // I have kept them all here in one place, some could be moved to sections of code above.
 
 #ifndef USE_PPM
-    featureClear(FEATURE_RX_PPM);
+    featureDisable(FEATURE_RX_PPM);
 #endif
 
 #ifndef USE_SERIAL_RX
-    featureClear(FEATURE_RX_SERIAL);
+    featureDisable(FEATURE_RX_SERIAL);
 #endif
 
 #if !defined(USE_SOFTSERIAL1) && !defined(USE_SOFTSERIAL2)
-    featureClear(FEATURE_SOFTSERIAL);
+    featureDisable(FEATURE_SOFTSERIAL);
 #endif
 
 #ifndef USE_RANGEFINDER
-    featureClear(FEATURE_RANGEFINDER);
+    featureDisable(FEATURE_RANGEFINDER);
 #endif
 
 #ifndef USE_TELEMETRY
-    featureClear(FEATURE_TELEMETRY);
+    featureDisable(FEATURE_TELEMETRY);
 #endif
 
 #ifndef USE_PWM
-    featureClear(FEATURE_RX_PARALLEL_PWM);
+    featureDisable(FEATURE_RX_PARALLEL_PWM);
 #endif
 
 #ifndef USE_RX_MSP
-    featureClear(FEATURE_RX_MSP);
+    featureDisable(FEATURE_RX_MSP);
 #endif
 
 #ifndef USE_LED_STRIP
-    featureClear(FEATURE_LED_STRIP);
+    featureDisable(FEATURE_LED_STRIP);
 #endif
 
 #ifndef USE_DASHBOARD
-    featureClear(FEATURE_DASHBOARD);
+    featureDisable(FEATURE_DASHBOARD);
 #endif
 
 #ifndef USE_OSD
-    featureClear(FEATURE_OSD);
+    featureDisable(FEATURE_OSD);
 #endif
 
 #ifndef USE_SERVOS
-    featureClear(FEATURE_SERVO_TILT | FEATURE_CHANNEL_FORWARDING);
+    featureDisable(FEATURE_SERVO_TILT | FEATURE_CHANNEL_FORWARDING);
 #endif
 
 #ifndef USE_TRANSPONDER
-    featureClear(FEATURE_TRANSPONDER);
+    featureDisable(FEATURE_TRANSPONDER);
 #endif
 
 #ifndef USE_RX_SPI
-    featureClear(FEATURE_RX_SPI);
+    featureDisable(FEATURE_RX_SPI);
 #endif
 
 #ifndef USE_SOFTSPI
-    featureClear(FEATURE_SOFTSPI);
+    featureDisable(FEATURE_SOFTSPI);
 #endif
 
 #ifndef USE_ESC_SENSOR
-    featureClear(FEATURE_ESC_SENSOR);
+    featureDisable(FEATURE_ESC_SENSOR);
 #endif
 
 #ifndef USE_GYRO_DATA_ANALYSE
-    featureClear(FEATURE_DYNAMIC_FILTER);
+    featureDisable(FEATURE_DYNAMIC_FILTER);
 #endif
 
 #if !defined(USE_ADC)
-    featureClear(FEATURE_RSSI_ADC);
+    featureDisable(FEATURE_RSSI_ADC);
 #endif
 
 #if defined(USE_BEEPER)
@@ -410,21 +444,27 @@ static void validateAndFixConfig(void)
 #endif
 #endif
 
+#if defined(USE_DSHOT_TELEMETRY)
+    if ((motorConfig()->dev.useBurstDshot || !systemConfig()->schedulerOptimizeRate)
+        && motorConfig()->dev.useDshotTelemetry) {
+        motorConfigMutable()->dev.useDshotTelemetry = false;
+    }
+#endif
+
 #if defined(TARGET_VALIDATECONFIG)
     targetValidateConfiguration();
 #endif
 }
 
-#ifndef USE_OSD_SLAVE
 void validateAndFixGyroConfig(void)
 {
 #ifdef USE_GYRO_DATA_ANALYSE
     // Disable dynamic filter if gyro loop is less than 2KHz
     if (gyro.targetLooptime > DYNAMIC_FILTER_MAX_SUPPORTED_LOOP_TIME) {
-        featureClear(FEATURE_DYNAMIC_FILTER);
+        featureDisable(FEATURE_DYNAMIC_FILTER);
     }
 #endif
-    
+
     // Prevent invalid notch cutoff
     if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
         gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
@@ -432,25 +472,21 @@ void validateAndFixGyroConfig(void)
     if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
         gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
     }
+#ifdef USE_DYN_LPF
+    //Prevent invalid dynamic lowpass filter
+    if (gyroConfig()->dyn_lpf_gyro_min_hz > gyroConfig()->dyn_lpf_gyro_max_hz) {
+        gyroConfigMutable()->dyn_lpf_gyro_min_hz = 0;
+    }
+#endif
 
-    if (gyroConfig()->gyro_hardware_lpf != GYRO_HARDWARE_LPF_NORMAL && gyroConfig()->gyro_hardware_lpf != GYRO_HARDWARE_LPF_EXPERIMENTAL) {
+    if (gyroConfig()->gyro_hardware_lpf == GYRO_HARDWARE_LPF_1KHZ_SAMPLE) {
         pidConfigMutable()->pid_process_denom = 1; // When gyro set to 1khz always set pid speed 1:1 to sampling speed
         gyroConfigMutable()->gyro_sync_denom = 1;
-        gyroConfigMutable()->gyro_use_32khz = false;
     }
 
-    if (gyroConfig()->gyro_use_32khz) {
-        // F1 and F3 can't handle high sample speed.
 #if defined(STM32F1)
-        gyroConfigMutable()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 16);
-#elif defined(STM32F3)
-        gyroConfigMutable()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 4);
+    gyroConfigMutable()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 3);
 #endif
-    } else {
-#if defined(STM32F1)
-        gyroConfigMutable()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 3);
-#endif
-    }
 
     float samplingTime;
     switch (gyroMpuDetectionResult()->sensor) {
@@ -464,7 +500,7 @@ void validateAndFixGyroConfig(void)
         samplingTime = 0.000125f;
         break;
     }
-    if (gyroConfig()->gyro_hardware_lpf != GYRO_HARDWARE_LPF_NORMAL && gyroConfig()->gyro_hardware_lpf != GYRO_HARDWARE_LPF_EXPERIMENTAL) {
+    if (gyroConfig()->gyro_hardware_lpf == GYRO_HARDWARE_LPF_1KHZ_SAMPLE) {
         switch (gyroMpuDetectionResult()->sensor) {
         case ICM_20649_SPI:
             samplingTime = 1.0f / 1100.0f;
@@ -474,9 +510,7 @@ void validateAndFixGyroConfig(void)
             break;
         }
     }
-    if (gyroConfig()->gyro_use_32khz) {
-        samplingTime = 0.00003125;
-    }
+
 
 #if !defined(GYRO_USES_SPI) || !defined(USE_MPU_DATA_READY_SIGNAL)
 //    gyroConfigMutable()->gyro_isr_update = false;
@@ -539,13 +573,10 @@ void validateAndFixGyroConfig(void)
 #endif // USE_SDCARD
 #endif // USE_BLACKBOX
 }
-#endif // USE_OSD_SLAVE
 
 bool readEEPROM(void)
 {
-#ifndef USE_OSD_SLAVE
     suspendRxPwmPpmSignal();
-#endif
 
     // Sanity check, read flash
     bool success = loadEEPROM();
@@ -554,33 +585,48 @@ bool readEEPROM(void)
 
     activateConfig();
 
-#ifndef USE_OSD_SLAVE
     resumeRxPwmPpmSignal();
-#endif
 
     return success;
 }
 
-void writeEEPROM(void)
+static void ValidateAndWriteConfigToEEPROM(bool setConfigured)
 {
     validateAndFixConfig();
 
-#ifndef USE_OSD_SLAVE
     suspendRxPwmPpmSignal();
+
+#ifdef USE_CONFIGURATION_STATE
+    if (setConfigured) {
+        systemConfigMutable()->configured = true;
+    }
+#else
+    UNUSED(setConfigured);
 #endif
 
     writeConfigToEEPROM();
 
-#ifndef USE_OSD_SLAVE
     resumeRxPwmPpmSignal();
-#endif
+}
+
+void writeEEPROM(void)
+{
+    ValidateAndWriteConfigToEEPROM(true);
+}
+
+void writeEEPROMWithFeatures(uint32_t features)
+{
+    featureDisableAll();
+    featureEnable(features);
+
+    ValidateAndWriteConfigToEEPROM(true);
 }
 
 void resetEEPROM(void)
 {
     resetConfigs();
 
-    writeEEPROM();
+    ValidateAndWriteConfigToEEPROM(false);
 
     activateConfig();
 }
@@ -595,15 +641,39 @@ void ensureEEPROMStructureIsValid(void)
 
 void saveConfigAndNotify(void)
 {
-    writeEEPROM();
+    ValidateAndWriteConfigToEEPROM(true);
     readEEPROM();
     beeperConfirmationBeeps(1);
 }
 
-#ifndef USE_OSD_SLAVE
+void changePidProfileFromCellCount(uint8_t cellCount)
+{
+    if (currentPidProfile->auto_profile_cell_count == cellCount || currentPidProfile->auto_profile_cell_count == AUTO_PROFILE_CELL_COUNT_STAY) {
+        return;
+    }
+
+    unsigned profileIndex = (systemConfig()->pidProfileIndex + 1) % PID_PROFILE_COUNT;
+    int matchingProfileIndex = -1;
+    while (profileIndex != systemConfig()->pidProfileIndex) {
+        if (pidProfiles(profileIndex)->auto_profile_cell_count == cellCount) {
+            matchingProfileIndex = profileIndex;
+
+            break;
+        } else if (matchingProfileIndex < 0 && pidProfiles(profileIndex)->auto_profile_cell_count == AUTO_PROFILE_CELL_COUNT_STAY) {
+            matchingProfileIndex = profileIndex;
+        }
+
+        profileIndex = (profileIndex + 1) % PID_PROFILE_COUNT;
+    }
+
+    if (matchingProfileIndex >= 0) {
+        changePidProfile(matchingProfileIndex);
+    }
+}
+
 void changePidProfile(uint8_t pidProfileIndex)
 {
-    if (pidProfileIndex < MAX_PROFILE_COUNT) {
+    if (pidProfileIndex < PID_PROFILE_COUNT) {
         systemConfigMutable()->pidProfileIndex = pidProfileIndex;
         loadPidProfile();
 
@@ -612,4 +682,12 @@ void changePidProfile(uint8_t pidProfileIndex)
 
     beeperConfirmationBeeps(pidProfileIndex + 1);
 }
+
+bool isSystemConfigured(void)
+{
+#ifdef USE_CONFIGURATION_STATE
+    return systemConfig()->configured;
+#else
+    return true;
 #endif
+}

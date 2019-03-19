@@ -40,7 +40,6 @@
 #define VTX_SETTINGS_DEFAULT_CHANNEL            1
 #define VTX_SETTINGS_DEFAULT_FREQ               5740
 #define VTX_SETTINGS_DEFAULT_PITMODE_FREQ       0
-#define VTX_SETTINGS_DEFAULT_LOW_POWER_DISARM   0
 
 #define VTX_SETTINGS_MAX_FREQUENCY_MHZ 5999          //max freq (in MHz) for 'vtx_freq' setting
 
@@ -122,10 +121,12 @@ typedef struct vtxDevice_s {
 
     vtxDeviceCapability_t capability;
 
-    uint16_t *frequencyTable;  // Array of [bandCount][channelCount]
-    char **bandNames;    // char *bandNames[bandCount]
-    char **channelNames;    // char *channelNames[channelCount]
-    char **powerNames;   // char *powerNames[powerCount]
+    const uint16_t *frequencyTable;  // Array of [bandCount][channelCount]
+    const char **bandNames;          // char *bandNames[bandCount + 1]
+    const char **channelNames;       // char *channelNames[channelCount + 1]
+    const char *bandLetters;         // char bandLetters[bandCount + 1]
+    const uint16_t *powerValues;     // uint16 powerValues[powerCount]
+    const char **powerNames;         // char *powerNames[powerCount + 1]
 
     uint16_t frequency;
     uint8_t band; // Band = 1, 1-based
@@ -167,6 +168,7 @@ vtxDevice_t *vtxCommonDevice(void);
 // VTable functions
 void vtxCommonProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs);
 vtxDevType_e vtxCommonGetDeviceType(const vtxDevice_t *vtxDevice);
+bool vtxCommonDeviceIsReady(const vtxDevice_t *vtxDevice);
 void vtxCommonSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel);
 void vtxCommonSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t level);
 void vtxCommonSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff);
@@ -176,3 +178,11 @@ bool vtxCommonGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex);
 bool vtxCommonGetPitMode(const vtxDevice_t *vtxDevice, uint8_t *pOnOff);
 bool vtxCommonGetFrequency(const vtxDevice_t *vtxDevice, uint16_t *pFreq);
 bool vtxCommonGetDeviceCapability(const vtxDevice_t *vtxDevice, vtxDeviceCapability_t *pDeviceCapability);
+const char *vtxCommonLookupBandName(const vtxDevice_t *vtxDevice, int band);
+char vtxCommonLookupBandLetter(const vtxDevice_t *vtxDevice, int band);
+char vtxCommonGetBandLetter(const vtxDevice_t *vtxDevice, int band);
+const char *vtxCommonLookupChannelName(const vtxDevice_t *vtxDevice, int channel);
+uint16_t vtxCommonLookupFrequency(const vtxDevice_t *vtxDevice, int band, int channel);
+bool vtxCommonLookupBandChan(const vtxDevice_t *vtxDevice, uint16_t freq, uint8_t *pBand, uint8_t *pChannel);
+const char *vtxCommonLookupPowerName(const vtxDevice_t *vtxDevice, int index);
+uint16_t vtxCommonLookupPowerValue(const vtxDevice_t *vtxDevice, int index);

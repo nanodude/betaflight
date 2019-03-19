@@ -369,7 +369,7 @@ static void showRateProfilePage(void)
 #ifdef USE_GPS
 static void showGpsPage(void)
 {
-    if (!feature(FEATURE_GPS)) {
+    if (!featureIsEnabled(FEATURE_GPS)) {
         pageState.pageFlags |= PAGE_STATE_FLAG_FORCE_PAGE_CHANGE;
         return;
     }
@@ -450,7 +450,7 @@ static void showBatteryPage(void)
     uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
 
     if (batteryConfig()->voltageMeterSource != VOLTAGE_METER_NONE) {
-        tfp_sprintf(lineBuffer, "Volts: %d.%1d Cells: %d", getBatteryVoltage() / 10, getBatteryVoltage() % 10, getBatteryCellCount());
+        tfp_sprintf(lineBuffer, "Volts: %d.%02d Cells: %d", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount());
         padLineBuffer();
         i2c_OLED_set_line(bus, rowIndex++);
         i2c_OLED_send_string(bus, lineBuffer);
@@ -484,12 +484,14 @@ static void showSensorsPage(void)
     i2c_OLED_set_line(bus, rowIndex++);
     i2c_OLED_send_string(bus, "        X     Y     Z");
 
+#if defined(USE_ACC)
     if (sensors(SENSOR_ACC)) {
         tfp_sprintf(lineBuffer, format, "ACC", lrintf(acc.accADC[X]), lrintf(acc.accADC[Y]), lrintf(acc.accADC[Z]));
         padLineBuffer();
         i2c_OLED_set_line(bus, rowIndex++);
         i2c_OLED_send_string(bus, lineBuffer);
     }
+#endif
 
     if (sensors(SENSOR_GYRO)) {
         tfp_sprintf(lineBuffer, format, "GYR", lrintf(gyro.gyroADCf[X]), lrintf(gyro.gyroADCf[Y]), lrintf(gyro.gyroADCf[Z]));
@@ -540,7 +542,7 @@ static void showSensorsPage(void)
 
 }
 
-#ifndef SKIP_TASK_STATISTICS
+#if defined(USE_TASK_STATISTICS)
 static void showTasksPage(void)
 {
     uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
@@ -591,7 +593,7 @@ static const pageEntry_t pages[PAGE_COUNT] = {
     { PAGE_RX,      "RX",              showRxPage,         PAGE_FLAGS_NONE },
     { PAGE_BATTERY, "BATTERY",         showBatteryPage,    PAGE_FLAGS_NONE },
     { PAGE_SENSORS, "SENSORS",         showSensorsPage,    PAGE_FLAGS_NONE },
-#ifndef SKIP_TASK_STATISTICS
+#if defined(USE_TASK_STATISTICS)
     { PAGE_TASKS,   "TASKS",           showTasksPage,      PAGE_FLAGS_NONE },
 #endif
 #ifdef ENABLE_DEBUG_DASHBOARD_PAGE

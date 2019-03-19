@@ -33,9 +33,6 @@ typedef enum {
     BOXANGLE,
     BOXHORIZON,
     BOXMAG,
-    BOXBARO,
-    BOXGPSHOME,
-    BOXGPSHOLD,
     BOXHEADFREE,
     BOXPASSTHRU,
     BOXFAILSAFE,
@@ -75,6 +72,8 @@ typedef enum {
     BOXUSER4,
     BOXPIDAUDIO,
     BOXACROTRAINER,
+    BOXVTXCONTROLDISABLE,
+    BOXLAUNCHCONTROL,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
@@ -125,9 +124,12 @@ typedef struct modeActivationProfile_s {
 bool IS_RC_MODE_ACTIVE(boxId_e boxId);
 void rcModeUpdate(boxBitmask_t *newState);
 
-bool isAirmodeActive(void);
+bool airmodeIsEnabled(void);
 
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 void updateActivatedModes(void);
 bool isModeActivationConditionPresent(boxId_e modeId);
+bool isModeActivationConditionLinked(boxId_e modeId);
 void removeModeActivationCondition(boxId_e modeId);
+bool isModeActivationConditionConfigured(const modeActivationCondition_t *mac, const modeActivationCondition_t *emptyMac);
+void analyzeModeActivationConditions(void);

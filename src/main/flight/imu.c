@@ -38,6 +38,7 @@
 
 #include "fc/runtime_config.h"
 
+#include "flight/gps_rescue.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -89,7 +90,6 @@ float accAverage[XYZ_AXIS_COUNT];
 
 uint32_t accTimeSum = 0;        // keep track for integration of acc
 int accSumCount = 0;
-float accVelScale;
 bool canUseGPSHeading = true;
 
 static float throttleAngleScale;
@@ -111,14 +111,12 @@ quaternion offset = QUATERNION_INITIALIZE;
 // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 attitudeEulerAngles_t attitude = EULER_INITIALIZE;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 1);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp = 2500,                // 1.0 * 10000
     .dcm_ki = 0,                   // 0.003 * 10000
     .small_angle = 25,
-    .accDeadband = {.xy = 40, .z= 40},
-    .acc_unarmedcal = 1
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void){
@@ -136,7 +134,7 @@ STATIC_UNIT_TESTED void imuComputeRotationMatrix(void){
     rMat[2][1] = 2.0f * (qP.yz - -qP.wx);
     rMat[2][2] = 1.0f - 2.0f * qP.xx - 2.0f * qP.yy;
 
-#if defined(SIMULATOR_BUILD) && defined(SKIP_IMU_CALC) && !defined(SET_IMU_FROM_EULER)
+#if defined(SIMULATOR_BUILD) && !defined(USE_IMU_CALC) && !defined(SET_IMU_FROM_EULER)
     rMat[1][0] = -2.0f * (qP.xy - -qP.wz);
     rMat[2][0] = -2.0f * (qP.xz + -qP.wy);
 #endif
@@ -159,8 +157,8 @@ void imuConfigure(uint16_t throttle_correction_angle, uint8_t throttle_correctio
 {
     imuRuntimeConfig.dcm_kp = imuConfig()->dcm_kp / 10000.0f;
     imuRuntimeConfig.dcm_ki = imuConfig()->dcm_ki / 10000.0f;
-    imuRuntimeConfig.acc_unarmedcal = imuConfig()->acc_unarmedcal;
-    imuRuntimeConfig.small_angle = imuConfig()->small_angle;
+
+    smallAngleCosZ = cos_approx(degreesToRadians(imuConfig()->small_angle));
 
     fc_acc = calculateAccZLowPassFilterRCTimeConstant(5.0f); // Set to fix value
     throttleAngleScale = calculateThrottleAngleScale(throttle_correction_angle);
@@ -170,9 +168,6 @@ void imuConfigure(uint16_t throttle_correction_angle, uint8_t throttle_correctio
 
 void imuInit(void)
 {
-    smallAngleCosZ = cos_approx(degreesToRadians(imuRuntimeConfig.small_angle));
-    accVelScale = 9.80665f / acc.dev.acc_1G / 10000.0f;
-
 #ifdef USE_GPS
     canUseGPSHeading = true;
 #else
@@ -197,6 +192,7 @@ void imuResetAccelerationSum(void)
     accTimeSum = 0;
 }
 
+#if defined(USE_ACC)
 static float invSqrt(float x)
 {
     return 1.0f / sqrtf(x);
@@ -355,16 +351,16 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 
 static bool imuIsAccelerometerHealthy(float *accAverage)
 {
-    float accMagnitude = 0;
+    float accMagnitudeSq = 0;
     for (int axis = 0; axis < 3; axis++) {
         const float a = accAverage[axis];
-        accMagnitude += a * a;
+        accMagnitudeSq += a * a;
     }
 
-    accMagnitude = accMagnitude * 100 / (sq((int32_t)acc.dev.acc_1G));
+    accMagnitudeSq = accMagnitudeSq * sq(acc.dev.acc_1G_rec);
 
-    // Accept accel readings only in range 0.90g - 1.10g
-    return (81 < accMagnitude) && (accMagnitude < 121);
+    // Accept accel readings only in range 0.9g - 1.1g
+    return (0.81f < accMagnitudeSq) && (accMagnitudeSq < 1.21f);
 }
 
 // Calculate the dcmKpGain to use. When armed, the gain is imuRuntimeConfig.dcm_kp * 1.0 scaling.
@@ -373,7 +369,7 @@ static bool imuIsAccelerometerHealthy(float *accAverage)
 //   - wait for a 250ms period of low gyro activity to ensure the craft is not moving
 //   - use a large dcmKpGain value for 500ms to allow the attitude estimate to quickly converge
 //   - reset the gain back to the standard setting
-float imuCalcKpGain(timeUs_t currentTimeUs, bool useAcc, float *gyroAverage)
+static float imuCalcKpGain(timeUs_t currentTimeUs, bool useAcc, float *gyroAverage)
 {
     static bool lastArmState = false;
     static timeUs_t gyroQuietPeriodTimeEnd = 0;
@@ -444,7 +440,11 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
     previousIMUUpdateTime = currentTimeUs;
 
 #ifdef USE_MAG
-    if (sensors(SENSOR_MAG) && compassIsHealthy()) {
+    if (sensors(SENSOR_MAG) && compassIsHealthy()
+#ifdef USE_GPS_RESCUE
+        && !gpsRescueDisableMag()
+#endif
+        ) {
         useMag = true;
     }
 #endif
@@ -455,14 +455,9 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
             courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
             useCOG = true;
         } else {
-            // If GPS rescue mode is active and we can use it, go for it.  When we're close to home we will
-            // probably stop re calculating GPS heading data.  Other future modes can also use this extern
+            courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
 
-            if (canUseGPSHeading) {
-                courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-
-                useCOG = true;
-            }
+            useCOG = true;
         }
 
         if (useCOG && shouldInitializeGPSHeading()) {
@@ -475,7 +470,7 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
     }
 #endif
 
-#if defined(SIMULATOR_BUILD) && defined(SKIP_IMU_CALC)
+#if defined(SIMULATOR_BUILD) && !defined(USE_IMU_CALC)
     UNUSED(imuMahonyAHRSupdate);
     UNUSED(imuIsAccelerometerHealthy);
     UNUSED(useAcc);
@@ -484,6 +479,7 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
     UNUSED(canUseGPSHeading);
     UNUSED(courseOverGround);
     UNUSED(deltaT);
+    UNUSED(imuCalcKpGain);
 #else
 
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_IMU_SYNC)
@@ -492,6 +488,7 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 #endif
     float gyroAverage[XYZ_AXIS_COUNT];
     gyroGetAccumulationAverage(gyroAverage);
+
     if (accGetAccumulationAverage(accAverage)) {
         useAcc = imuIsAccelerometerHealthy(accAverage);
     }
@@ -506,7 +503,7 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 #endif
 }
 
-int calculateThrottleAngleCorrection(void)
+static int calculateThrottleAngleCorrection(void)
 {
     /*
     * Use 0 as the throttle angle correction if we are inverted, vertical or with a
@@ -549,6 +546,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         acc.accADC[Z] = 0;
     }
 }
+#endif // USE_ACC
 
 bool shouldInitializeGPSHeading()
 {

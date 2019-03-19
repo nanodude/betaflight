@@ -30,41 +30,44 @@
 
 #include "build/build_config.h"
 
+#include "cms/cms.h"
+
 #include "common/axis.h"
 #include "common/maths.h"
 
 #include "config/feature.h"
-#include "pg/pg.h"
-#include "pg/pg_ids.h"
-#include "pg/rx.h"
-
-#include "cms/cms.h"
 
 #include "drivers/camera_control.h"
 
 #include "fc/config.h"
-#include "fc/fc_core.h"
-#include "fc/rc_controls.h"
-#include "fc/fc_rc.h"
+#include "fc/core.h"
+#include "fc/rc.h"
 #include "fc/runtime_config.h"
-
-#include "io/gps.h"
-#include "io/beeper.h"
-#include "io/motors.h"
-#include "io/vtx_control.h"
-#include "io/dashboard.h"
-
-#include "sensors/barometer.h"
-#include "sensors/battery.h"
-#include "sensors/sensors.h"
-#include "sensors/gyro.h"
-#include "sensors/acceleration.h"
-
-#include "rx/rx.h"
-#include "scheduler/scheduler.h"
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
+
+#include "io/beeper.h"
+#include "io/dashboard.h"
+#include "io/gps.h"
+#include "io/motors.h"
+#include "io/vtx_control.h"
+
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
+#include "pg/rx.h"
+
+#include "rx/rx.h"
+
+#include "scheduler/scheduler.h"
+
+#include "sensors/acceleration.h"
+#include "sensors/barometer.h"
+#include "sensors/battery.h"
+#include "sensors/gyro.h"
+#include "sensors/sensors.h"
+
+#include "rc_controls.h"
 
 // true if arming is done via the sticks (as opposed to a switch)
 static bool isUsingSticksToArm = true;
@@ -106,12 +109,12 @@ bool isUsingSticksForArming(void)
 
 bool areSticksInApModePosition(uint16_t ap_mode)
 {
-    return ABS(rcCommand[ROLL]) < ap_mode && ABS(rcCommand[PITCH]) < ap_mode;
+    return fabsf(rcCommand[ROLL]) < ap_mode && fabsf(rcCommand[PITCH]) < ap_mode;
 }
 
 throttleStatus_e calculateThrottleStatus(void)
 {
-    if (feature(FEATURE_3D)) {
+    if (featureIsEnabled(FEATURE_3D)) {
         if (IS_RC_MODE_ACTIVE(BOX3D) || flight3DConfig()->switched_mode3d) {
             if (rcData[THROTTLE] < rxConfig()->mincheck) {
                 return THROTTLE_LOW;
@@ -214,7 +217,8 @@ void processRcStickPositions()
             if (!ARMING_FLAG(ARMED)) {
                 // Arm via YAW
                 tryArm();
-                if (isTryingToArm()) {
+                if (isTryingToArm() ||
+                    ((getArmingDisableFlags() == ARMING_DISABLED_CALIBRATING) && armingConfig()->gyro_cal_on_first_arm)) {
                     doNotRepeat = false;
                 }
             } else {
@@ -238,7 +242,7 @@ void processRcStickPositions()
         gyroStartCalibration(false);
 
 #ifdef USE_GPS
-        if (feature(FEATURE_GPS)) {
+        if (featureIsEnabled(FEATURE_GPS)) {
             GPS_reset_home_position();
         }
 #endif
@@ -251,7 +255,7 @@ void processRcStickPositions()
         return;
     }
 
-    if (feature(FEATURE_INFLIGHT_ACC_CAL) && (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_HI)) {
+    if (featureIsEnabled(FEATURE_INFLIGHT_ACC_CAL) && (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_HI)) {
         // Inflight ACC Calibration
         handleInflightCalibrationStickPosition();
         return;
@@ -277,12 +281,13 @@ void processRcStickPositions()
         saveConfigAndNotify();
     }
 
+#ifdef USE_ACC
     if (rcSticks == THR_HI + YAW_LO + PIT_LO + ROL_CE) {
         // Calibrating Acc
         accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
         return;
     }
-
+#endif
 
     if (rcSticks == THR_HI + YAW_HI + PIT_LO + ROL_CE) {
         // Calibrating Mag
@@ -316,8 +321,13 @@ void processRcStickPositions()
             break;
         }
         if (shouldApplyRollAndPitchTrimDelta) {
-            applyAndSaveAccelerometerTrimsDelta(&accelerometerTrimsDelta);
+#if defined(USE_ACC)
+            applyAccelerometerTrimsDelta(&accelerometerTrimsDelta);
+#endif
+            saveConfigAndNotify();
+
             repeatAfter(STICK_AUTOREPEAT_MS);
+
             return;
         }
     } else {
@@ -391,5 +401,6 @@ int32_t getRcStickDeflection(int32_t axis, uint16_t midrc) {
 
 void rcControlsInit(void)
 {
+    analyzeModeActivationConditions();
     isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM);
 }

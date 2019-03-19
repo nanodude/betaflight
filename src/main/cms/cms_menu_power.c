@@ -42,7 +42,7 @@
 voltageMeterSource_e batteryConfig_voltageMeterSource;
 currentMeterSource_e batteryConfig_currentMeterSource;
 
-uint8_t batteryConfig_vbatmaxcellvoltage;
+uint16_t batteryConfig_vbatmaxcellvoltage;
 
 uint8_t voltageSensorADCConfig_vbatscale;
 
@@ -96,14 +96,14 @@ static long cmsx_Power_onExit(const OSD_Entry *self)
     return 0;
 }
 
-static OSD_Entry cmsx_menuPowerEntries[] =
+static const OSD_Entry cmsx_menuPowerEntries[] =
 {
     { "-- POWER --", OME_Label, NULL, NULL, 0},
 
     { "V METER", OME_TAB, NULL, &(OSD_TAB_t){ &batteryConfig_voltageMeterSource, VOLTAGE_METER_COUNT - 1, voltageMeterSourceNames }, 0 },
     { "I METER", OME_TAB, NULL, &(OSD_TAB_t){ &batteryConfig_currentMeterSource, CURRENT_METER_COUNT - 1, currentMeterSourceNames }, 0 },
 
-    { "VBAT CLMAX", OME_UINT8, NULL, &(OSD_UINT8_t) { &batteryConfig_vbatmaxcellvoltage, 10, 50, 1 }, 0 },
+    { "VBAT CLMAX", OME_UINT16, NULL, &(OSD_UINT16_t) { &batteryConfig_vbatmaxcellvoltage, VBAT_CELL_VOTAGE_RANGE_MIN, VBAT_CELL_VOTAGE_RANGE_MAX, 1 }, 0 },
 
     { "VBAT SCALE", OME_UINT8, NULL, &(OSD_UINT8_t){ &voltageSensorADCConfig_vbatscale, VBAT_SCALE_MIN, VBAT_SCALE_MAX, 1 }, 0 },
 

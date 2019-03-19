@@ -31,7 +31,7 @@
 #define TARGET_BOARD_IDENTIFIER "OBV6"
 #elif defined(OMNIBUSF4FW1)
 #define TARGET_BOARD_IDENTIFIER "OFW1"
-#else
+#else 
 #define TARGET_BOARD_IDENTIFIER "OBFW"
 #endif
 
@@ -64,7 +64,7 @@
 #define USE_DUAL_GYRO
 
 #if defined(OMNIBUSF4V6)
-#define GYRO_1_CS_PIN           PA4   // Onboard IMU
+#define GYRO_1_CS_PIN           PA4   // Onboard IMU  
 #define GYRO_1_SPI_INSTANCE     SPI1
 #define GYRO_2_CS_PIN           PC14  // External IMU
 #define GYRO_2_SPI_INSTANCE     SPI1
@@ -90,19 +90,22 @@
 
 // MPU6000 interrupts
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN         PC4
+#define GYRO_2_EXTI_PIN         NONE
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_MAG
 #define MAG_I2C_INSTANCE        (I2CDEV_1)
 #define USE_MAG_HMC5883
+#define USE_MAG_LIS3MDL
 #define MAG_HMC5883_ALIGN       CW90_DEG
 
 #define USE_BARO
 #define BARO_I2C_INSTANCE       (I2CDEV_1)
 #define USE_BARO_SPI_BMP280
-#define BMP280_SPI_INSTANCE     SPI3
-#define BMP280_CS_PIN           PB3
+#define BARO_SPI_INSTANCE       SPI3
+#define BARO_CS_PIN             PB3
 #define DEFAULT_BARO_SPI_BMP280
 
 #define USE_MAX7456
@@ -181,14 +184,9 @@
 #define I2C_DEVICE              (I2CDEV_2)
 #endif
 
-#if defined(OMNIBUSF4V6)
-#define CAMERA_CONTROL_PIN      PB7
-#else
-#define CAMERA_CONTROL_PIN      PB9
-#endif
-
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
+#define ADC2_DMA_OPT            1  // DMA 2 Stream 3 Channel 1 (compat default)
 #define CURRENT_METER_ADC_PIN   PC1  // Direct from CRNT pad (part of onboard sensor for Pro)
 #define VBAT_ADC_PIN            PC2  // 11:1 (10K + 1K) divider
 #define RSSI_ADC_PIN            PA0  // Direct from RSSI pad

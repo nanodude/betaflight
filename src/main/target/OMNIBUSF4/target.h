@@ -32,9 +32,6 @@
 #define TARGET_BOARD_IDENTIFIER "XRF4"
 #elif defined(EXUAVF4PRO)
 #define TARGET_BOARD_IDENTIFIER "EXF4"
-#elif defined(SYNERGYF4)
-#define TARGET_BOARD_IDENTIFIER "SYN4"
-#define TARGET_MANUFACTURER_IDENTIFIER "KLEE"
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 // Example of a manufacturer ID to be persisted as part of the config:
@@ -50,8 +47,6 @@
 #define USBD_PRODUCT_STRING "XRACERF4"
 #elif defined(EXUAVF4PRO)
 #define USBD_PRODUCT_STRING "ExuavF4Pro"
-#elif defined(SYNERGYF4)
-#define USBD_PRODUCT_STRING "SynergyF4"
 #else
 #define USBD_PRODUCT_STRING "OmnibusF4"
 #endif
@@ -76,32 +71,31 @@
 #define INVERTER_PIN_UART1      PC0 // DYS F4 Pro; Omnibus F4 AIO (1st gen) have a FIXED inverter on UART1
 #endif
 
+#define USE_EXTI
+
 #define USE_ACC
 #define USE_ACC_SPI_MPU6000
 
 #define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define GYRO_1_CS_PIN           PA4
+#define GYRO_1_SPI_INSTANCE     SPI1
 
 // MPU6000 interrupts
-#define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN         PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #if defined(OMNIBUSF4SD)
-#define GYRO_MPU6000_ALIGN       CW270_DEG
-#define ACC_MPU6000_ALIGN        CW270_DEG
+#define GYRO_1_ALIGN            CW270_DEG
+#define ACC_1_ALIGN             CW270_DEG
 #elif defined(XRACERF4) || defined(EXUAVF4PRO)
-#define GYRO_MPU6000_ALIGN       CW90_DEG
-#define ACC_MPU6000_ALIGN        CW90_DEG
-#elif defined(SYNERGYF4)
-#define GYRO_MPU6000_ALIGN       CW0_DEG_FLIP
-#define ACC_MPU6000_ALIGN        CW0_DEG_FLIP
+#define GYRO_1_ALIGN            CW90_DEG
+#define ACC_1_ALIGN             CW90_DEG
 #else
-#define GYRO_MPU6000_ALIGN       CW180_DEG
-#define ACC_MPU6000_ALIGN        CW180_DEG
+#define GYRO_1_ALIGN            CW180_DEG
+#define ACC_1_ALIGN             CW180_DEG
 #endif
 
 // Support for iFlight OMNIBUS F4 V3
@@ -110,25 +104,26 @@
 #if defined (OMNIBUSF4SD) || defined(OMNIBUSF4BASE)
 #define USE_ACC_SPI_MPU6500
 #define USE_GYRO_SPI_MPU6500
-#define MPU6500_CS_PIN          MPU6000_CS_PIN
-#define MPU6500_SPI_INSTANCE    MPU6000_SPI_INSTANCE
-#define GYRO_MPU6500_ALIGN      GYRO_MPU6000_ALIGN
-#define ACC_MPU6500_ALIGN       ACC_MPU6000_ALIGN
 #endif
 
-#if !defined(SYNERGYF4) //No mag sensor on SYNERGYF4
+// Dummy defines
+#define GYRO_2_SPI_INSTANCE     GYRO_1_SPI_INSTANCE
+#define GYRO_2_CS_PIN           NONE
+#define GYRO_2_ALIGN            ALIGN_DEFAULT
+#define GYRO_2_EXTI_PIN         NONE
+#define ACC_2_ALIGN             ALIGN_DEFAULT
+
 #define USE_MAG
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_LIS3MDL
 #define MAG_HMC5883_ALIGN       CW90_DEG
-#endif
 
-#if !defined(SYNERGYF4) //No baro sensor on SYNERGYF4
 #define USE_BARO
 #if defined(OMNIBUSF4SD)
 #define USE_BARO_SPI_BMP280
-#define BMP280_SPI_INSTANCE     SPI3
-#define BMP280_CS_PIN           PB3 // v1
+#define BARO_SPI_INSTANCE       SPI3
+#define BARO_CS_PIN             PB3 // v1
 #endif
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
@@ -139,7 +134,6 @@
 #define DEFAULT_BARO_SPI_BMP280
 #else
 #define DEFAULT_BARO_BMP280
-#endif
 #endif
 
 #define USE_MAX7456
@@ -156,17 +150,12 @@
 #if defined(OMNIBUSF4SD)
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN               PB7
 #define SDCARD_SPI_INSTANCE             SPI2
 #define SDCARD_SPI_CS_PIN               SPI2_NSS_PIN
-// SPI2 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 4 // 21MHz
-
-#define SDCARD_DMA_CHANNEL_TX                   DMA1_Stream4
-#define SDCARD_DMA_CHANNEL                      0
+#define SPI2_TX_DMA_OPT                         0     // DMA 1 Stream 4 Channel 0
 
 // For variants with SDcard replaced with flash chip
 #define FLASH_CS_PIN            SDCARD_SPI_CS_PIN
@@ -176,16 +165,24 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define FLASH_CS_PIN            PB12
 #define FLASH_SPI_INSTANCE      SPI2
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
 
 #else
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define FLASH_CS_PIN            SPI3_NSS_PIN
 #define FLASH_SPI_INSTANCE      SPI3
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
 #endif // OMNIBUSF4
+
+#ifdef OMNIBUSF4BASE
+#define USE_RX_SPI
+#define USE_RX_SPEKTRUM
+#define USE_RX_SPEKTRUM_TELEMETRY
+#define RX_CHANNELS_TAER
+#define DEFAULT_RX_FEATURE      FEATURE_RX_SPI
+#define RX_SPI_DEFAULT_PROTOCOL RX_SPI_CYRF6936_DSM
+#define RX_SPI_INSTANCE         SPI3
+#define RX_NSS_PIN              PD2
+#define RX_SPI_EXTI_PIN         PA0 // instead of rssi input
+#endif
 
 #define USE_VCP
 #define USE_USB_DETECT
@@ -259,12 +256,16 @@
 
 #define USE_ADC
 #define ADC_INSTANCE            ADC2
+#define ADC2_DMA_OPT            1  // DMA 2 Stream 3 Channel 1 (compat default)
 //#define ADC_INSTANCE            ADC1
+//#define ADC1_DMA_OPT            1  // DMA 2 Stream 4 Channel 0 (compat default)
 
 #define CURRENT_METER_ADC_PIN   PC1  // Direct from CRNT pad (part of onboard sensor for Pro)
 #define VBAT_ADC_PIN            PC2  // 11:1 (10K + 1K) divider
 #ifdef DYSF4PRO
 #define RSSI_ADC_PIN            PC3  // Direct from RSSI pad
+#elif defined(OMNIBUSF4BASE)
+#define RSSI_ADC_PIN            NONE
 #else
 #define RSSI_ADC_PIN            PA0  // Direct from RSSI pad
 #endif
@@ -277,11 +278,7 @@
 #define RANGEFINDER_HCSR04_ECHO_PIN        PA8
 #define USE_RANGEFINDER_TF
 
-#if defined(SYNERGYF4)
-#define DEFAULT_FEATURES        (FEATURE_LED_STRIP | FEATURE_OSD | FEATURE_AIRMODE)
-#else
 #define DEFAULT_FEATURES        (FEATURE_OSD)
-#endif
 
 #define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
@@ -296,13 +293,5 @@
 #define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(10) | TIM_N(12) | TIM_N(8) | TIM_N(9))
 #else
 #define USABLE_TIMER_CHANNEL_COUNT 14
-#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9))
-#endif
-
-#if defined(SYNERGYF4)
-#define USE_PINIO
-#define PINIO1_PIN              PB15 // VTX power switcher
-#define USE_PINIOBOX
-
-#define CAMERA_CONTROL_PIN      PA8
+#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
 #endif

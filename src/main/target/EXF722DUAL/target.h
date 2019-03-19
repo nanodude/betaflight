@@ -28,8 +28,6 @@
 
 #define ENABLE_DSHOT_DMAR       true
 
-#define CAMERA_CONTROL_PIN      PA0
-
 #define LED0_PIN                PC4
 
 #define USE_BEEPER
@@ -126,7 +124,8 @@
 
 #define USE_ADC
 #define ADC_INSTANCE            ADC3
-#define ADC3_DMA_STREAM         DMA2_Stream0
+#define ADC3_DMA_OPT            0  // DMA 2 Stream 0 Channel 2 
+
 
 #define VBAT_ADC_PIN            PC1
 #define CURRENT_METER_ADC_PIN   PC2

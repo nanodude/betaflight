@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include "common/time.h"
 #include "common/filter.h"
+#include "common/axis.h"
 #include "pg/pg.h"
 
 #define MAX_PID_PROCESS_DENOM       16
@@ -42,6 +43,10 @@
 // The constant scale factor to replace the Kd component of the feedforward calculation.
 // This value gives the same "feel" as the previous Kd default of 26 (26 * DTERM_SCALE)
 #define FEEDFORWARD_SCALE 0.013754f
+
+// Full iterm suppression in setpoint mode at high-passed setpoint rate > 40deg/sec
+#define ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
+#define ITERM_RELAX_CUTOFF_DEFAULT 20
 
 typedef enum {
     PID_ROLL,
@@ -103,7 +108,7 @@ typedef struct pidProfile_s {
     pidf_t  pid[PID_ITEM_COUNT];
 
     uint8_t dterm_filter_type;              // Filter selection for dterm
-    uint8_t itermWindupPointPercent;        // Experimental ITerm windup threshold, percent motor saturation
+    uint8_t itermWindupPointPercent;        // iterm windup threshold, percent motor saturation
     uint16_t pidSumLimit;
     uint16_t pidSumLimitYaw;
     uint8_t pidAtMinThrottle;               // Disable/Enable pids on zero throttle. Normally even without airmode P and D would be active.
@@ -145,11 +150,27 @@ typedef struct pidProfile_s {
     uint8_t abs_control_gain;               // How strongly should the absolute accumulated error be corrected for
     uint8_t abs_control_limit;              // Limit to the correction
     uint8_t abs_control_error_limit;        // Limit to the accumulated error
+    uint8_t abs_control_cutoff;             // Cutoff frequency for path estimation in abs control
+    uint8_t dterm_filter2_type;             // Filter selection for 2nd dterm
+    uint16_t dyn_lpf_dterm_min_hz;
+    uint16_t dyn_lpf_dterm_max_hz;
+    uint8_t launchControlMode;              // Whether launch control is limited to pitch only (launch stand or top-mount) or all axes (on battery)
+    uint8_t launchControlThrottlePercent;   // Throttle percentage to trigger launch for launch control
+    uint8_t launchControlAngleLimit;        // Optional launch control angle limit (requires ACC)
+    uint8_t launchControlGain;              // Iterm gain used while launch control is active
+    uint8_t launchControlAllowTriggerReset; // Controls trigger behavior and whether the trigger can be reset
+    uint8_t use_integrated_yaw;             // Selects whether the yaw pidsum should integrated
+    uint8_t integrated_yaw_relax;           // Specifies how much integrated yaw should be reduced to offset the drag based yaw component
+    uint8_t thrustLinearization;            // Compensation factor for pid linearization
+    uint8_t d_min[XYZ_AXIS_COUNT];          // Minimum D value on each axis
+    uint8_t d_min_gain;                     // Gain factor for amount of gyro / setpoint activity required to boost D
+    uint8_t d_min_advance;                  // Percentage multiplier for setpoint input to boost algorithm
+    uint8_t motor_output_limit;             // Upper limit of the motor output (percent)
+    int8_t auto_profile_cell_count;         // Cell count for this profile to be used with if auto PID profile switching is used
+    uint8_t transient_throttle_limit;       // Maximum DC component of throttle change to mix into throttle to prevent airmode mirroring noise
 } pidProfile_t;
 
-#ifndef USE_OSD_SLAVE
-PG_DECLARE_ARRAY(pidProfile_t, MAX_PROFILE_COUNT, pidProfiles);
-#endif
+PG_DECLARE_ARRAY(pidProfile_t, PID_PROFILE_COUNT, pidProfiles);
 
 typedef struct pidConfig_s {
     uint8_t pid_process_denom;              // Processing denominator for PID controller vs gyro sampling rate
@@ -161,7 +182,7 @@ typedef struct pidConfig_s {
 PG_DECLARE(pidConfig_t, pidConfig);
 
 union rollAndPitchTrims_u;
-void pidController(const pidProfile_t *pidProfile, const union rollAndPitchTrims_u *angleTrim, timeUs_t currentTimeUs);
+void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs);
 
 typedef struct pidAxisData_s {
     float P;
@@ -181,7 +202,7 @@ extern uint32_t targetPidLooptime;
 extern float throttleBoost;
 extern pt1Filter_t throttleLpf;
 
-void pidResetITerm(void);
+void pidResetIterm(void);
 void pidStabilisationState(pidStabilisationState_e pidControllerState);
 void pidSetItermAccelerator(float newItermAccelerator);
 void pidInitFilters(const pidProfile_t *pidProfile);
@@ -198,3 +219,27 @@ bool pidOsdAntiGravityActive(void);
 bool pidOsdAntiGravityMode(void);
 void pidSetAntiGravityState(bool newState);
 bool pidAntiGravityEnabled(void);
+#ifdef USE_THRUST_LINEARIZATION
+float pidApplyThrustLinearization(float motorValue);
+float pidCompensateThrustLinearization(float throttle);
+#endif
+#ifdef USE_AIRMODE_LPF
+void pidUpdateAirmodeLpf(float currentOffset);
+float pidGetAirmodeThrottleOffset();
+#endif
+
+#ifdef UNIT_TEST
+#include "sensors/acceleration.h"
+extern float axisError[XYZ_AXIS_COUNT];
+void applyItermRelax(const int axis, const float iterm,
+    const float gyroRate, float *itermErrorRate, float *currentPidSetpoint);
+void applyAbsoluteControl(const int axis, const float gyroRate, float *currentPidSetpoint, float *itermErrorRate);
+void rotateItermAndAxisError();
+float pidLevel(int axis, const pidProfile_t *pidProfile,
+    const rollAndPitchTrims_t *angleTrim, float currentPidSetpoint);
+float calcHorizonLevelStrength(void);
+#endif
+void dynLpfDTermUpdate(float throttle);
+void pidSetItermReset(bool enabled);
+float pidGetPreviousSetpoint(int axis);
+

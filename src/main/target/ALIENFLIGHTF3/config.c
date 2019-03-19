@@ -37,6 +37,7 @@
 #include "flight/pid.h"
 
 #include "pg/beeper_dev.h"
+#include "pg/gyrodev.h"
 #include "pg/rx.h"
 
 #include "rx/rx.h"
@@ -60,6 +61,8 @@
 // alternative defaults settings for AlienFlight targets
 void targetConfiguration(void)
 {
+    gyroDeviceConfigMutable(0)->extiTag = selectMPUIntExtiConfigByHardwareRevision();
+
     /* depending on revision ... depends on the LEDs to be utilised. */
     if (hardwareRevision == AFF3_REV_2) {
         statusLedConfigMutable()->inversion = 0
@@ -101,18 +104,18 @@ void targetConfiguration(void)
         rxConfigMutable()->serialrx_inverted = true;
         serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIALRX_UART)].functionMask = FUNCTION_TELEMETRY_FRSKY_HUB | FUNCTION_RX_SERIAL;
         telemetryConfigMutable()->telemetry_inverted = false;
-        featureSet(FEATURE_TELEMETRY);
+        featureEnable(FEATURE_TELEMETRY);
         beeperDevConfigMutable()->isOpenDrain = false;
         beeperDevConfigMutable()->isInverted = true;
         parseRcChannels("AETR1234", rxConfigMutable());
     }
 
-    if (hardwareMotorType == MOTOR_BRUSHED) {
+    if (getDetectedMotorType() == MOTOR_BRUSHED) {
         motorConfigMutable()->dev.motorPwmRate = BRUSHED_MOTORS_PWM_RATE;
         pidConfigMutable()->pid_process_denom = 1;
     }
 
-    for (uint8_t pidProfileIndex = 0; pidProfileIndex < MAX_PROFILE_COUNT; pidProfileIndex++) {
+    for (uint8_t pidProfileIndex = 0; pidProfileIndex < PID_PROFILE_COUNT; pidProfileIndex++) {
         pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
 
         pidProfile->pid[PID_ROLL].P = 90;

@@ -18,6 +18,8 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "platform.h"
+
 #include "resource.h"
 
 const char * const ownerNames[OWNER_TOTAL_COUNT] = {
@@ -49,11 +51,11 @@ const char * const ownerNames[OWNER_TOTAL_COUNT] = {
     "SDCARD_DETECT",
     "FLASH_CS",
     "BARO_CS",
-    "MPU_CS",
+    "GYRO_CS",
     "OSD_CS",
     "RX_SPI_CS",
     "SPI_CS",
-    "MPU_EXTI",
+    "GYRO_EXTI",
     "BARO_EXTI",
     "COMPASS_EXTI",
     "USB",
@@ -74,6 +76,12 @@ const char * const ownerNames[OWNER_TOTAL_COUNT] = {
     "RX_SPI",
     "PINIO",
     "USB_MSC_PIN",
-    "SPI_PREINIT_IPU",
-    "SPI_PREINIT_OPU",
+    "MCO",
+    "RX_SPI_BIND",
+    "RX_SPI_LED",
+    "PREINIT",
+    "RX_SPI_EXTI",
+    "RX_SPI_CC2500_TX_EN",
+    "RX_SPI_CC2500_LNA_EN",
+    "RX_SPI_CC2500_ANT_SEL",
 };

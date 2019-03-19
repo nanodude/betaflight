@@ -37,11 +37,11 @@ __STATIC_INLINE DMA_TypeDef *LL_EX_DMA_Stream_to_DMA(DMA_Stream_TypeDef *DMAx_St
 
 __STATIC_INLINE uint32_t LL_EX_DMA_Stream_to_Stream(DMA_Stream_TypeDef *DMAx_Streamy)
 {
+	STATIC_ASSERT(DMA1_Stream0_BASE - DMA1_BASE == sizeof(DMA_TypeDef), DMA_TypeDef_has_padding);
+	STATIC_ASSERT(DMA1_Stream1_BASE - DMA1_Stream0_BASE == sizeof(DMA_Stream_TypeDef), DMA_Stream_TypeDef_has_padding);
+
 	const size_t firstStreamOffset = sizeof(DMA_TypeDef);
 	const size_t streamSize = sizeof(DMA_Stream_TypeDef);
-
-	STATIC_ASSERT(DMA1_Stream0_BASE - DMA1_BASE == firstStreamOffset, DMA_TypeDef_has_padding);
-	STATIC_ASSERT(DMA1_Stream1_BASE - DMA1_Stream0_BASE == streamSize, DMA_Stream_TypeDef_has_padding);
 
 	return (((uint32_t) DMAx_Streamy & DMA_STREAM_MASK) - firstStreamOffset) / streamSize;
 }
@@ -85,6 +85,13 @@ __STATIC_INLINE void LL_EX_DMA_EnableIT_TC(DMA_Stream_TypeDef *DMAx_Streamy)
 __STATIC_INLINE void LL_EX_DMA_SetDataLength(DMA_Stream_TypeDef* DMAx_Streamy, uint32_t NbData)
 {
  	MODIFY_REG(DMAx_Streamy->NDTR, DMA_SxNDT, NbData);
+}
+
+__STATIC_INLINE uint32_t LL_EX_DMA_GetDataLength(DMA_Stream_TypeDef* DMAx_Streamy)
+{
+    DMA_TypeDef *DMA = LL_EX_DMA_Stream_to_DMA(DMAx_Streamy);
+	const uint32_t Stream = LL_EX_DMA_Stream_to_Stream(DMAx_Streamy);
+    return LL_DMA_GetDataLength(DMA, Stream);
 }
 
 __STATIC_INLINE void LL_EX_TIM_EnableIT(TIM_TypeDef *TIMx, uint32_t Sources)

@@ -26,7 +26,8 @@
 
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PA15
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN         PA15
 #define USE_MPU_DATA_READY_SIGNAL
 
 
@@ -35,20 +36,20 @@
 #define USE_SPI_DEVICE_2
 
 
-#define MPU6500_SPI_INSTANCE    SPI1
+#define GYRO_1_SPI_INSTANCE     SPI1
 #define SPI1_SCK_PIN            PB3
 #define SPI1_MISO_PIN           PB4
 #define SPI1_MOSI_PIN           PB5
-#define MPU6500_CS_PIN          PA5
+#define GYRO_1_CS_PIN           PA5
 
 
 #define USE_GYRO
 #define USE_GYRO_SPI_MPU6500
-#define GYRO_MPU6500_ALIGN      CW90_DEG
+#define GYRO_1_ALIGN            CW90_DEG
 
 #define USE_ACC
 #define USE_ACC_SPI_MPU6500
-#define ACC_MPU6500_ALIGN       CW90_DEG
+#define ACC_1_ALIGN             CW90_DEG
 
 
 #define USE_RX_SPI
@@ -57,7 +58,7 @@
 #define FLYSKY_2A_CHANNEL_COUNT 10
 
 #define RX_SPI_INSTANCE         SPI2
-#define RX_IRQ_PIN              PB12
+#define RX_SPI_EXTI_PIN         PB12
 #define SPI2_NSS_PIN            PA4
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14

@@ -33,6 +33,7 @@
 
 typedef struct pilotConfig_s {
     char name[MAX_NAME_LENGTH + 1];
+    char displayName[MAX_NAME_LENGTH + 1];
 } pilotConfig_t;
 
 PG_DECLARE(pilotConfig_t, pilotConfig);
@@ -46,6 +47,9 @@ typedef struct systemConfig_s {
     uint8_t cpu_overclock;
     uint8_t powerOnArmingGraceTime; // in seconds
     char boardIdentifier[sizeof(TARGET_BOARD_IDENTIFIER) + 1];
+    uint8_t hseMhz; // Not used for non-F4 targets
+    uint8_t configured;
+    uint8_t schedulerOptimizeRate;
 } systemConfig_t;
 
 PG_DECLARE(systemConfig_t, systemConfig);
@@ -57,6 +61,7 @@ void initEEPROM(void);
 void resetEEPROM(void);
 bool readEEPROM(void);
 void writeEEPROM(void);
+void writeEEPROMWithFeatures(uint32_t features);
 void ensureEEPROMStructureIsValid(void);
 
 void saveConfigAndNotify(void);
@@ -64,6 +69,7 @@ void validateAndFixGyroConfig(void);
 
 uint8_t getCurrentPidProfileIndex(void);
 void changePidProfile(uint8_t pidProfileIndex);
+void changePidProfileFromCellCount(uint8_t cellCount);
 struct pidProfile_s;
 void resetPidProfile(struct pidProfile_s *profile);
 
@@ -77,3 +83,5 @@ uint16_t getCurrentMinthrottle(void);
 void resetConfigs(void);
 void targetConfiguration(void);
 void targetValidateConfiguration(void);
+
+bool isSystemConfigured(void);

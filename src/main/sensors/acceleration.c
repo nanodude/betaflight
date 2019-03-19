@@ -25,6 +25,8 @@
 
 #include "platform.h"
 
+#ifdef USE_ACC
+
 #include "build/debug.h"
 
 #include "common/axis.h"
@@ -33,8 +35,6 @@
 
 #include "config/config_reset.h"
 #include "config/feature.h"
-#include "pg/pg.h"
-#include "pg/pg_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_fake.h"
@@ -72,7 +72,10 @@
 
 #include "io/beeper.h"
 
-#include "sensors/acceleration.h"
+#include "pg/gyrodev.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
+
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
@@ -81,25 +84,9 @@
 #include "hardware_revision.h"
 #endif
 
+#include "acceleration.h"
 
 FAST_RAM_ZERO_INIT acc_t acc;                       // acc access functions
-
-static float accumulatedMeasurements[XYZ_AXIS_COUNT];
-static int accumulatedMeasurementCount;
-
-static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
-
-extern uint16_t InflightcalibratingA;
-extern bool AccInflightCalibrationMeasurementDone;
-extern bool AccInflightCalibrationSavetoEEProm;
-extern bool AccInflightCalibrationActive;
-
-static flightDynamicsTrims_t *accelerationTrims;
-
-static uint16_t accLpfCutHz = 0;
-static biquadFilter_t accFilter[XYZ_AXIS_COUNT];
-
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 0);
 
 void resetRollAndPitchTrims(rollAndPitchTrims_t *rollAndPitchTrims)
 {
@@ -130,13 +117,29 @@ void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
     RESET_CONFIG_2(accelerometerConfig_t, instance,
         .acc_lpf_hz = 10,
-        .acc_align = ALIGN_DEFAULT,
         .acc_hardware = ACC_DEFAULT,
         .acc_high_fsr = false,
     );
     resetRollAndPitchTrims(&instance->accelerometerTrims);
     resetFlightDynamicsTrims(&instance->accZero);
 }
+
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 1);
+
+extern uint16_t InflightcalibratingA;
+extern bool AccInflightCalibrationMeasurementDone;
+extern bool AccInflightCalibrationSavetoEEProm;
+extern bool AccInflightCalibrationActive;
+
+static float accumulatedMeasurements[XYZ_AXIS_COUNT];
+static int accumulatedMeasurementCount;
+
+static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
+
+static flightDynamicsTrims_t *accelerationTrims;
+
+static uint16_t accLpfCutHz = 0;
+static biquadFilter_t accFilter[XYZ_AXIS_COUNT];
 
 bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 {
@@ -157,9 +160,6 @@ retry:
         acc_params.useFifo = false;
         acc_params.dataRate = 800; // unused currently
         if (adxl345Detect(&acc_params, dev)) {
-#ifdef ACC_ADXL345_ALIGN
-            dev->accAlign = ACC_ADXL345_ALIGN;
-#endif
             accHardware = ACC_ADXL345;
             break;
         }
@@ -169,9 +169,6 @@ retry:
 #ifdef USE_ACC_LSM303DLHC
     case ACC_LSM303DLHC:
         if (lsm303dlhcAccDetect(dev)) {
-#ifdef ACC_LSM303DLHC_ALIGN
-            dev->accAlign = ACC_LSM303DLHC_ALIGN;
-#endif
             accHardware = ACC_LSM303DLHC;
             break;
         }
@@ -181,9 +178,6 @@ retry:
 #ifdef USE_ACC_MPU6050
     case ACC_MPU6050: // MPU6050
         if (mpu6050AccDetect(dev)) {
-#ifdef ACC_MPU6050_ALIGN
-            dev->accAlign = ACC_MPU6050_ALIGN;
-#endif
             accHardware = ACC_MPU6050;
             break;
         }
@@ -193,9 +187,6 @@ retry:
 #ifdef USE_ACC_MMA8452
     case ACC_MMA8452: // MMA8452
         if (mma8452Detect(dev)) {
-#ifdef ACC_MMA8452_ALIGN
-            dev->accAlign = ACC_MMA8452_ALIGN;
-#endif
             accHardware = ACC_MMA8452;
             break;
         }
@@ -205,9 +196,6 @@ retry:
 #ifdef USE_ACC_BMA280
     case ACC_BMA280: // BMA280
         if (bma280Detect(dev)) {
-#ifdef ACC_BMA280_ALIGN
-            dev->accAlign = ACC_BMA280_ALIGN;
-#endif
             accHardware = ACC_BMA280;
             break;
         }
@@ -217,9 +205,6 @@ retry:
 #ifdef USE_ACC_SPI_MPU6000
     case ACC_MPU6000:
         if (mpu6000SpiAccDetect(dev)) {
-#ifdef ACC_MPU6000_ALIGN
-            dev->accAlign = ACC_MPU6000_ALIGN;
-#endif
             accHardware = ACC_MPU6000;
             break;
         }
@@ -229,9 +214,6 @@ retry:
 #ifdef USE_ACC_SPI_MPU9250
     case ACC_MPU9250:
         if (mpu9250SpiAccDetect(dev)) {
-#ifdef ACC_MPU9250_ALIGN
-            dev->accAlign = ACC_MPU9250_ALIGN;
-#endif
             accHardware = ACC_MPU9250;
             break;
         }
@@ -247,9 +229,6 @@ retry:
         if (mpu6500AccDetect(dev) || mpu6500SpiAccDetect(dev)) {
 #else
         if (mpu6500AccDetect(dev)) {
-#endif
-#ifdef ACC_MPU6500_ALIGN
-            dev->accAlign = ACC_MPU6500_ALIGN;
 #endif
             switch (dev->mpuDetectionResult.sensor) {
             case MPU_9250_SPI:
@@ -276,9 +255,6 @@ retry:
     case ACC_ICM20649:
         if (icm20649SpiAccDetect(dev)) {
             accHardware = ACC_ICM20649;
-#ifdef ACC_ICM20649_ALIGN
-            dev->accAlign = ACC_ICM20649_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -288,9 +264,6 @@ retry:
     case ACC_ICM20689:
         if (icm20689SpiAccDetect(dev)) {
             accHardware = ACC_ICM20689;
-#ifdef ACC_ICM20689_ALIGN
-            dev->accAlign = ACC_ICM20689_ALIGN;
-#endif
             break;
         }
         FALLTHROUGH;
@@ -299,10 +272,6 @@ retry:
 #ifdef USE_ACCGYRO_BMI160
     case ACC_BMI160:
         if (bmi160SpiAccDetect(dev)) {
-            accHardware = ACC_BMI160;
-#ifdef ACC_BMI160_ALIGN
-            dev->accAlign = ACC_BMI160_ALIGN;
-#endif
             accHardware = ACC_BMI160;
             break;
         }
@@ -348,14 +317,14 @@ bool accInit(uint32_t gyroSamplingInverval)
     acc.dev.mpuDetectionResult = *gyroMpuDetectionResult();
     acc.dev.acc_high_fsr = accelerometerConfig()->acc_high_fsr;
 
-#ifdef USE_DUAL_GYRO
+    // Copy alignment from active gyro, as all production boards use acc-gyro-combi chip.
+    // Exceptions are STM32F3DISCOVERY and STM32F411DISCOVERY, and (may be) handled in future enhancement.
+
+    acc.dev.accAlign = gyroDeviceConfig(0)->align;
+#ifdef USE_MULTI_GYRO
     if (gyroConfig()->gyro_to_use == GYRO_CONFIG_USE_GYRO_2) {
-        acc.dev.accAlign = ACC_2_ALIGN;
-    } else {
-        acc.dev.accAlign = ACC_1_ALIGN;
+        acc.dev.accAlign = gyroDeviceConfig(1)->align;
     }
-#else
-    acc.dev.accAlign = ALIGN_DEFAULT;
 #endif
 
     if (!accDetect(&acc.dev, accelerometerConfig()->acc_hardware)) {
@@ -363,6 +332,7 @@ bool accInit(uint32_t gyroSamplingInverval)
     }
     acc.dev.acc_1G = 256; // set default
     acc.dev.initFn(&acc.dev); // driver initialisation
+    acc.dev.acc_1G_rec = 1.0f / acc.dev.acc_1G;
     // set the acc sampling interval according to the gyro sampling interval
     switch (gyroSamplingInverval) {  // Switch statement kept in place to change acc sampling interval in the future
     case 500:
@@ -373,19 +343,12 @@ bool accInit(uint32_t gyroSamplingInverval)
         break;
     case 1000:
     default:
-#ifdef STM32F10X
         acc.accSamplingInterval = 1000;
-#else
-        acc.accSamplingInterval = 1000;
-#endif
     }
     if (accLpfCutHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             biquadFilterInitLPF(&accFilter[axis], accLpfCutHz, acc.accSamplingInterval);
         }
-    }
-    if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
-        acc.dev.accAlign = accelerometerConfig()->acc_align;
     }
     return true;
 }
@@ -528,7 +491,7 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
         performAcclerationCalibration(rollAndPitchTrims);
     }
 
-    if (feature(FEATURE_INFLIGHT_ACC_CAL)) {
+    if (featureIsEnabled(FEATURE_INFLIGHT_ACC_CAL)) {
         performInflightAccelerationCalibration(rollAndPitchTrims);
     }
 
@@ -572,3 +535,10 @@ void accInitFilters(void)
         }
     }
 }
+
+void applyAccelerometerTrimsDelta(rollAndPitchTrims_t *rollAndPitchTrimsDelta)
+{
+    accelerometerConfigMutable()->accelerometerTrims.values.roll += rollAndPitchTrimsDelta->values.roll;
+    accelerometerConfigMutable()->accelerometerTrims.values.pitch += rollAndPitchTrimsDelta->values.pitch;
+}
+#endif

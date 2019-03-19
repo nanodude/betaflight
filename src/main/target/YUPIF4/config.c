@@ -35,7 +35,8 @@
 
 #include "hardware_revision.h"
 
-
+// BEEPER_OPT will be handled by post-flash configuration
+#define BEEPER_OPT              PB14
 
 // alternative defaults settings for YuPiF4 targets
 void targetConfiguration(void)
@@ -61,7 +62,7 @@ void targetConfiguration(void)
     }
 
     /* Specific PID values for YupiF4 */
-    for (uint8_t pidProfileIndex = 0; pidProfileIndex < MAX_PROFILE_COUNT; pidProfileIndex++) {
+    for (uint8_t pidProfileIndex = 0; pidProfileIndex < PID_PROFILE_COUNT; pidProfileIndex++) {
         pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
 
         pidProfile->pid[PID_ROLL].P = 30;

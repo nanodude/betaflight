@@ -72,6 +72,9 @@ const char rcChannelLetters[] = "AERT12345678abcdefgh";
 
 static uint16_t rssi = 0;                  // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
+#ifdef USE_RX_LINK_QUALITY_INFO
+static uint8_t linkQuality = 0;
+#endif
 
 #define MSP_RSSI_TIMEOUT_US 1500000   // 1.5 sec
 
@@ -248,7 +251,7 @@ void rxInit(void)
         rcInvalidPulsPeriod[i] = millis() + MAX_INVALID_PULS_TIME;
     }
 
-    rcData[THROTTLE] = (feature(FEATURE_3D)) ? rxConfig()->midrc : rxConfig()->rx_min_usec;
+    rcData[THROTTLE] = (featureIsEnabled(FEATURE_3D)) ? rxConfig()->midrc : rxConfig()->rx_min_usec;
 
     // Initialize ARM switch to OFF position when arming via switch is defined
     // TODO - move to rc_mode.c
@@ -268,10 +271,9 @@ void rxInit(void)
     }
 
 #ifdef USE_SERIAL_RX
-    if (feature(FEATURE_RX_SERIAL)) {
+    if (featureIsEnabled(FEATURE_RX_SERIAL)) {
         const bool enabled = serialRxInit(rxConfig(), &rxRuntimeConfig);
         if (!enabled) {
-            featureClear(FEATURE_RX_SERIAL);
             rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
             rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
         }
@@ -279,17 +281,16 @@ void rxInit(void)
 #endif
 
 #ifdef USE_RX_MSP
-    if (feature(FEATURE_RX_MSP)) {
+    if (featureIsEnabled(FEATURE_RX_MSP)) {
         rxMspInit(rxConfig(), &rxRuntimeConfig);
         needRxSignalMaxDelayUs = DELAY_5_HZ;
     }
 #endif
 
 #ifdef USE_RX_SPI
-    if (feature(FEATURE_RX_SPI)) {
+    if (featureIsEnabled(FEATURE_RX_SPI)) {
         const bool enabled = rxSpiInit(rxSpiConfig(), &rxRuntimeConfig);
         if (!enabled) {
-            featureClear(FEATURE_RX_SPI);
             rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
             rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
         }
@@ -297,13 +298,13 @@ void rxInit(void)
 #endif
 
 #if defined(USE_PWM) || defined(USE_PPM)
-    if (feature(FEATURE_RX_PPM) || feature(FEATURE_RX_PARALLEL_PWM)) {
+    if (featureIsEnabled(FEATURE_RX_PPM | FEATURE_RX_PARALLEL_PWM)) {
         rxPwmInit(rxConfig(), &rxRuntimeConfig);
     }
 #endif
 
 #if defined(USE_ADC)
-    if (feature(FEATURE_RSSI_ADC)) {
+    if (featureIsEnabled(FEATURE_RSSI_ADC)) {
         rssiSource = RSSI_SOURCE_ADC;
     } else
 #endif
@@ -327,7 +328,7 @@ bool rxAreFlightChannelsValid(void)
 void suspendRxPwmPpmSignal(void)
 {
 #if defined(USE_PWM) || defined(USE_PPM)
-    if (feature(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM)) {
+    if (featureIsEnabled(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM)) {
         suspendRxSignalUntil = micros() + SKIP_RC_ON_SUSPEND_PERIOD;
         skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
         failsafeOnRxSuspend(SKIP_RC_ON_SUSPEND_PERIOD);
@@ -338,12 +339,40 @@ void suspendRxPwmPpmSignal(void)
 void resumeRxPwmPpmSignal(void)
 {
 #if defined(USE_PWM) || defined(USE_PPM)
-    if (feature(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM)) {
+    if (featureIsEnabled(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM)) {
         suspendRxSignalUntil = micros();
         skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
         failsafeOnRxResume();
     }
 #endif
+}
+
+#ifdef USE_RX_LINK_QUALITY_INFO
+#define LINK_QUALITY_SAMPLE_COUNT 16
+
+static uint8_t updateLinkQualitySamples(uint8_t value)
+{
+    static uint8_t samples[LINK_QUALITY_SAMPLE_COUNT];
+    static uint8_t sampleIndex = 0;
+    static unsigned sum = 0;
+
+    sum += value - samples[sampleIndex];
+    samples[sampleIndex] = value;
+    sampleIndex = (sampleIndex + 1) % LINK_QUALITY_SAMPLE_COUNT;
+    return sum / LINK_QUALITY_SAMPLE_COUNT;
+}
+#endif
+
+static void setLinkQuality(bool validFrame)
+{
+#ifdef USE_RX_LINK_QUALITY_INFO
+    // calculate new sample mean
+    linkQuality = updateLinkQualitySamples(validFrame ? LINK_QUALITY_MAX_VALUE : 0);
+#endif
+
+    if (rssiSource == RSSI_SOURCE_FRAME_ERRORS) {
+        setRssi(validFrame ? RSSI_MAX_VALUE : 0, RSSI_SOURCE_FRAME_ERRORS);
+    }
 }
 
 bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
@@ -354,14 +383,14 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
     bool useDataDrivenProcessing = true;
 
 #if defined(USE_PWM) || defined(USE_PPM)
-    if (feature(FEATURE_RX_PPM)) {
+    if (featureIsEnabled(FEATURE_RX_PPM)) {
         if (isPPMDataBeingReceived()) {
             signalReceived = true;
             rxIsInFailsafeMode = false;
             needRxSignalBefore = currentTimeUs + needRxSignalMaxDelayUs;
             resetPPMDataReceivedState();
         }
-    } else if (feature(FEATURE_RX_PARALLEL_PWM)) {
+    } else if (featureIsEnabled(FEATURE_RX_PARALLEL_PWM)) {
         if (isPWMDataBeingReceived()) {
             signalReceived = true;
             rxIsInFailsafeMode = false;
@@ -380,13 +409,7 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
                 needRxSignalBefore = currentTimeUs + needRxSignalMaxDelayUs;
             }
 
-            if (frameStatus & (RX_FRAME_FAILSAFE | RX_FRAME_DROPPED)) {
-            	// No (0%) signal
-            	setRssi(0, RSSI_SOURCE_FRAME_ERRORS);
-            } else {
-            	// Valid (100%) signal
-            	setRssi(RSSI_MAX_VALUE, RSSI_SOURCE_FRAME_ERRORS);
-            }
+            setLinkQuality(signalReceived);
         }
 
         if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
@@ -447,14 +470,14 @@ static uint16_t getRxfailValue(uint8_t channel)
         case YAW:
             return rxConfig()->midrc;
         case THROTTLE:
-            if (feature(FEATURE_3D) && !IS_RC_MODE_ACTIVE(BOX3D) && !flight3DConfig()->switched_mode3d) {
+            if (featureIsEnabled(FEATURE_3D) && !IS_RC_MODE_ACTIVE(BOX3D) && !flight3DConfig()->switched_mode3d) {
                 return rxConfig()->midrc;
             } else {
                 return rxConfig()->rx_min_usec;
             }
         }
-        /* no break */
 
+	FALLTHROUGH;
     default:
     case RX_FAILSAFE_MODE_INVALID:
     case RX_FAILSAFE_MODE_HOLD:
@@ -524,7 +547,7 @@ static void detectAndApplySignalLossBehaviour(void)
             }
         }
 #if defined(USE_PWM) || defined(USE_PPM)
-        if (feature(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM)) {
+        if (featureIsEnabled(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM)) {
             // smooth output for PWM and PPM
             rcData[channel] = calculateChannelMovingAverage(channel, sample);
         } else
@@ -597,24 +620,26 @@ void setRssiDirect(uint16_t newRssi, rssiSource_e source)
 
 #define RSSI_SAMPLE_COUNT 16
 
+static uint16_t updateRssiSamples(uint16_t value)
+{
+    static uint16_t samples[RSSI_SAMPLE_COUNT];
+    static uint8_t sampleIndex = 0;
+    static unsigned sum = 0;
+
+    sum += value - samples[sampleIndex];
+    samples[sampleIndex] = value;
+    sampleIndex = (sampleIndex + 1) % RSSI_SAMPLE_COUNT;
+    return sum / RSSI_SAMPLE_COUNT;
+}
+
 void setRssi(uint16_t rssiValue, rssiSource_e source)
 {
     if (source != rssiSource) {
         return;
     }
 
-    static uint16_t rssiSamples[RSSI_SAMPLE_COUNT];
-    static uint8_t rssiSampleIndex = 0;
-    static unsigned sum = 0;
-
-    sum = sum + rssiValue;
-    sum = sum - rssiSamples[rssiSampleIndex];
-    rssiSamples[rssiSampleIndex] = rssiValue;
-    rssiSampleIndex = (rssiSampleIndex + 1) % RSSI_SAMPLE_COUNT;
-
-    int16_t rssiMean = sum / RSSI_SAMPLE_COUNT;
-
-    rssi = rssiMean;
+    // calculate new sample mean
+    rssi = updateRssiSamples(rssiValue);
 }
 
 void setRssiMsp(uint8_t newMspRssi)
@@ -695,6 +720,18 @@ uint8_t getRssiPercent(void)
 {
     return scaleRange(getRssi(), 0, RSSI_MAX_VALUE, 0, 100);
 }
+
+#ifdef USE_RX_LINK_QUALITY_INFO
+uint8_t rxGetLinkQuality(void)
+{
+    return linkQuality;
+}
+
+uint8_t rxGetLinkQualityPercent(void)
+{
+    return scaleRange(rxGetLinkQuality(), 0, LINK_QUALITY_MAX_VALUE, 0, 100);
+}
+#endif
 
 uint16_t rxGetRefreshRate(void)
 {

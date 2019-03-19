@@ -44,9 +44,9 @@
 
 #define USE_DUAL_GYRO
 #define USE_EXTI
+#define USE_GYRO_EXTI
 #define GYRO_1_EXTI_PIN         PC4
 #define GYRO_2_EXTI_PIN         PC3
-#define MPU_INT_EXTI
 
 #define GYRO_1_CS_PIN           PB2
 #define GYRO_1_SPI_INSTANCE     SPI1
@@ -60,16 +60,12 @@
 #define USE_ACC
 #define USE_ACC_SPI_MPU6000
 #define USE_ACC_SPI_MPU6500
+ 
+#define GYRO_1_ALIGN            CW180_DEG_FLIP
+#define ACC_1_ALIGN             CW180_DEG_FLIP
 
-#define GYRO_MPU6000_1_ALIGN    CW180_DEG_FLIP
-#define ACC_MPU6000_1_ALIGN     CW180_DEG_FLIP
-#define GYRO_1_ALIGN            GYRO_MPU6000_1_ALIGN
-#define ACC_1_ALIGN             ACC_MPU6000_1_ALIGN
-
-#define GYRO_MPU6500_2_ALIGN    CW90_DEG
-#define ACC_MPU6500_2_ALIGN     CW90_DEG
-#define GYRO_2_ALIGN            GYRO_MPU6500_2_ALIGN
-#define ACC_2_ALIGN             ACC_MPU6500_2_ALIGN
+#define GYRO_2_ALIGN            CW90_DEG
+#define ACC_2_ALIGN             CW90_DEG
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
@@ -94,6 +90,7 @@
 #define USE_MAG
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_LIS3MDL
 
 // *************** SPI2 OSD ***********************
 
@@ -111,6 +108,7 @@
 // *************** SPI3 SD BLACKBOX****************
 
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define USE_SPI_DEVICE_3
@@ -121,13 +119,7 @@
 #define SDCARD_SPI_INSTANCE     SPI3
 #define SDCARD_SPI_CS_PIN       PD2
 
-#define SDCARD_DMA_STREAM_TX_FULL           DMA1_Stream5
-#define SDCARD_DMA_CHANNEL                  0
-
-// SPI3 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
+#define SPI3_TX_DMA_OPT                     0     // DMA 1 Stream 5 Channel 0
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -170,7 +162,9 @@
 
 // *************** ADC *****************************
 #define USE_ADC
-#define ADC1_DMA_STREAM         DMA2_Stream0
+#define ADC_INSTANCE         ADC1  // Default added
+#define ADC1_DMA_OPT            0  // DMA 2 Stream 0 Channel 0 
+
 #define VBAT_ADC_PIN            PC2
 #define CURRENT_METER_ADC_PIN   PC1
 #define RSSI_ADC_PIN            PC0

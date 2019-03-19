@@ -46,6 +46,19 @@
 uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE };
 uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE };
 
+void sensorsPreInit(void)
+{
+    gyroPreInit();
+
+#ifdef USE_MAG
+    compassPreInit();
+#endif
+
+#ifdef USE_BARO
+    baroPreInit();
+#endif
+}
+
 bool sensorsAutodetect(void)
 {
 
@@ -53,9 +66,11 @@ bool sensorsAutodetect(void)
 
     bool gyroDetected = gyroInit();
 
+#ifdef USE_ACC
     if (gyroDetected) {
         accInit(gyro.targetLooptime);
     }
+#endif
 
 #ifdef USE_MAG
     compassInit();

@@ -35,6 +35,11 @@ typedef struct rxSpiConfig_s {
     ioTag_t csnTag;
     uint8_t spibus;
 
+    ioTag_t bindIoTag;
+    ioTag_t ledIoTag;
+    uint8_t ledInversion;
+
+    ioTag_t extiIoTag;
 } rxSpiConfig_t;
 
 PG_DECLARE(rxSpiConfig_t, rxSpiConfig);

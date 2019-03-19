@@ -45,8 +45,14 @@
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 static boxBitmask_t stickyModesEverDisabled;
 
-PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions,
-                  PG_MODE_ACTIVATION_PROFILE, 1);
+static bool airmodeEnabled;
+
+static int activeMacCount = 0;
+static uint8_t activeMacArray[MAX_MODE_ACTIVATION_CONDITION_COUNT];
+static int activeLinkedMacCount = 0;
+static uint8_t activeLinkedMacArray[MAX_MODE_ACTIVATION_CONDITION_COUNT];
+
+PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 2);
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId)
 {
@@ -58,8 +64,8 @@ void rcModeUpdate(boxBitmask_t *newState)
     rcModeActivationMask = *newState;
 }
 
-bool isAirmodeActive(void) {
-    return (IS_RC_MODE_ACTIVE(BOXAIRMODE) || feature(FEATURE_AIRMODE));
+bool airmodeIsEnabled(void) {
+    return airmodeEnabled;
 }
 
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range) {
@@ -72,14 +78,34 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range) {
             channelValue < 900 + (range->endStep * 25));
 }
 
-void updateMasksForMac(const modeActivationCondition_t *mac, boxBitmask_t *andMask, boxBitmask_t *newMask)
+/*
+ *  updateMasksForMac:
+ * 
+ *  The following are the possible logic states at each MAC update:
+ *      AND     NEW
+ *      ---     ---
+ *       F       F      - no previous AND macs evaluated, no previous active OR macs
+ *       F       T      - at least 1 previous active OR mac (***this state is latched True***)
+ *       T       F      - all previous AND macs active, no previous active OR macs
+ *       T       T      - at least 1 previous inactive AND mac, no previous active OR macs
+ */
+void updateMasksForMac(const modeActivationCondition_t *mac, boxBitmask_t *andMask, boxBitmask_t *newMask, bool bActive)
 {
-    bool bAnd = (mac->modeLogic == MODELOGIC_AND) || bitArrayGet(andMask, mac->modeId);
-    bool bAct = isRangeActive(mac->auxChannelIndex, &mac->range);
-    if (bAnd)
-        bitArraySet(andMask, mac->modeId);
-    if (bAnd != bAct)
-        bitArraySet(newMask, mac->modeId);
+    if (bitArrayGet(andMask, mac->modeId) || !bitArrayGet(newMask, mac->modeId)) {
+        bool bAnd = mac->modeLogic == MODELOGIC_AND;
+        
+        if (!bAnd) {    // OR mac
+            if (bActive) {
+                bitArrayClr(andMask, mac->modeId);
+                bitArraySet(newMask, mac->modeId);
+            }
+        } else {        // AND mac
+            bitArraySet(andMask, mac->modeId);
+            if (!bActive) {
+                bitArraySet(newMask, mac->modeId);
+            }
+        }
+    }
 }
 
 void updateMasksForStickyModes(const modeActivationCondition_t *mac, boxBitmask_t *andMask, boxBitmask_t *newMask)
@@ -88,10 +114,12 @@ void updateMasksForStickyModes(const modeActivationCondition_t *mac, boxBitmask_
         bitArrayClr(andMask, mac->modeId);
         bitArraySet(newMask, mac->modeId);
     } else {
+        bool bActive = isRangeActive(mac->auxChannelIndex, &mac->range);
+
         if (bitArrayGet(&stickyModesEverDisabled, mac->modeId)) {
-            updateMasksForMac(mac, andMask, newMask);
+            updateMasksForMac(mac, andMask, newMask, bActive);
         } else {
-            if (micros() >= STICKY_MODE_BOOT_DELAY_US && !isRangeActive(mac->auxChannelIndex, &mac->range)) {
+            if (micros() >= STICKY_MODE_BOOT_DELAY_US && !bActive) {
                 bitArraySet(&stickyModesEverDisabled, mac->modeId);
             }
         }
@@ -107,35 +135,30 @@ void updateActivatedModes(void)
     bitArraySet(&stickyModes, BOXPARALYZE);
 
     // determine which conditions set/clear the mode
-    for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-        const modeActivationCondition_t *mac = modeActivationConditions(i);
-
-        // Skip linked macs for now to fully determine target states
-        if (mac->linkedTo) {
-            continue;
-        }
+    for (int i = 0; i < activeMacCount; i++) {
+        const modeActivationCondition_t *mac = modeActivationConditions(activeMacArray[i]);
 
         if (bitArrayGet(&stickyModes, mac->modeId)) {
             updateMasksForStickyModes(mac, &andMask, &newMask);
         } else if (mac->modeId < CHECKBOX_ITEM_COUNT) {
-            updateMasksForMac(mac, &andMask, &newMask);
+            bool bActive = isRangeActive(mac->auxChannelIndex, &mac->range);
+            updateMasksForMac(mac, &andMask, &newMask, bActive);
         }
+    }
+
+    // Update linked modes
+    for (int i = 0; i < activeLinkedMacCount; i++) {
+        const modeActivationCondition_t *mac = modeActivationConditions(activeLinkedMacArray[i]);
+        bool bActive = bitArrayGet(&andMask, mac->linkedTo) != bitArrayGet(&newMask, mac->linkedTo);
+
+        updateMasksForMac(mac, &andMask, &newMask, bActive);
     }
 
     bitArrayXor(&newMask, sizeof(&newMask), &newMask, &andMask);
 
-    // Update linked modes
-    for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-        const modeActivationCondition_t *mac = modeActivationConditions(i);
-
-        if (!mac->linkedTo) {
-            continue;
-        }
-
-        bitArrayCopy(&newMask, mac->linkedTo, mac->modeId);
-    }
-
     rcModeUpdate(&newMask);
+
+    airmodeEnabled = featureIsEnabled(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
 }
 
 bool isModeActivationConditionPresent(boxId_e modeId)
@@ -144,6 +167,19 @@ bool isModeActivationConditionPresent(boxId_e modeId)
         const modeActivationCondition_t *mac = modeActivationConditions(i);
 
         if (mac->modeId == modeId && (IS_RANGE_USABLE(&mac->range) || mac->linkedTo)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool isModeActivationConditionLinked(boxId_e modeId)
+{
+    for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
+        const modeActivationCondition_t *mac = modeActivationConditions(i);
+
+        if (mac->modeId == modeId && mac->linkedTo != 0) {
             return true;
         }
     }
@@ -171,6 +207,35 @@ void removeModeActivationCondition(const boxId_e modeId)
             } else {
                 memset(mac, 0, sizeof(modeActivationCondition_t));
             }
+        }
+    }
+}
+
+bool isModeActivationConditionConfigured(const modeActivationCondition_t *mac, const modeActivationCondition_t *emptyMac)
+{
+    if (memcmp(mac, emptyMac, sizeof(*emptyMac))) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// Build the list of used modeActivationConditions indices
+// We can then use this to speed up processing by only evaluating used conditions
+void analyzeModeActivationConditions(void)
+{
+    modeActivationCondition_t emptyMac;
+    memset(&emptyMac, 0, sizeof(emptyMac));
+
+    activeMacCount = 0;
+    activeLinkedMacCount = 0;
+
+    for (uint8_t i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
+        const modeActivationCondition_t *mac = modeActivationConditions(i);
+        if (mac->linkedTo) {
+            activeLinkedMacArray[activeLinkedMacCount++] = i;
+        } else if (isModeActivationConditionConfigured(mac, &emptyMac)) {
+            activeMacArray[activeMacCount++] = i;
         }
     }
 }

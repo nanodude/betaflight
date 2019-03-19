@@ -172,18 +172,11 @@ static void hmc5883lConfigureDataReadyInterruptHandling(magDev_t* mag)
     }
 #endif
 
-#if defined (STM32F7)
     IOInit(magIntIO, OWNER_COMPASS_EXTI, 0);
     EXTIHandlerInit(&mag->exti, hmc5883_extiHandler);
-    EXTIConfig(magIntIO, &mag->exti, NVIC_PRIO_MPU_INT_EXTI, IO_CONFIG(GPIO_MODE_INPUT,0,GPIO_NOPULL));
+    EXTIConfig(magIntIO, &mag->exti, NVIC_PRIO_MPU_INT_EXTI, IOCFG_IN_FLOATING, EXTI_TRIGGER_RISING);
     EXTIEnable(magIntIO, true);
-#else
-    IOInit(magIntIO, OWNER_COMPASS_EXTI, 0);
-    IOConfigGPIO(magIntIO, IOCFG_IN_FLOATING);
-    EXTIHandlerInit(&mag->exti, hmc5883_extiHandler);
-    EXTIConfig(magIntIO, &mag->exti, NVIC_PRIO_MAG_INT_EXTI, EXTI_Trigger_Rising);
     EXTIEnable(magIntIO, true);
-#endif
 #else
     UNUSED(mag);
 #endif
@@ -197,7 +190,11 @@ static void hmc5883SpiInit(busDevice_t *busdev)
     IOInit(busdev->busdev_u.spi.csnPin, OWNER_COMPASS_CS, 0);
     IOConfigGPIO(busdev->busdev_u.spi.csnPin, IOCFG_OUT_PP);
 
-    spiSetDivisor(busdev->busdev_u.spi.instance, SPI_CLOCK_STANDARD);
+#ifdef USE_SPI_TRANSACTION
+    spiBusTransactionInit(busdev, SPI_MODE3_POL_HIGH_EDGE_2ND, SPI_CLOCK_STANDARD);
+#else
+    spiBusSetDivisor(busdev, SPI_CLOCK_STANDARD);
+#endif
 }
 #endif
 

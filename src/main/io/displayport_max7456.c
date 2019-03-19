@@ -33,7 +33,8 @@
 #include "fc/config.h"
 
 #include "io/displayport_max7456.h"
-#include "io/osd.h"
+
+#include "osd/osd.h"
 
 #include "pg/max7456.h"
 #include "pg/pg.h"
@@ -60,7 +61,6 @@ static int grab(displayPort_t *displayPort)
     // FIXME this should probably not have a dependency on the OSD or OSD slave code
     UNUSED(displayPort);
 #ifdef USE_OSD
-    osdResetAlarms();
     resumeRefreshAt = 0;
 #endif
 
@@ -166,11 +166,7 @@ static const displayPortVTable_t max7456VTable = {
 displayPort_t *max7456DisplayPortInit(const vcdProfile_t *vcdProfile)
 {
     if (
-#ifdef USE_OSD_SLAVE
-        !max7456Init(max7456Config(), vcdProfile, false)
-#else
         !max7456Init(max7456Config(), vcdProfile, systemConfig()->cpu_overclock)
-#endif
     ) {
         return NULL;
     }

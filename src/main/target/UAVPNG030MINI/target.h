@@ -34,16 +34,17 @@
 #define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE   SPI1
+#define GYRO_1_CS_PIN          PA4
+#define GYRO_1_SPI_INSTANCE    SPI1
 
 // TODO
-#define GYRO_MPU6000_ALIGN       CW180_DEG
-#define ACC_MPU6000_ALIGN        CW180_DEG
+#define GYRO_1_ALIGN           CW180_DEG
+#define ACC_1_ALIGN            CW180_DEG
 
 // MPU6000 interrupts
 #define USE_EXTI
-#define MPU_INT_EXTI             PE0
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN          PE0
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_MAG
@@ -57,32 +58,20 @@
 #define USE_BARO
 #define USE_BARO_MS5611
 #define USE_BARO_SPI_MS5611
-#define MS5611_CS_PIN           PE1
-#define MS5611_SPI_INSTANCE     SPI1
+#define BARO_CS_PIN             PE1
+#define BARO_SPI_INSTANCE       SPI1
 
 #if 0 // TODO: Enable SDCard and blackbox logging
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN               PE2
 #define SDCARD_SPI_INSTANCE             SPI2
 #define SDCARD_SPI_CS_PIN               SPI2_NSS_PIN
-// SPI2 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 4 // 21MHz
-
-#define SDCARD_DMA_CHANNEL_TX                   DMA1_Stream4
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG     DMA_FLAG_TCIF4
-#define SDCARD_DMA_CLK                          RCC_AHB1Periph_DMA1
+#warning Missing channel for F4/F7 spec dma 1 stream 4; DMA_OPT assumed as 0
+#define SPI2_TX_DMA_OPT                         0     // DMA 1 Stream 4 Channel unknown
 #define SDCARD_DMA_CHANNEL                      DMA_Channel_0
-#elif defined(LUXF4OSD)
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#define FLASH_CS_PIN            PB12
-#define FLASH_SPI_INSTANCE      SPI2
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
 #endif
 
 #define USE_VCP
@@ -91,7 +80,6 @@
 #define USE_UART1
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
-//#define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
 
 #define USE_UART2
 #define UART2_RX_PIN            PD6
@@ -109,7 +97,7 @@
 
 // TODO
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
+#define ESCSERIAL_TIMER_TX_PIN  PA2
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1

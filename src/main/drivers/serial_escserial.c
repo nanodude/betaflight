@@ -50,6 +50,7 @@
 
 typedef enum {
     BAUDRATE_NORMAL = 19200,
+    BAUDRATE_SIMONK = 28800, // = 9600 * 3
     BAUDRATE_KISS   = 38400,
     BAUDRATE_CASTLE = 18880
 } escBaudRate_e;
@@ -432,6 +433,7 @@ static void serialTimerRxConfigBL(const timerHardware_t *timerHardwarePtr, uint8
     timerChConfigCallbacks(timerHardwarePtr, &escSerialPorts[reference].edgeCb, NULL);
 }
 
+#ifdef USE_ESCSERIAL_SIMONK
 static void processTxStateEsc(escSerial_t *escSerial)
 {
     uint8_t mask;
@@ -643,6 +645,7 @@ static void escSerialTimerRxConfig(const timerHardware_t *timerHardwarePtr, uint
     timerChCCHandlerInit(&escSerialPorts[reference].edgeCb, onSerialRxPinChangeEsc);
     timerChConfigCallbacks(timerHardwarePtr, &escSerialPorts[reference].edgeCb, NULL);
 }
+#endif
 
 static void resetBuffers(escSerial_t *escSerial)
 {
@@ -662,7 +665,7 @@ static serialPort_t *openEscSerial(escSerialPortIndex_e portIndex, serialReceive
     escSerial_t *escSerial = &(escSerialPorts[portIndex]);
 
     if (mode != PROTOCOL_KISSALL) {
-        escSerial->rxTimerHardware = &(timerHardware[output]);
+        escSerial->rxTimerHardware = &(TIMER_HARDWARE[output]);
         // N-Channels can't be used as RX.
         if (escSerial->rxTimerHardware->output & TIMER_OUTPUT_N_CHANNEL) {
             return NULL;
@@ -706,11 +709,14 @@ static serialPort_t *openEscSerial(escSerialPortIndex_e portIndex, serialReceive
     }
     delay(50);
 
+#ifdef USE_ESCSERIAL_SIMONK
     if (mode==PROTOCOL_SIMONK) {
         escSerialTimerTxConfig(escSerial->txTimerHardware, portIndex);
         escSerialTimerRxConfig(escSerial->rxTimerHardware, portIndex);
     }
-    else if (mode==PROTOCOL_BLHELI) {
+    else
+#endif
+    if (mode==PROTOCOL_BLHELI) {
         serialTimerTxConfigBL(escSerial->txTimerHardware, portIndex, baud);
         serialTimerRxConfigBL(escSerial->rxTimerHardware, portIndex, options);
     }
@@ -725,11 +731,11 @@ static serialPort_t *openEscSerial(escSerialPortIndex_e portIndex, serialReceive
         for (volatile uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             if (pwmMotors[i].enabled) {
                 if (pwmMotors[i].io != IO_NONE) {
-                    for (volatile uint8_t j = 0; j < USABLE_TIMER_CHANNEL_COUNT; j++) {
-                        if (pwmMotors[i].io == IOGetByTag(timerHardware[j].tag))
+                    for (volatile uint8_t j = 0; j < TIMER_CHANNEL_COUNT; j++) {
+                        if (pwmMotors[i].io == IOGetByTag(TIMER_HARDWARE[j].tag))
                         {
-                            escSerialOutputPortConfig(&timerHardware[j]);
-                            if (timerHardware[j].output & TIMER_OUTPUT_INVERTED) {
+                            escSerialOutputPortConfig(&TIMER_HARDWARE[j]);
+                            if (TIMER_HARDWARE[j].output & TIMER_OUTPUT_INVERTED) {
                                 escOutputs[escSerial->outputCount].inverted = 1;
                             }
                             break;
@@ -952,8 +958,8 @@ void escEnablePassthrough(serialPort_t *escPassthroughPort, uint16_t output, uin
     }
     else {
         uint8_t first_output = 0;
-        for (unsigned i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {
-            if (timerHardware[i].usageFlags & TIM_USE_MOTOR) {
+        for (unsigned i = 0; i < TIMER_CHANNEL_COUNT; i++) {
+            if (TIMER_HARDWARE[i].usageFlags & TIM_USE_MOTOR) {
                 first_output = i;
                 break;
             }
@@ -961,7 +967,7 @@ void escEnablePassthrough(serialPort_t *escPassthroughPort, uint16_t output, uin
 
         //doesn't work with messy timertable
         motor_output = first_output + output;
-        if (motor_output >= USABLE_TIMER_CHANNEL_COUNT) {
+        if (motor_output >= TIMER_CHANNEL_COUNT) {
             return;
         }
     }
