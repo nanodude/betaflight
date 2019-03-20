@@ -39,7 +39,7 @@
 #include "io/ledstrip.h"
 #include "io/serial.h"
 #include "io/beeper.h"
-#include "io/osd.h"
+#include "osd/osd.h"
 
 #include "telemetry/telemetry.h"
 
