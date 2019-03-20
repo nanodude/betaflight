@@ -57,8 +57,11 @@ uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #include "fpga_drv.h"
 #endif
 
+#ifndef USE_BRAINFPV_FPGA
 static ioTag_t ledStripIoTag;
 static bool ws2811Initialised = false;
+#endif
+
 volatile bool ws2811LedDataTransferInProgress = false;
 
 uint16_t BIT_COMPARE_1 = 0;
@@ -118,14 +121,14 @@ void ws2811LedStripInit(ioTag_t ioTag)
     ws2811UpdateStrip(LED_RGB);
 }
 
+#ifndef USE_BRAINFPV_FPGA
+
 void ws2811LedStripEnable(void)
 {
     if (!ws2811Initialised) {
         if (!ws2811LedStripHardwareInit(ledStripIoTag)) {
             return;
         }
-
-#ifndef USE_BRAINFPV_FPGA
 STATIC_UNIT_TESTED uint16_t dmaBufferOffset;
 static int16_t ledIndex;
         const hsvColor_t hsv_black = { 0, 0, 0 };
@@ -190,6 +193,16 @@ void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
 #else
 static uint8_t last_active_led = 0;
 static uint8_t led_data[WS2811_LED_STRIP_LENGTH * 3];
+
+
+void ws2811LedStripEnable(void)
+{
+}
+
+bool isWS2811LedStripReady(void)
+{
+    return true;
+}
 
 void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
 {
