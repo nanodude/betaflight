@@ -170,6 +170,7 @@
                 .global ResetHandler
 ResetHandler:
   				// Check if we need to jump to bootloader. Defined in C code
+  				bl persistentObjectInit
   				bl checkForBootLoaderRequest
 
                 /* Interrupts are globally masked initially.*/
