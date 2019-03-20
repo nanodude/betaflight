@@ -252,6 +252,7 @@ static int16_t BMI160_do_foc(const busDevice_t *bus)
 
 extiCallbackRec_t bmi160IntCallbackRec;
 
+#if defined(USE_MPU_DATA_READY_SIGNAL)
 #if defined(USE_CHIBIOS)
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
 {
@@ -266,7 +267,6 @@ void bmi160ExtiHandler(extiCallbackRec_t *cb)
     CH_IRQ_EPILOGUE();
 }
 #else
-#if defined(USE_MPU_DATA_READY_SIGNAL)
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
 {
     gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
