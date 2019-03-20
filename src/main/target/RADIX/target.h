@@ -77,15 +77,16 @@
 #define USE_GYRO
 #define USE_ACC
 
+#define USE_MPU_DATA_READY_SIGNAL
+#define USE_GYRO_EXTI
 #define USE_SPI_GYRO
 #define USE_ACCGYRO_BMI160
 #define USE_GYRO_SPI_BMI160
 #define USE_ACC_SPI_BMI160
 
-#define GYRO_BMI160_ALIGN    CW0_DEG
-#define ACC_BMI160_ALIGN     CW0_DEG
 #define BMI160_SPI_DIVISOR   16
 
+#define GYRO_1_EXTI_PIN           PC13
 #define GYRO_1_CS_PIN             PB4
 #define GYRO_1_SPI_INSTANCE       SPI3
 #define GYRO_1_ALIGN              CW0_DEG
