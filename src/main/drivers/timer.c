@@ -727,7 +727,7 @@ _TIM_IRQ_HANDLER(TIM2_IRQHandler, 2);
 #if USED_TIMERS & TIM_N(3)
 _TIM_IRQ_HANDLER(TIM3_IRQHandler, 3);
 #endif
-#if USED_TIMERS & TIM_N(4)
+#if USED_TIMERS & TIM_N(4) && !defined(USE_CHIBIOS)
 _TIM_IRQ_HANDLER(TIM4_IRQHandler, 4);
 #endif
 #if USED_TIMERS & TIM_N(5)
