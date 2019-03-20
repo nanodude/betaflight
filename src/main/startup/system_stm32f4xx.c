@@ -401,7 +401,10 @@ static void SystemInit_ExtMemCtl(void);
   * @retval None
   */
 
+#if !defined(USE_CHIBIOS)
 uint32_t SystemCoreClock;
+#endif
+
 uint32_t pll_src, pll_input, pll_m, pll_p, pll_n, pll_q;
 
 // SystemSYSCLKSource
