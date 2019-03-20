@@ -75,7 +75,7 @@
 #include "io/ledstrip.h"
 #include "io/serial.h"
 #include "io/beeper.h"
-#include "io/osd.h"
+#include "osd/osd.h"
 
 #include "telemetry/telemetry.h"
 
@@ -162,6 +162,11 @@ enum BrainFPVOSDMode {
 #define MAX_Y(y) (y * 18)
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
+
+void max7456PreInit(const max7456Config_t *max7456Config)
+{
+    (void)max7456Config;
+}
 
 bool max7456Init(const struct max7456Config_s *max7456Config, const struct vcdProfile_s *vcdProfile, bool cpuOverclock)
 {
