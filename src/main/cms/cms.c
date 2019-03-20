@@ -1069,7 +1069,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
         case OME_UINT32:
             if (p->data) {
                 OSD_UINT32_t *ptr = p->data;
-                if (key == KEY_RIGHT) {
+                if (key == CMS_KEY_RIGHT) {
                     if (*ptr->val < ptr->max)
                         *ptr->val += ptr->step;
                 }
@@ -1094,15 +1094,15 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
 #ifdef BRAINFPV
     OSD_UINT16_t *ptr = p->data;
     if (ptr == &entryIRTrackmate){
-        if (key == KEY_RIGHT) {
+        if (key == CMS_KEY_RIGHT) {
             *ptr->val = ir_next_valid_trackmateid(*ptr->val - 1, 1);
         }
-        if (key == KEY_LEFT) {
+        if (key == CMS_KEY_LEFT) {
             *ptr->val = ir_next_valid_trackmateid(*ptr->val + 1, -1);
         }
     }
     if (currentCtx.menu == &cmsx_menuBrainFPVOsd) {
-        if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
+        if ((key == CMS_KEY_RIGHT) || (key == CMS_KEY_LEFT)) {
             brainfpv_settings_updated = true;
             brainfpv_settings_updated_from_cms = true;
         }
