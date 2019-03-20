@@ -77,23 +77,27 @@
 #define USE_GYRO
 #define USE_ACC
 
+#define USE_SPI_GYRO
 #define USE_ACCGYRO_BMI160
 #define USE_GYRO_SPI_BMI160
 #define USE_ACC_SPI_BMI160
+
 #define GYRO_BMI160_ALIGN    CW0_DEG
 #define ACC_BMI160_ALIGN     CW0_DEG
-#define BMI160_SPI_INSTANCE  SPI3
 #define BMI160_SPI_DIVISOR   16
-#define BMI160_CS_PIN        PB4
-#define BMI160_INT_EXTI      PC13
+
+#define GYRO_1_CS_PIN             PB4
+#define GYRO_1_SPI_INSTANCE       SPI3
+#define GYRO_1_ALIGN              CW0_DEG
+#define ACC_1_ALIGN               CW0_DEG
 
 #define USE_BARO
 #define USE_BARO_SPI_BMP280
 #define DEFAULT_BARO_SPI_BMP280
 #define BARO_ZERO_ON_ARM
 #define BMP280_SPI_DIVISOR   16
-#define BMP280_SPI_INSTANCE     SPI3
-#define BMP280_CS_PIN           PB8
+#define BARO_SPI_INSTANCE    SPI3
+#define BARO_CS_PIN          PB8
 
 #define USABLE_TIMER_CHANNEL_COUNT 8
 
@@ -148,6 +152,7 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_SPI_INSTANCE                 SPI1
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN                   PB13
@@ -178,6 +183,6 @@
 #define USE_DSHOT
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
 
-bool brainfpv_settings_updated;
-bool brainfpv_settings_updated_from_cms;
+extern bool brainfpv_settings_updated;
+extern bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);
