@@ -355,6 +355,8 @@ SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
 SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
 
 SRC += $(wildcard $(DSP_LIB)/Source/*/*.S)
+
+DEVICE_FLAGS += -DFFT_SIZE_32
 endif
 
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
@@ -448,6 +450,7 @@ endif
 
 ifneq ($(filter SPECTROGRAPH,$(FEATURES)),)
 SRC += brainfpv/spectrograph.c
+DEVICE_FLAGS += -DFFT_SIZE_512
 endif
 
 ifneq ($(filter MSC,$(FEATURES)),)
