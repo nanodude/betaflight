@@ -65,7 +65,7 @@
 #include "io/ledstrip.h"
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/transponder_ir.h"
-#include "io/osd.h"
+#include "osd/osd.h"
 
 #include "scheduler/scheduler.h"
 

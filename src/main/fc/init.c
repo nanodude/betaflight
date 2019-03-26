@@ -573,7 +573,7 @@ void init(void)
 #endif
 
 #ifdef USE_DASHBOARD
-    if (feature(FEATURE_DASHBOARD)) {
+    if (featureIsEnabled(FEATURE_DASHBOARD)) {
         dashboardInit();
     }
 #endif
