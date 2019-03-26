@@ -745,12 +745,17 @@ void osdUpdate(timeUs_t currentTimeUs)
 #endif
 
     // redraw values in buffer
+#ifdef USE_BRAINFPV_OSD
+#define DRAW_FREQ_DENOM   1
+#define STATS_FREQ_DENOM  50
+#else
 #ifdef USE_MAX7456
 #define DRAW_FREQ_DENOM 5
 #else
 #define DRAW_FREQ_DENOM 10 // MWOSD @ 115200 baud (
 #endif
 #define STATS_FREQ_DENOM    50
+#endif
 
     if (counter % DRAW_FREQ_DENOM == 0) {
         osdRefresh(currentTimeUs);

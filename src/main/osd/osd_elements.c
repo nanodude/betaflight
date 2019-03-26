@@ -102,6 +102,9 @@
 #include "sensors/sensors.h"
 #include "sensors/rpm_filter.h"
 
+#if defined(USE_BRAINFPV_OSD)
+#include "brainfpv/brainfpv_osd.h"
+#endif // USE_BRAINFPV_OSD
 
 #define AH_SYMBOL_COUNT 9
 #define AH_SIDEBAR_WIDTH_POS 7
@@ -1288,7 +1291,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_MAIN_BATT_VOLTAGE]       = osdElementMainBatteryVoltage,
     [OSD_CROSSHAIRS]              = osdElementCrosshairs,
 #ifdef USE_ACC
-    [OSD_ARTIFICIAL_HORIZON]      = osdElementArtificialHorizon,
+    [OSD_ARTIFICIAL_HORIZON]      = osdElementArtificialHorizon_BrainFPV,
 #endif
     [OSD_HORIZON_SIDEBARS]        = osdElementHorizonSidebars,
     [OSD_ITEM_TIMER_1]            = osdElementTimer,

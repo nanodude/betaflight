@@ -6,6 +6,8 @@
 #include "brainfpv/video.h"
 #include "pg/pg.h"
 
+#include "osd/osd_elements.h"
+
 typedef struct bfOsdConfig_s {
     uint8_t sync_threshold;
     uint8_t white_level;
@@ -46,7 +48,8 @@ void brainFpvOsdInit(void);
 void osdMain(void);
 void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig);
 
-void brainFpvOsdArtificialHorizon(void);
+void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element);
+//void brainFpvOsdArtificialHorizon(void);
 void brainFpvOsdCenterMark(void);
 void brainFpvOsdUserLogo(uint16_t x, uint16_t y);
 void brainFpvOsdMainLogo(uint16_t x, uint16_t y);

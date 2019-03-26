@@ -94,6 +94,7 @@
 #include "fc/runtime_config.h"
 #include "fc/rc_modes.h"
 
+
 #if defined(USE_BRAINFPV_OSD) | 1
 
 PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_CONFIG, 0);
@@ -411,12 +412,13 @@ void osdMain(void) {
     }
 }
 
-void brainFpvOsdArtificialHorizon(void)
+void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element)
 {
     simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
                               GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
                               GRAPHICS_BOTTOM * 0.8f, GRAPHICS_RIGHT * 0.8f, 30,
                               bfOsdConfig()->ahi_steps);
+    element->drawElement = false;
 }
 
 #define CENTER_BODY       3
