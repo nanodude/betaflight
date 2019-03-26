@@ -90,6 +90,11 @@
 #include "hardware_revision.h"
 #endif
 
+#ifdef USE_BRAINFPV_OSD
+#include "brainfpv/brainfpv_osd.h"
+extern bool osdArming;
+#endif
+
 const char * const osdTimerSourceNames[] = {
     "ON TIME  ",
     "TOTAL ARM",
@@ -623,19 +628,26 @@ static void osdShowStats(uint16_t endBatteryVoltage)
 #endif
 }
 
-static void osdShowArmed(void)
+void osdShowArmed(void)
 {
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12, 7, "ARMED");
+    if (bfOsdConfig()->show_logo_on_arm) {
+        #define GY (GRAPHICS_BOTTOM / 2 - 30)
+        brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
+    }
+
+    displayWrite(osdDisplayPort, 12, 11, "ARMED");
 }
+
+bool osdStatsVisible = false;
 
 STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
     static bool osdStatsEnabled = false;
-    static bool osdStatsVisible = false;
     static timeUs_t osdStatsRefreshTimeUs;
     static uint16_t endBatteryVoltage;
+
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -644,7 +656,12 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdStatsVisible = false;
             osdResetStats();
             osdShowArmed();
+#ifdef USE_BRAINFPV_OSD
+            osdArming = true;
+            resumeRefreshAt = currentTimeUs + (REFRESH_1S);
+#else
             resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
+#endif
         } else if (isSomeStatEnabled()
                    && !suppressStatsDisplay
                    && (!(getArmingDisableFlags() & ARMING_DISABLED_RUNAWAY_TAKEOFF)
@@ -678,7 +695,7 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
                     osdStatsRefreshTimeUs = 0;
                 }
                 if (currentTimeUs >= osdStatsRefreshTimeUs) {
-                    osdStatsRefreshTimeUs = currentTimeUs + REFRESH_1S;
+                    osdStatsRefreshTimeUs = 0;
                     osdShowStats(endBatteryVoltage);
                 }
             }
@@ -699,6 +716,9 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             resumeRefreshAt = 0;
             osdStatsEnabled = false;
             stats.armed_time = 0;
+#ifdef USE_BRAINFPV_OSD
+            osdArming = false;
+#endif
         }
     }
 

@@ -94,6 +94,7 @@
 #include "fc/runtime_config.h"
 #include "fc/rc_modes.h"
 
+#include "cms/cms.h"
 
 #if defined(USE_BRAINFPV_OSD) | 1
 
@@ -140,8 +141,10 @@ extern uint8_t *disp_buffer;
 
 extern bool blinkState;
 extern bool cmsInMenu;
+extern bool osdStatsVisible;
+bool osdArming = false;
 
-bool osd_arming_or_stats = false;
+
 bool brainfpv_user_avatar_set = false;
 bool brainfpv_hd_frame_menu = false;
 extern bfOsdConfig_t bfOsdConfigCms;
@@ -152,6 +155,7 @@ static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, in
 void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 void draw_map_uav_center();
 void draw_hd_frame(const bfOsdConfig_t * config);
+void osdShowArmed(void);
 
 
 enum BrainFPVOSDMode {
@@ -351,6 +355,7 @@ void osdUpdateLocal()
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
 
 void osdMain(void) {
+    uint32_t draw_cnt = 0;
     uint32_t key_time = 0;
     uint32_t currentTime;
 
@@ -394,9 +399,17 @@ void osdMain(void) {
         else {
             switch (mode) {
                 case MODE_BETAFLIGHT:
-                    osdUpdate(currentTime);
-                    if (!cmsInMenu && !osd_arming_or_stats){
-                        osdUpdateLocal();
+                    if ((draw_cnt % 20 == 0) || cmsInMenu) {
+                        cmsUpdate(currentTime);
+                    }
+                    if (!cmsInMenu){
+                        osdUpdate(currentTime);
+                        if (!osdStatsVisible && !osdArming) {
+                            osdUpdateLocal();
+                        }
+                        if (osdArming) {
+                            osdShowArmed();
+                        }
                     }
                     if (cmsInMenu && brainfpv_hd_frame_menu) {
                         draw_hd_frame(&bfOsdConfigCms);
@@ -411,6 +424,7 @@ void osdMain(void) {
                     break;
             }
         }
+        draw_cnt += 1;
     }
 }
 
