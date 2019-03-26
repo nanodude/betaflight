@@ -216,6 +216,19 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON] = OSD_POS(14, 2);
     osdConfig->item_pos[OSD_HORIZON_SIDEBARS]   = OSD_POS(14, 6);
 
+#ifdef USE_BRAINFPV_OSD
+    osdConfig->item_pos[OSD_RSSI_VALUE]         = OSD_POS(8, 1)   | profileFlags;
+    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(12, 1)  | profileFlags;
+    osdConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(13, 6)   | profileFlags;
+    osdConfig->item_pos[OSD_ITEM_TIMER_1]       = OSD_POS(22, 1)  | profileFlags;
+    osdConfig->item_pos[OSD_ITEM_TIMER_2]       = OSD_POS(1, 1)   | profileFlags;
+    osdConfig->item_pos[OSD_FLYMODE]            = OSD_POS(1, 2)   | profileFlags;
+    osdConfig->item_pos[OSD_CRAFT_NAME]         = OSD_POS(10, 11) | profileFlags;
+    osdConfig->item_pos[OSD_CURRENT_DRAW]       = OSD_POS(1, 11)  | profileFlags;
+    osdConfig->item_pos[OSD_MAH_DRAWN]          = OSD_POS(1, 10)  | profileFlags;
+    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = OSD_POS(12, 2)  | profileFlags;
+#endif
+
     // Enable the default stats
     osdConfig->enabled_stats = 0; // reset all to off and enable only a few initially
     osdStatSetState(OSD_STAT_MAX_SPEED, true);
