@@ -65,7 +65,7 @@ arm_status arm_rfft_fast_init_f32(
   /*  Initializations of structure parameters depending on the FFT length */
   switch (Sint->fftLen)
   {
-#if defined(FFT_SIZE_2048)
+#if defined(FFT_SIZE_4096)
   case 2048U:
     /*  Initializations of structure parameters for 2048 point FFT */
     /*  Initialise the bit reversal table length */
@@ -77,7 +77,7 @@ arm_status arm_rfft_fast_init_f32(
 		S->pTwiddleRFFT    = (float32_t *) twiddleCoef_rfft_4096;
     break;
 #endif
-#if defined(FFT_SIZE_1024)
+#if defined(FFT_SIZE_2048)
   case 1024U:
     Sint->bitRevLength = ARMBITREVINDEXTABLE_1024_TABLE_LENGTH;
     Sint->pBitRevTable = (uint16_t *)armBitRevIndexTable1024;
@@ -85,7 +85,7 @@ arm_status arm_rfft_fast_init_f32(
 		S->pTwiddleRFFT    = (float32_t *) twiddleCoef_rfft_2048;
     break;
 #endif
-#if defined(FFT_SIZE_512)
+#if defined(FFT_SIZE_1024)
   case 512U:
     Sint->bitRevLength = ARMBITREVINDEXTABLE_512_TABLE_LENGTH;
     Sint->pBitRevTable = (uint16_t *)armBitRevIndexTable512;
@@ -93,7 +93,7 @@ arm_status arm_rfft_fast_init_f32(
 		S->pTwiddleRFFT    = (float32_t *) twiddleCoef_rfft_1024;
     break;
 #endif
-#if defined(FFT_SIZE_256)
+#if defined(FFT_SIZE_512)
   case 256U:
     Sint->bitRevLength = ARMBITREVINDEXTABLE_256_TABLE_LENGTH;
     Sint->pBitRevTable = (uint16_t *)armBitRevIndexTable256;
@@ -101,7 +101,7 @@ arm_status arm_rfft_fast_init_f32(
 		S->pTwiddleRFFT    = (float32_t *) twiddleCoef_rfft_512;
     break;
 #endif
-#if defined(FFT_SIZE_128)
+#if defined(FFT_SIZE_256)
   case 128U:
     Sint->bitRevLength = ARMBITREVINDEXTABLE_128_TABLE_LENGTH;
     Sint->pBitRevTable = (uint16_t *)armBitRevIndexTable128;
@@ -109,7 +109,7 @@ arm_status arm_rfft_fast_init_f32(
 		S->pTwiddleRFFT    = (float32_t *) twiddleCoef_rfft_256;
     break;
 #endif
-#if defined(FFT_SIZE_64)
+#if defined(FFT_SIZE_128)
   case 64U:
     Sint->bitRevLength = ARMBITREVINDEXTABLE_64_TABLE_LENGTH;
     Sint->pBitRevTable = (uint16_t *)armBitRevIndexTable64;
@@ -117,7 +117,7 @@ arm_status arm_rfft_fast_init_f32(
 		S->pTwiddleRFFT    = (float32_t *) twiddleCoef_rfft_128;
     break;
 #endif
-#if defined(FFT_SIZE_32)
+#if defined(FFT_SIZE_64)
   case 32U:
     Sint->bitRevLength = ARMBITREVINDEXTABLE_32_TABLE_LENGTH;
     Sint->pBitRevTable = (uint16_t *)armBitRevIndexTable32;
@@ -125,7 +125,7 @@ arm_status arm_rfft_fast_init_f32(
 		S->pTwiddleRFFT    = (float32_t *) twiddleCoef_rfft_64;
     break;
 #endif
-#if defined(FFT_SIZE_16)
+#if defined(FFT_SIZE_32)
   case 16U:
     Sint->bitRevLength = ARMBITREVINDEXTABLE_16_TABLE_LENGTH;
     Sint->pBitRevTable = (uint16_t *)armBitRevIndexTable16;
