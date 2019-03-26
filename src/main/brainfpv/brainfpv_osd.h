@@ -48,11 +48,18 @@ void brainFpvOsdInit(void);
 void osdMain(void);
 void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig);
 
-void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element);
+
 //void brainFpvOsdArtificialHorizon(void);
 void brainFpvOsdCenterMark(void);
 void brainFpvOsdUserLogo(uint16_t x, uint16_t y);
 void brainFpvOsdMainLogo(uint16_t x, uint16_t y);
-void brainFfpvOsdHomeArrow(int home_dir, uint16_t x, uint16_t y);
+
+void osdElementDummy_BrainFPV(osdElementParms_t *element);
+void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element);
+void osdElementGpsHomeDirection_BrainFPV(osdElementParms_t *element);
+void osdElementCraftName_BrainFPV(osdElementParms_t *element);
+void osdElementCrosshairs_BrainFPV(osdElementParms_t *element);
+
+
 
 #endif /* BRAINFPV_OSD */

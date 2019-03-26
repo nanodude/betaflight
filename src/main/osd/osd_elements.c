@@ -153,7 +153,7 @@ static unsigned activeOsdElementCount = 0;
 static uint8_t activeOsdElementArray[OSD_ITEM_COUNT];
 
 // Blink control
-static bool blinkState = true;
+bool blinkState = true;
 static uint32_t blinkBits[(OSD_ITEM_COUNT + 31) / 32];
 #define SET_BLINK(item) (blinkBits[(item) / 32] |= (1 << ((item) % 32)))
 #define CLR_BLINK(item) (blinkBits[(item) / 32] &= ~(1 << ((item) % 32)))
@@ -497,7 +497,7 @@ static void osdElementCoreTemperature(osdElementParms_t *element)
 }
 #endif // USE_ADC_INTERNAL
 
-static void osdElementCraftName(osdElementParms_t *element)
+void osdElementCraftName(osdElementParms_t *element)
 {
     // This does not strictly support iterative updating if the craft name changes at run time. But since the craft name is not supposed to be changing this should not matter, and blanking the entire length of the craft name string on update will make it impossible to configure elements to be displayed on the right hand side of the craft name.
     //TODO: When iterative updating is implemented, change this so the craft name is only printed once whenever the OSD 'flight' screen is entered.
@@ -1289,15 +1289,15 @@ static const uint8_t osdElementDisplayOrder[] = {
 const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_RSSI_VALUE]              = osdElementRssi,
     [OSD_MAIN_BATT_VOLTAGE]       = osdElementMainBatteryVoltage,
-    [OSD_CROSSHAIRS]              = osdElementCrosshairs,
+    [OSD_CROSSHAIRS]              = osdElementCrosshairs_BrainFPV,
 #ifdef USE_ACC
     [OSD_ARTIFICIAL_HORIZON]      = osdElementArtificialHorizon_BrainFPV,
 #endif
-    [OSD_HORIZON_SIDEBARS]        = osdElementHorizonSidebars,
+    [OSD_HORIZON_SIDEBARS]        = osdElementDummy_BrainFPV,
     [OSD_ITEM_TIMER_1]            = osdElementTimer,
     [OSD_ITEM_TIMER_2]            = osdElementTimer,
     [OSD_FLYMODE]                 = osdElementFlymode,
-    [OSD_CRAFT_NAME]              = osdElementCraftName,
+    [OSD_CRAFT_NAME]              = osdElementCraftName_BrainFPV,
     [OSD_THROTTLE_POS]            = osdElementThrottlePosition,
 #ifdef USE_VTX_COMMON
     [OSD_VTX_CHANNEL]             = osdElementVtxChannel,
@@ -1328,7 +1328,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_MAIN_BATT_USAGE]         = osdElementMainBatteryUsage,
     [OSD_DISARMED]                = osdElementDisarmed,
 #ifdef USE_GPS
-    [OSD_HOME_DIR]                = osdElementGpsHomeDirection,
+    [OSD_HOME_DIR]                = osdElementGpsHomeDirection_BrainFPV,
     [OSD_HOME_DIST]               = osdElementGpsHomeDistance,
 #endif
     [OSD_NUMERICAL_HEADING]       = osdElementNumericalHeading,

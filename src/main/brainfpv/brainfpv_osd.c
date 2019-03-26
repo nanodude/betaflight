@@ -138,7 +138,9 @@ extern binary_semaphore_t onScreenDisplaySemaphore;
 extern uint8_t *draw_buffer;
 extern uint8_t *disp_buffer;
 
+extern bool blinkState;
 extern bool cmsInMenu;
+
 bool osd_arming_or_stats = false;
 bool brainfpv_user_avatar_set = false;
 bool brainfpv_hd_frame_menu = false;
@@ -159,8 +161,8 @@ enum BrainFPVOSDMode {
 
 /*******************************************************************************/
 // MAX7456 Emulation
-#define MAX_X(x) (x * 12)
-#define MAX_Y(y) (y * 18)
+#define MAX_X(x) ((uint16_t)x * 12)
+#define MAX_Y(y) ((uint16_t)y * 18)
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
@@ -412,30 +414,10 @@ void osdMain(void) {
     }
 }
 
-void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element)
-{
-    simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
-                              GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
-                              GRAPHICS_BOTTOM * 0.8f, GRAPHICS_RIGHT * 0.8f, 30,
-                              bfOsdConfig()->ahi_steps);
-    element->drawElement = false;
-}
 
-#define CENTER_BODY       3
-#define CENTER_WING       7
-#define CENTER_RUDDER     5
+
+
 #define PITCH_STEP       10
-void brainFpvOsdCenterMark(void)
-{
-    write_line_outlined(GRAPHICS_X_MIDDLE - CENTER_WING - CENTER_BODY, GRAPHICS_Y_MIDDLE ,
-            GRAPHICS_X_MIDDLE - CENTER_BODY, GRAPHICS_Y_MIDDLE, 2, 0, 0, 1);
-    write_line_outlined(GRAPHICS_X_MIDDLE + 1 + CENTER_BODY, GRAPHICS_Y_MIDDLE,
-            GRAPHICS_X_MIDDLE + 1 + CENTER_BODY + CENTER_WING, GRAPHICS_Y_MIDDLE, 0, 2, 0, 1);
-    write_line_outlined(GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE - CENTER_RUDDER - CENTER_BODY, GRAPHICS_X_MIDDLE,
-            GRAPHICS_Y_MIDDLE - CENTER_BODY, 2, 0, 0, 1);
-}
-
-
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch, uint8_t n_pitch_steps)
 {
@@ -597,12 +579,8 @@ const point_t HOME_ARROW[] = {
     }
 };
 
-void brainFfpvOsdHomeArrow(int home_dir, uint16_t x, uint16_t y)
-{
-    x = MAX_X(x);
-    y = MAX_Y(y);
-    draw_polygon(x, y, home_dir, HOME_ARROW, 7, 0, 1);
-}
+
+
 
 #define MAP_MAX_DIST_PX 70
 void draw_map_uav_center()
@@ -679,6 +657,65 @@ void draw_hd_frame(const bfOsdConfig_t * config)
             break;
     }
 }
+
+
+
+void osdElementDummy_BrainFPV(osdElementParms_t *element)
+{
+    element->drawElement = false;
+}
+
+void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element)
+{
+    simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
+                              GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
+                              GRAPHICS_BOTTOM * 0.8f, GRAPHICS_RIGHT * 0.8f, 30,
+                              bfOsdConfig()->ahi_steps);
+    element->drawElement = false;
+}
+
+
+void osdElementGpsHomeDirection_BrainFPV(osdElementParms_t *element)
+{
+    bool valid = false;
+    if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && (GPS_distanceToHome > 0)) {
+        valid = true;
+    }
+    int home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+    if (valid || !blinkState) {
+        draw_polygon(MAX_X(element->elemPosX), MAX_X(element->elemPosY), home_dir, HOME_ARROW, 7, 0, 1);
+    }
+    element->drawElement = false;
+}
+
+void osdElementCraftName(osdElementParms_t *element);
+
+void osdElementCraftName_BrainFPV(osdElementParms_t *element)
+{
+    if (brainfpv_user_avatar_set && bfOsdConfig()->show_pilot_logo) {
+        brainFpvOsdUserLogo(element->elemPosX + 4, element->elemPosY);
+        element->drawElement = false;
+    }
+    else {
+        osdElementCraftName(element);
+    }
+}
+
+#define CENTER_BODY       3
+#define CENTER_WING       7
+#define CENTER_RUDDER     5
+void osdElementCrosshairs_BrainFPV(osdElementParms_t *element)
+{
+    write_line_outlined(GRAPHICS_X_MIDDLE - CENTER_WING - CENTER_BODY, GRAPHICS_Y_MIDDLE ,
+            GRAPHICS_X_MIDDLE - CENTER_BODY, GRAPHICS_Y_MIDDLE, 2, 0, 0, 1);
+    write_line_outlined(GRAPHICS_X_MIDDLE + 1 + CENTER_BODY, GRAPHICS_Y_MIDDLE,
+            GRAPHICS_X_MIDDLE + 1 + CENTER_BODY + CENTER_WING, GRAPHICS_Y_MIDDLE, 0, 2, 0, 1);
+    write_line_outlined(GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE - CENTER_RUDDER - CENTER_BODY, GRAPHICS_X_MIDDLE,
+            GRAPHICS_Y_MIDDLE - CENTER_BODY, 2, 0, 0, 1);
+    element->drawElement = false;
+}
+
+
 
 #endif /* USE_BRAINFPV_OSD */
 
