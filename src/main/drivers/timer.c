@@ -38,6 +38,10 @@
 #include "timer.h"
 #include "timer_impl.h"
 
+#if defined(USE_CHIBIOS)
+#include "mcuconf.h"
+#endif
+
 #define TIM_N(n) (1 << (n))
 
 /*
@@ -724,10 +728,10 @@ _TIM_IRQ_HANDLER(TIM1_UP_TIM16_IRQHandler, 1);       // timer16 is not used
 #if USED_TIMERS & TIM_N(2)
 _TIM_IRQ_HANDLER(TIM2_IRQHandler, 2);
 #endif
-#if USED_TIMERS & TIM_N(3)
+#if USED_TIMERS & TIM_N(3) & (STM32_ST_USE_TIMER != 3)
 _TIM_IRQ_HANDLER(TIM3_IRQHandler, 3);
 #endif
-#if USED_TIMERS & TIM_N(4) && !defined(USE_CHIBIOS)
+#if USED_TIMERS & TIM_N(4) & (STM32_ST_USE_TIMER != 4)
 _TIM_IRQ_HANDLER(TIM4_IRQHandler, 4);
 #endif
 #if USED_TIMERS & TIM_N(5)
