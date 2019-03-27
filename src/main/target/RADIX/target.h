@@ -27,6 +27,7 @@
 
 #define USE_TARGET_CONFIG
 
+
 #define LED0_PIN                PA4
 #define LED1_PIN                NONE
 #define LED0_INVERTED
@@ -167,8 +168,9 @@
 #define SDCARD_DMA_CHANNEL                   DMA_Channel_3
 
 #define DEFAULT_FEATURES        (FEATURE_OSD)
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
-#define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_UART           SERIAL_PORT_USART3
+#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define SERIALRX_PROVIDER       SERIALRX_CRSF
 
 #define SPEKTRUM_BIND
 // PPM input
