@@ -518,7 +518,9 @@ void writeMotors(void)
 {
     if (pwmAreMotorsEnabled()) {
 #if defined(USE_DSHOT) && defined(USE_DSHOT_TELEMETRY)
-        pwmStartMotorUpdate(motorCount);
+        if (!pwmStartMotorUpdate(motorCount)) {
+            return;
+        }
 #endif
         for (int i = 0; i < motorCount; i++) {
             pwmWriteMotor(i, motor[i]);
@@ -1037,3 +1039,15 @@ float mixerGetLoggingThrottle(void)
 {
     return loggingThrottle;
 }
+
+#ifdef USE_DSHOT_TELEMETRY
+bool isDshotTelemetryActive(void)
+{
+    for (uint8_t i = 0; i < motorCount; i++) {
+        if (!isDshotMotorTelemetryActive(i)) {
+            return false;
+        }
+    }
+    return true;
+}
+#endif
