@@ -77,6 +77,7 @@
 #define USE_EXTI
 #define USE_GYRO
 #define USE_ACC
+#undef USE_MULTI_GYRO
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define USE_GYRO_EXTI
