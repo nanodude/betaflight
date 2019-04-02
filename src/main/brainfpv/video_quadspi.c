@@ -40,7 +40,9 @@
 #include "drivers/light_led.h"
 #include "drivers/time.h"
 
-static IO_t debugPin = IO_NONE;
+#ifdef VIDEO_DEBUG_PIN
+static IO_t debugPin;
+#endif
 static IO_t hsync_io;
 static IO_t vsync_io;
 
@@ -216,9 +218,13 @@ void Vsync_ISR(extiCallbackRec_t *cb)
 void Hsync_ISR(extiCallbackRec_t *cb)
 {
     (void)cb;
+#ifdef VIDEO_DEBUG_PIN
+    IOHi(debugPin);
+#endif
     active_line++;
     //LED1_TOGGLE;
     EXTI->PR = 0x04;
+
 
     if ((active_line >= 0) && (active_line < video_type_cfg_act->graphics_hight_real)) {
         // Check if QUADSPI is busy
@@ -240,12 +246,13 @@ void Hsync_ISR(extiCallbackRec_t *cb)
 
         // Enable DMA
         uint32_t cr = DMA2_Stream7->CR;
-        IOHi(debugPin);
         DMA2_Stream7->CR = cr | (uint32_t)DMA_SxCR_EN;
-        IOLo(debugPin);
 
         buffer_offset += BUFFER_WIDTH;
     }
+#ifdef VIDEO_DEBUG_PIN
+    IOLo(debugPin);
+#endif
 }
 
 /**
@@ -342,17 +349,22 @@ void Video_Init()
     // Enable the QUADSPI
     QSPI_Cmd(ENABLE);
 
+#ifdef VIDEO_DEBUG_PIN
+    debugPin = IOGetByTag(IO_TAG(VIDEO_DEBUG_PIN));
+    IOConfigGPIO(debugPin, IO_CONFIG(GPIO_Mode_OUT, GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_DOWN));
+#endif
+
     // VSYNC interrupt
     vsync_io = IOGetByTag(IO_TAG(VIDEO_VSYNC));
     IOInit(vsync_io, OWNER_OSD, 0);
     EXTIHandlerInit(&vsyncIntCallbackRec, Vsync_ISR);
-    EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, IOCFG_IN_FLOATING, EXTI_TRIGGER_FALLING);
+    EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_BUILD_PRIORITY(3, 1), IOCFG_IN_FLOATING, EXTI_TRIGGER_FALLING);
 
     // HSYNC interrupt
     hsync_io = IOGetByTag(IO_TAG(VIDEO_HSYNC));
     IOInit(hsync_io, OWNER_OSD, 0);
     EXTIHandlerInit(&hsyncIntCallbackRec, Hsync_ISR);
-    EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, IOCFG_IN_FLOATING, EXTI_TRIGGER_FALLING);
+    EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_BUILD_PRIORITY(1, 1), IOCFG_IN_FLOATING, EXTI_TRIGGER_FALLING);
 
     // Enable interrupts
     EXTIEnable(vsync_io, true);
