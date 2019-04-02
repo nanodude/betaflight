@@ -77,7 +77,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 2 * 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 3 * 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
