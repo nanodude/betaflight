@@ -176,7 +176,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .acro_trainer_lookahead_ms = 50,
         .acro_trainer_debug_axis = FD_ROLL,
         .acro_trainer_gain = 75,
-        .abs_control_gain = 10,
+        .abs_control_gain = 0,
         .abs_control_limit = 90,
         .abs_control_error_limit = 20,
         .abs_control_cutoff = 11,
@@ -203,7 +203,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .transient_throttle_limit = 15,
     );
 #ifdef USE_DYN_LPF
-    pidProfile->dterm_lowpass_hz = 150;
+    pidProfile->dterm_lowpass_hz = 0;
     pidProfile->dterm_lowpass2_hz = 150;
     pidProfile->dterm_filter_type = FILTER_BIQUAD;
     pidProfile->dterm_filter2_type = FILTER_BIQUAD;
@@ -339,7 +339,9 @@ void pidInitFilters(const pidProfile_t *pidProfile)
     uint16_t dterm_lowpass_hz = pidProfile->dterm_lowpass_hz;
 
 #ifdef USE_DYN_LPF
-    dterm_lowpass_hz = MAX(pidProfile->dterm_lowpass_hz, pidProfile->dyn_lpf_dterm_min_hz);
+    if (pidProfile->dyn_lpf_dterm_min_hz) {
+        dterm_lowpass_hz = pidProfile->dyn_lpf_dterm_min_hz;
+    }
 #endif
 
     if (dterm_lowpass_hz > 0 && dterm_lowpass_hz < pidFrequencyNyquist) {
@@ -1007,7 +1009,7 @@ STATIC_UNIT_TESTED void rotateItermAndAxisError()
 {
     if (itermRotation
 #if defined(USE_ABSOLUTE_CONTROL)
-        || acGain > 0
+        || acGain > 0 || debugMode == DEBUG_AC_ERROR
 #endif
         ) {
         const float gyroToAngle = dT * RAD;
@@ -1016,7 +1018,7 @@ STATIC_UNIT_TESTED void rotateItermAndAxisError()
             rotationRads[i] = gyro.gyroADCf[i] * gyroToAngle;
         }
 #if defined(USE_ABSOLUTE_CONTROL)
-        if (acGain > 0) {
+        if (acGain > 0 || debugMode == DEBUG_AC_ERROR) {
             rotateVector(axisError, rotationRads);
         }
 #endif
@@ -1076,7 +1078,7 @@ void FAST_CODE applySmartFeedforward(int axis)
 #if defined(USE_ABSOLUTE_CONTROL)
 STATIC_UNIT_TESTED void applyAbsoluteControl(const int axis, const float gyroRate, float *currentPidSetpoint, float *itermErrorRate)
 {
-    if (acGain > 0) {
+    if (acGain > 0 || debugMode == DEBUG_AC_ERROR) {
         const float setpointLpf = pt1FilterApply(&acLpf[axis], *currentPidSetpoint);
         const float setpointHpf = fabsf(*currentPidSetpoint - setpointLpf);
         float acErrorRate = 0;
@@ -1103,10 +1105,12 @@ STATIC_UNIT_TESTED void applyAbsoluteControl(const int axis, const float gyroRat
             const float acCorrection = constrainf(axisError[axis] * acGain, -acLimit, acLimit);
             *currentPidSetpoint += acCorrection;
             *itermErrorRate += acCorrection;
+            DEBUG_SET(DEBUG_AC_CORRECTION, axis, lrintf(acCorrection * 10));
             if (axis == FD_ROLL) {
                 DEBUG_SET(DEBUG_ITERM_RELAX, 3, lrintf(acCorrection * 10));
             }
         }
+        DEBUG_SET(DEBUG_AC_ERROR, axis, lrintf(axisError[axis] * 10));
     }
 }
 #endif
@@ -1117,25 +1121,28 @@ STATIC_UNIT_TESTED void applyItermRelax(const int axis, const float iterm,
     const float setpointLpf = pt1FilterApply(&windupLpf[axis], *currentPidSetpoint);
     const float setpointHpf = fabsf(*currentPidSetpoint - setpointLpf);
 
-    if (itermRelax && (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY || itermRelax == ITERM_RELAX_RPY_INC)) {
-        const float itermRelaxFactor = MAX(0, 1 - setpointHpf / itermRelaxSetpointThreshold);
-        const bool isDecreasingI =
-            ((iterm > 0) && (*itermErrorRate < 0)) || ((iterm < 0) && (*itermErrorRate > 0));
-        if ((itermRelax >= ITERM_RELAX_RP_INC) && isDecreasingI) {
-            // Do Nothing, use the precalculed itermErrorRate
-        } else if (itermRelaxType == ITERM_RELAX_SETPOINT) {
-            *itermErrorRate *= itermRelaxFactor;
-        } else if (itermRelaxType == ITERM_RELAX_GYRO ) {
-            *itermErrorRate = fapplyDeadband(setpointLpf - gyroRate, setpointHpf);
-        } else {
-            *itermErrorRate = 0.0f;
+    if (itermRelax) {
+        if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY || itermRelax == ITERM_RELAX_RPY_INC) {
+            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / itermRelaxSetpointThreshold);
+            const bool isDecreasingI =
+                ((iterm > 0) && (*itermErrorRate < 0)) || ((iterm < 0) && (*itermErrorRate > 0));
+            if ((itermRelax >= ITERM_RELAX_RP_INC) && isDecreasingI) {
+                // Do Nothing, use the precalculed itermErrorRate
+            } else if (itermRelaxType == ITERM_RELAX_SETPOINT) {
+                *itermErrorRate *= itermRelaxFactor;
+            } else if (itermRelaxType == ITERM_RELAX_GYRO ) {
+                *itermErrorRate = fapplyDeadband(setpointLpf - gyroRate, setpointHpf);
+            } else {
+                *itermErrorRate = 0.0f;
+            }
+
+            if (axis == FD_ROLL) {
+                DEBUG_SET(DEBUG_ITERM_RELAX, 0, lrintf(setpointHpf));
+                DEBUG_SET(DEBUG_ITERM_RELAX, 1, lrintf(itermRelaxFactor * 100.0f));
+                DEBUG_SET(DEBUG_ITERM_RELAX, 2, lrintf(*itermErrorRate));
+            }
         }
 
-        if (axis == FD_ROLL) {
-            DEBUG_SET(DEBUG_ITERM_RELAX, 0, lrintf(setpointHpf));
-            DEBUG_SET(DEBUG_ITERM_RELAX, 1, lrintf(itermRelaxFactor * 100.0f));
-            DEBUG_SET(DEBUG_ITERM_RELAX, 2, lrintf(*itermErrorRate));
-        }
 #if defined(USE_ABSOLUTE_CONTROL)
         applyAbsoluteControl(axis, gyroRate, currentPidSetpoint, itermErrorRate);
 #endif
