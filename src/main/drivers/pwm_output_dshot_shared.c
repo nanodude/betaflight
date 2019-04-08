@@ -140,9 +140,9 @@ static uint16_t decodeDshotPacket(uint32_t buffer[])
         int diff = buffer[i] - buffer[i-1];
         value <<= 1;
         if (diff > 0) {
-            if (diff >= 11) value |= 1;
+            if (diff >= (MOTOR_BITLENGTH / 2 + 1)) value |= 1;
         } else {
-            if (diff >= -9) value |= 1;
+            if (diff >= -(MOTOR_BITLENGTH / 2 - 1)) value |= 1;
         }
     }
 
