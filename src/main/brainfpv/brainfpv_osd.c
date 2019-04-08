@@ -80,6 +80,7 @@
 #include "telemetry/telemetry.h"
 
 #include "flight/mixer.h"
+#include "flight/position.h"
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 
@@ -291,7 +292,7 @@ void brainFpvOsdWelcome(void)
 
 static int32_t getAltitude(void)
 {
-    int32_t alt = baro.BaroAlt;
+    int32_t alt = getEstimatedAltitudeCm();
     switch (osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
             return (alt * 328) / 100; // Convert to feet / 100
@@ -317,7 +318,7 @@ static float getVelocity(void)
 
 void osdUpdateLocal()
 {
-    if (bfOsdConfig()->altitude_scale && sensors(SENSOR_BARO)) {
+    if (bfOsdConfig()->altitude_scale && (sensors(SENSOR_BARO) || sensors(SENSOR_GPS))) {
         float altitude = getAltitude() / 100.f;
         osd_draw_vertical_scale(altitude, 100, 1, GRAPHICS_RIGHT - 20, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
     }
