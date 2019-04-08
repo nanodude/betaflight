@@ -56,7 +56,7 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MOTOR | TIM_USE_LED, 0, 0), // S5_OUT
 #endif
 #if defined(SYNERGYF4)
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_ANY,                 0, 0), // CAM_CTL
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_CAMERA_CONTROL,      0, 0), // CAM_CTL
 #else
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MOTOR,               0, 0), // S6_OUT
 #endif

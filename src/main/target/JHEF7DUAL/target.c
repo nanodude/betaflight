@@ -38,5 +38,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM8, CH3, PC8,  TIM_USE_MOTOR, 0, 0),   // S6
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_LED, 0, 0),     // LED STRIP
-    DEF_TIM(TIM4, CH3, PB8,  TIM_USE_ANY, 0, 0),     // FC CAM
+    DEF_TIM(TIM4, CH3, PB8,  TIM_USE_CAMERA_CONTROL, 0, 0), // FC CAM
 };

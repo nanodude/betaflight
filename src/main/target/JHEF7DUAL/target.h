@@ -25,8 +25,6 @@
 #define TARGET_BOARD_IDENTIFIER "JH7D"
 #define USBD_PRODUCT_STRING     "JHEF7DUAL"
 
-#define CAMERA_CONTROL_PIN      PB8
-
 #define ENABLE_DSHOT_DMAR       true
 
 #define LED0_PIN                PA15
