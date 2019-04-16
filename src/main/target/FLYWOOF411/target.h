@@ -27,8 +27,6 @@
 
 #define LED0_PIN                PC13
 
-#define CAMERA_CONTROL_PIN      PB10
-
 #define USE_BEEPER
 #define BEEPER_PIN              PC14
 #define BEEPER_INVERTED
@@ -41,27 +39,22 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define MPU6000_CS_PIN          PA4
-#define ICM20689_CS_PIN         PA4
-#define MPU6000_SPI_INSTANCE    SPI1
-#define ICM20689_SPI_INSTANCE   SPI1
+#define GYRO_1_CS_PIN          PA4
+#define GYRO_1_SPI_INSTANCE    SPI1
+#define GYRO_1_ALIGN      CW180_DEG
 
 #define USE_EXTI
 #define USE_GYRO_EXTI
-#define MPU_INT_EXTI         PB3
+#define GYRO_1_EXTI_PIN         PB3
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
 #define USE_GYRO_SPI_ICM20689
-#define ACC_ICM20689_ALIGN       CW180_DEG
 #define USE_ACC
 #define USE_ACC_SPI_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
 #define USE_ACC_SPI_ICM20689
-#define ACC_ICM20689_ALIGN       CW180_DEG
 
 // *************** Baro **************************
 #define USE_I2C

@@ -26,43 +26,28 @@
 #define ENABLE_DSHOT_DMAR       true
 #define LED0_PIN                PC13
 
-#define CAMERA_CONTROL_PIN      PB0
-
 #define USE_BEEPER
 #define BEEPER_PIN              PB1
 #define BEEPER_INVERTED
 //#define BEEPER_PWM_HZ           1100
 
 #define USE_EXTI
-#define MPU_INT_EXTI PC4
+#define USE_GYRO_EXTI
 #define USE_MPU_DATA_READY_SIGNAL                   
 
 #define USE_ACC
 #define USE_GYRO
-//------MPU6000
-#define MPU6000_CS_PIN           PA4 
-#define MPU6000_SPI_INSTANCE     SPI1
-
-#define USE_GYRO_SPI_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG_FLIP
-
-#define USE_ACC_SPI_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG_FLIP
-
-#define USE_ACC_MPU6000
-#define USE_ACC_SPI_MPU6000
 #define USE_GYRO_MPU6000
 #define USE_GYRO_SPI_MPU6000
-
-//------ICM20602
-#define MPU6500_CS_PIN          PA4 
-#define MPU6500_SPI_INSTANCE    SPI1
-
 #define USE_GYRO_SPI_MPU6500
-#define GYRO_MPU6500_ALIGN      CW270_DEG_FLIP
-
+#define USE_ACC_MPU6000
+#define USE_ACC_SPI_MPU6000
 #define USE_ACC_SPI_MPU6500
-#define ACC_MPU6500_ALIGN       CW270_DEG_FLIP
+
+#define GYRO_1_CS_PIN           PA4 
+#define GYRO_1_SPI_INSTANCE     SPI1
+#define GYRO_1_EXTI_PIN PC4
+#define GYRO_1_ALIGN      CW270_DEG_FLIP
 
 #define USE_BARO
 #define USE_BARO_MS5611

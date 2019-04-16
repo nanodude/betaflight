@@ -39,14 +39,10 @@
 #define PINIO1_PIN              PC0 // VTX power switcher
 #define USE_PINIOBOX
 
-/*----------CAMERA CONTROL---------*/
-#define CAMERA_CONTROL_PIN      PA10
-/*---------------------------------*/
-
 /*------------SENSORS--------------*/
 // MPU interrupt
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define GYRO_1_INT_EXTI_PIN            PC4
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
@@ -54,14 +50,13 @@
 #define USE_GYRO
 #define USE_ACC
 
-#define MPU6000_CS_PIN          SPI1_NSS_PIN
-#define MPU6000_SPI_INSTANCE    SPI1
-
 #define USE_GYRO_SPI_MPU6000
-#define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
-
 #define USE_ACC_SPI_MPU6000
-#define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
+
+#define GYRO_1_CS_PIN          SPI1_NSS_PIN
+#define GYRO_1_SPI_INSTANCE    SPI1
+
+#define GYRO_1_ALIGN      CW90_DEG_FLIP
 /*---------------------------------*/
 
 
