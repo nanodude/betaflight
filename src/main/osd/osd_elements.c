@@ -677,7 +677,7 @@ static void osdElementFlymode(osdElementParms_t *element)
     //  5. ACRO
 
     if (FLIGHT_MODE(FAILSAFE_MODE)) {
-        strcpy(element->buff, "!FS!");
+        strcpy(element->buff, "*FS*");
     } else if (FLIGHT_MODE(GPS_RESCUE_MODE)) {
         strcpy(element->buff, "RESC");
     } else if (FLIGHT_MODE(HEADFREE_MODE)) {
@@ -1283,7 +1283,9 @@ static const uint8_t osdElementDisplayOrder[] = {
     OSD_MAIN_BATT_USAGE,
     OSD_DISARMED,
     OSD_NUMERICAL_HEADING,
+#ifdef USE_VARIO
     OSD_NUMERICAL_VARIO,
+#endif
     OSD_COMPASS_BAR,
     OSD_ANTI_GRAVITY,
 #ifdef USE_BLACKBOX

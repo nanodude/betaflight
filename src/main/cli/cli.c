@@ -136,6 +136,7 @@ extern uint8_t __config_end;
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 #include "pg/rx.h"
+#include "pg/rx_spi_cc2500.h"
 #include "pg/rx_spi.h"
 #include "pg/rx_pwm.h"
 #include "pg/serial_uart.h"
@@ -4532,11 +4533,11 @@ const cliResourceValue_t resourceTable[] = {
     DEFS( OWNER_RX_SPI_EXTI,   PG_RX_SPI_CONFIG, rxSpiConfig_t, extiIoTag ),
     DEFS( OWNER_RX_SPI_BIND,   PG_RX_SPI_CONFIG, rxSpiConfig_t, bindIoTag ),
     DEFS( OWNER_RX_SPI_LED,    PG_RX_SPI_CONFIG, rxSpiConfig_t, ledIoTag ),
-#if defined(USE_RX_SPI_CC2500) && defined(USE_RX_CC2500_SPI_PA_LNA)
-    DEFS( OWNER_RX_SPI_CC2500_TX_EN,   PG_RX_SPI_CC2500_CONFIG, rxCc2500SpiConfig_t, txEnIoTag ),
-    DEFS( OWNER_RX_SPI_CC2500_LNA_EN,  PG_RX_SPI_CC2500_CONFIG, rxCc2500SpiConfig_t, lnaEnIoTag ),
+#if defined(USE_RX_CC2500) && defined(USE_RX_CC2500_SPI_PA_LNA)
+    DEFS( OWNER_RX_SPI_CC2500_TX_EN,   PG_RX_CC2500_SPI_CONFIG, rxCc2500SpiConfig_t, txEnIoTag ),
+    DEFS( OWNER_RX_SPI_CC2500_LNA_EN,  PG_RX_CC2500_SPI_CONFIG, rxCc2500SpiConfig_t, lnaEnIoTag ),
 #if defined(USE_RX_CC2500_SPI_DIVERSITY)
-    DEFS( OWNER_RX_SPI_CC2500_ANT_SEL, PG_RX_SPI_CC2500_CONFIG, rxCc2500SpiConfig_t, antSelIoTag ),
+    DEFS( OWNER_RX_SPI_CC2500_ANT_SEL, PG_RX_CC2500_SPI_CONFIG, rxCc2500SpiConfig_t, antSelIoTag ),
 #endif
 #endif
 #endif
@@ -5317,7 +5318,7 @@ static void cliTimer(char *cmdline)
             }
         }
 
-        uint8_t oldTimerIndex = isExistingTimerOpt ? timerIOConfig(timerIOIndex)->index - 1 : 0;
+        int oldTimerIndex = isExistingTimerOpt ? timerIOConfig(timerIOIndex)->index - 1 : -1;
         timerIOConfigMutable(timerIOIndex)->ioTag = timerIndex == TIMER_INDEX_UNDEFINED ? IO_TAG_NONE : ioTag;
         timerIOConfigMutable(timerIOIndex)->index = timerIndex + 1;
         timerIOConfigMutable(timerIOIndex)->dmaopt = DMA_OPT_UNUSED;
