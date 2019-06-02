@@ -56,6 +56,8 @@
 
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
 
+#define CRSF_LINK_TIMEOUT_US 3000000
+
 STATIC_UNIT_TESTED bool crsfFrameDone = false;
 STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
 STATIC_UNIT_TESTED uint32_t crsfChannelData[CRSF_MAX_CHANNEL];
@@ -64,6 +66,8 @@ static serialPort_t *serialPort;
 static uint32_t crsfFrameStartAtUs = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
+
+crsfLinkInfo_t crsf_link_info;
 
 /*
  * CRSF protocol
@@ -113,6 +117,21 @@ struct crsfPayloadRcChannelsPacked_s {
 } __attribute__ ((__packed__));
 
 typedef struct crsfPayloadRcChannelsPacked_s crsfPayloadRcChannelsPacked_t;
+
+struct crsfPayloadLinkStatistics_s {
+    uint8_t     uplinkRSSIAnt1;
+    uint8_t     uplinkRSSIAnt2;
+    uint8_t     uplinkLQ;
+    int8_t      uplinkSNR;
+    uint8_t     activeAntenna;
+    uint8_t     rfMode;
+    uint8_t     uplinkTXPower;
+    uint8_t     downlinkRSSI;
+    uint8_t     downlinkLQ;
+    int8_t      downlinkSNR;
+} __attribute__ ((__packed__));
+
+typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
 
 STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
 {
@@ -188,9 +207,19 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *data)
     }
 }
 
+volatile crsfPayloadLinkStatistics_t* linkStats;
+
 STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    static bool link_stats_received = false;
     UNUSED(rxRuntimeConfig);
+
+    if (link_stats_received) {
+        if (micros() - crsf_link_info.updated_us > CRSF_LINK_TIMEOUT_US) {
+            memset(&crsf_link_info, 0, sizeof(crsf_link_info));
+            link_stats_received = true;
+        }
+    }
 
     if (crsfFrameDone) {
         crsfFrameDone = false;
@@ -219,6 +248,68 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             crsfChannelData[14] = rcChannels->chan14;
             crsfChannelData[15] = rcChannels->chan15;
             return RX_FRAME_COMPLETE;
+        }
+        else if (crsfFrame.frame.type == CRSF_FRAMETYPE_LINK_STATISTICS) {
+            // CRC includes type and payload of each frame
+            const uint8_t crc = crsfFrameCRC();
+            if (crc != crsfFrame.frame.payload[CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE]) {
+                return RX_FRAME_PENDING;
+            }
+            crsfFrame.frame.frameLength = CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC;
+
+            linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
+
+            crsf_link_info.lq = linkStats->uplinkLQ;
+            if (linkStats->rfMode == 2) {
+                crsf_link_info.lq *= 3;
+            }
+
+            switch (linkStats->uplinkTXPower) {
+                case 0:
+                    crsf_link_info.tx_power = 0;
+                    break;
+                case 1:
+                    crsf_link_info.tx_power = 10;
+                    break;
+                case 2:
+                    crsf_link_info.tx_power = 25;
+                    break;
+                case 3:
+                    crsf_link_info.tx_power = 100;
+                    break;
+                case 4:
+                    crsf_link_info.tx_power = 500;
+                    break;
+                case 5:
+                    crsf_link_info.tx_power = 1000;
+                    break;
+                case 6:
+                    crsf_link_info.tx_power = 2000;
+                    break;
+                case 7:
+                    crsf_link_info.tx_power = 250;
+                    break;
+                default:
+                    crsf_link_info.tx_power = 0;
+                    break;
+            }
+
+            if (linkStats->uplinkRSSIAnt1 == 0) {
+                crsf_link_info.rssi = linkStats->uplinkRSSIAnt2;
+            }
+            else if (linkStats->uplinkRSSIAnt2 == 0) {
+                crsf_link_info.rssi = linkStats->uplinkRSSIAnt1;
+            }
+            else {
+                crsf_link_info.rssi = MIN(linkStats->uplinkRSSIAnt1, linkStats->uplinkRSSIAnt2);
+            }
+
+            crsf_link_info.snr = linkStats->uplinkSNR;
+            crsf_link_info.updated_us = micros();
+            link_stats_received = true;
+
+            // This is not RC channels frame, update channel value but don't indicate frame completion
+            return RX_FRAME_PENDING;
         }
     }
     return RX_FRAME_PENDING;
