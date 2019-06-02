@@ -36,7 +36,10 @@ typedef struct bfOsdConfig_s {
     uint8_t hd_frame_height;
     int8_t hd_frame_h_offset;
     int8_t hd_frame_v_offset;
-
+    uint8_t crsf_link_stats;
+    uint8_t crsf_link_stats_power;
+    uint8_t crsf_link_stats_rssi;
+    uint8_t crsf_link_stats_snr;
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     uint8_t spec_enabled;
 #endif
@@ -59,7 +62,6 @@ void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element);
 void osdElementGpsHomeDirection_BrainFPV(osdElementParms_t *element);
 void osdElementCraftName_BrainFPV(osdElementParms_t *element);
 void osdElementCrosshairs_BrainFPV(osdElementParms_t *element);
-
-
+void osdElementRssi_BrainFPV(osdElementParms_t *element);
 
 #endif /* BRAINFPV_OSD */

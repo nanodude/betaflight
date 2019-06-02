@@ -937,7 +937,7 @@ static void osdElementRemainingTimeEstimate(osdElementParms_t *element)
     }
 }
 
-static void osdElementRssi(osdElementParms_t *element)
+void osdElementRssi(osdElementParms_t *element)
 {
     uint16_t osdRssi = getRssi() * 100 / 1024; // change range
     if (osdRssi >= 100) {
@@ -1317,7 +1317,7 @@ static const uint8_t osdElementDisplayOrder[] = {
 // Define the mapping between the OSD element id and the function to draw it
 
 const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
-    [OSD_RSSI_VALUE]              = osdElementRssi,
+    [OSD_RSSI_VALUE]              = osdElementRssi_BrainFPV,
     [OSD_MAIN_BATT_VOLTAGE]       = osdElementMainBatteryVoltage,
     [OSD_CROSSHAIRS]              = osdElementCrosshairs_BrainFPV,
 #ifdef USE_ACC
