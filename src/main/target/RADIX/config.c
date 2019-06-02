@@ -28,6 +28,7 @@
 #include "flight/mixer.h"
 #include "sensors/gyro.h"
 #include "blackbox/blackbox.h"
+#include "osd/osd.h"
 
 void targetConfiguration(void)
 {
@@ -35,5 +36,6 @@ void targetConfiguration(void)
     pidConfigMutable()->pid_process_denom = 1;
     blackboxConfigMutable()->p_ratio = 128;
     motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_DSHOT600;
+    osdConfigMutable()->rssi_alarm = 70; // for CRSF
 }
 #endif
