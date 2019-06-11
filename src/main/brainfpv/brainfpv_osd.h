@@ -40,10 +40,18 @@ typedef struct bfOsdConfig_s {
     uint8_t crsf_link_stats_power;
     uint8_t crsf_link_stats_rssi;
     uint8_t crsf_link_stats_snr;
+    int8_t crsf_link_stats_snr_threshold;
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     uint8_t spec_enabled;
 #endif
 } bfOsdConfig_t;
+
+typedef enum {
+    CRSF_OFF = 0,
+    CRSF_LQ_LOW = 1,
+    CRSF_SNR_LOW = 2,
+    CRSF_ON = 3,
+} CrsfMode_t;
 
 PG_DECLARE(bfOsdConfig_t, bfOsdConfig);
 

@@ -35,6 +35,7 @@
 
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 
 #include "brainfpv_osd.h"
 #include "ch.h"
@@ -136,9 +137,10 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .hd_frame_h_offset = 0,
   .hd_frame_v_offset = 0,
   .crsf_link_stats = 1,
-  .crsf_link_stats_power = 1,
-  .crsf_link_stats_rssi = 2,
-  .crsf_link_stats_snr = 1,
+  .crsf_link_stats_power = CRSF_ON,
+  .crsf_link_stats_rssi = CRSF_LQ_LOW,
+  .crsf_link_stats_snr = CRSF_SNR_LOW,
+  .crsf_link_stats_snr_threshold = -2
 );
 
 const char * const gitTag = __GIT_TAG__;
@@ -762,7 +764,9 @@ void osdElementRssi_BrainFPV(osdElementParms_t *element)
         uint16_t x_pos = MAX_X(element->elemPosX);
         uint16_t y_pos = MAX_Y(element->elemPosY);
 
-        bool lq_alarm = (crsf_link_info.lq < osdConfig()->rssi_alarm);
+        //bool lq_alarm = (crsf_link_info.lq < osdConfig()->rssi_alarm);
+        //bool snr_alarm = (crsf_link_info.lq < osdConfig()->rssi_alarm);
+        bool show;
 
         tfp_sprintf(tmp_str, "%c%d", SYM_RSSI, crsf_link_info.lq);
         write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
@@ -774,13 +778,43 @@ void osdElementRssi_BrainFPV(osdElementParms_t *element)
             y_pos += CRSF_LINE_SPACING;
         }
 
-        if ((bfOsdConfig()->crsf_link_stats_rssi == 2) || ((bfOsdConfig()->crsf_link_stats_rssi == 1) && lq_alarm)) {
+        switch (bfOsdConfig()->crsf_link_stats_rssi) {
+            case CRSF_OFF:
+                show = false;
+                break;
+            case CRSF_LQ_LOW:
+                show = (crsf_link_info.lq <= osdConfig()->rssi_alarm);
+                break;
+            case CRSF_SNR_LOW:
+                show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
+                break;
+            case CRSF_ON:
+                show = true;
+                break;
+        }
+
+        if (show) {
             tfp_sprintf(tmp_str, "%ddBm", -1 * (int16_t)crsf_link_info.rssi);
             write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
             y_pos += CRSF_LINE_SPACING;
         }
 
-        if ((bfOsdConfig()->crsf_link_stats_snr == 2) || ((bfOsdConfig()->crsf_link_stats_snr == 1) && lq_alarm)) {
+        switch (bfOsdConfig()->crsf_link_stats_snr) {
+            case CRSF_OFF:
+                show = false;
+                break;
+            case CRSF_LQ_LOW:
+                show = (crsf_link_info.lq <= osdConfig()->rssi_alarm);
+                break;
+            case CRSF_SNR_LOW:
+                show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
+                break;
+            case CRSF_ON:
+                show = true;
+                break;
+        }
+
+        if (show) {
             tfp_sprintf(tmp_str, "SN %ddB", crsf_link_info.snr);
             write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
         }

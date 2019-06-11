@@ -156,9 +156,10 @@ CMS_Menu cmsx_menuBrainFPVIr = {
     .entries = cmsx_menuBrainFPVIrEntries,
 };
 
-const char * CRSF_OPT_NAMES[] = {"NO", "WHEN LQ LOW", "YES"};
-OSD_TAB_t entryCrsfRssiMode = {&bfOsdConfigCms.crsf_link_stats_rssi, 2, &CRSF_OPT_NAMES[0]};
-OSD_TAB_t entryCrsfSnrMode = {&bfOsdConfigCms.crsf_link_stats_snr, 2, &CRSF_OPT_NAMES[0]};
+const char * CRSF_OPT_NAMES[] = {"NO", "WHEN LQ LOW", "WHEN SNR LOW", "YES"};
+OSD_TAB_t entryCrsfRssiMode = {&bfOsdConfigCms.crsf_link_stats_rssi, 3, &CRSF_OPT_NAMES[0]};
+OSD_TAB_t entryCrsfSnrMode = {&bfOsdConfigCms.crsf_link_stats_snr, 3, &CRSF_OPT_NAMES[0]};
+OSD_INT8_t entryCrsfSnrThreshold = {&bfOsdConfigCms.crsf_link_stats_snr_threshold, -10, 10, 1};
 
 OSD_Entry cmsx_menuBrainFPVCrsfLinkEntries[] =
 {
@@ -168,6 +169,7 @@ OSD_Entry cmsx_menuBrainFPVCrsfLinkEntries[] =
     {"TX POWER", OME_Bool, NULL, &bfOsdConfigCms.crsf_link_stats_power, 0},
     {"RSSI", OME_TAB, NULL, &entryCrsfRssiMode, 0},
     {"SNR", OME_TAB, NULL, &entryCrsfSnrMode, 0},
+    {"SNR THRESHOLD", OME_INT8, NULL, &entryCrsfSnrThreshold, 0},
 
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}

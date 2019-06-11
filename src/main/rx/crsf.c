@@ -217,6 +217,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     if (link_stats_received) {
         if (micros() - crsf_link_info.updated_us > CRSF_LINK_TIMEOUT_US) {
             memset(&crsf_link_info, 0, sizeof(crsf_link_info));
+            crsf_link_info.snr = -20;
             link_stats_received = true;
         }
     }
