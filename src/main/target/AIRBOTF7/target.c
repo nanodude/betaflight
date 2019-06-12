@@ -22,20 +22,21 @@
 
 #include "platform.h"
 #include "drivers/io.h"
-#include "drivers/dma.h"
 
+#include "drivers/dma.h"
 #include "drivers/timer.h"
 #include "drivers/timer_def.h"
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_LED,           0, 0), // ONBOARD LED
 
-    DEF_TIM(TIM8, CH4, PC9, TIM_USE_PPM,   0, 0), // PPM_IN
+    DEF_TIM(TIM1, CH1, PA8, TIM_USE_ANY,            0, 0), // CAM CONTROL
 
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MOTOR, 0, 0), // S1_OUT
-    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MOTOR, 0, 0), // S2_OUT
-    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MOTOR, 0, 1), // S3_OUT
-    DEF_TIM(TIM2, CH3, PA2, TIM_USE_MOTOR, 0, 0), // S4_OUT
+    // MOTORS
 
-//  { TIM5, GPIOA, Pin_0, TIM_Channel_1, TIM5_IRQn, 1, GPIO_Mode_AF, GPIO_PinSource0, GPIO_AF_TIM5 },    // LED Strip
+    DEF_TIM(TIM8, CH3, PC8,  TIM_USE_MOTOR,         0, 0), //S1
+    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_MOTOR,         0, 0), //S2
+    DEF_TIM(TIM8, CH4, PC9,  TIM_USE_MOTOR,         0, 0), //S3
+    DEF_TIM(TIM4, CH2, PB7,  TIM_USE_MOTOR,         0, 0), //S4
 
 };

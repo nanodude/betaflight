@@ -2266,7 +2266,6 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                 vtxSettingsConfigMutable()->freq = vtxCommonLookupFrequency(vtxDevice, newBand, newChannel);
             } else if (newFrequency <= VTX_SETTINGS_MAX_FREQUENCY_MHZ) { // Value is frequency in MHz
                 vtxSettingsConfigMutable()->band = 0;
-                vtxSettingsConfigMutable()->channel = 0;
                 vtxSettingsConfigMutable()->freq = newFrequency;
             }
 
@@ -2333,6 +2332,7 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
         flashfsEraseCompletely();
+
         break;
 #endif
 
