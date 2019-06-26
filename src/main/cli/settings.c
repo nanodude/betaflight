@@ -1445,8 +1445,9 @@ const clivalue_t valueTable[] = {
     { "brainfpv_hd_frame_v_offset",  VAR_INT8   | MASTER_VALUE, .config.minmax = { -100, 100 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, hd_frame_v_offset) },
     { "brainfpv_crsf_link_stats",  VAR_UINT8   | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, crsf_link_stats) },
     { "brainfpv_crsf_link_stats_power",  VAR_UINT8   | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, crsf_link_stats_power) },
-    { "brainfpv_crsf_link_stats_rssi",  VAR_UINT8   | MASTER_VALUE, .config.minmax = { 0, 2 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, crsf_link_stats_rssi) },
-    { "brainfpv_crsf_link_stats_snr",  VAR_UINT8   | MASTER_VALUE, .config.minmax = { 0, 2 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, crsf_link_stats_snr) },
+    { "brainfpv_crsf_link_stats_rssi",  VAR_UINT8   | MASTER_VALUE, .config.minmax = { 0, 3 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, crsf_link_stats_rssi) },
+    { "brainfpv_crsf_link_stats_snr",  VAR_UINT8   | MASTER_VALUE, .config.minmax = { 0, 3 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, crsf_link_stats_snr) },
+    { "brainfpv_crsf_link_stats_snr_threshold",  VAR_INT8   | MASTER_VALUE, .config.minmax = { -10, 10 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, crsf_link_stats_snr_threshold) },
 #endif
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, spec_enabled) },
