@@ -20,35 +20,38 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "platform.h"
 
-#include "drivers/serial.h"
+#include "build/build_config.h"
 
-#include "pg/rx.h"
-#include "rx/rx.h"
+#include "drivers/io.h"
+#include "drivers/time.h"
 
-#include "io/serial.h"
-#include "telemetry/telemetry.h"
+#include "hardware_revision.h"
 
-#ifdef USE_TARGET_CONFIG
+#define HW_PIN PC5
 
-#include "config_helper.h"
+uint8_t hardwareRevision = FF_RACEPIT_UNKNOWN;
 
-#define GPS_UART                            SERIAL_PORT_USART3
+static IO_t HWDetectPinA = IO_NONE;
 
-#define TELEMETRY_UART                      SERIAL_PORT_UART5
-#define TELEMETRY_PROVIDER_DEFAULT          FUNCTION_TELEMETRY_SMARTPORT
-
-static targetSerialPortFunction_t targetSerialPortFunction[] = {
-    { SERIAL_PORT_USART1, FUNCTION_MSP },
-    { TELEMETRY_UART,     TELEMETRY_PROVIDER_DEFAULT },
-    { GPS_UART,           FUNCTION_GPS },
-};
-
-void targetConfiguration(void)
+void detectHardwareRevision(void)
 {
-    targetSerialPortFunctionConfig(targetSerialPortFunction, ARRAYLEN(targetSerialPortFunction));
-    telemetryConfigMutable()->halfDuplex = true;
+    HWDetectPinA = IOGetByTag(IO_TAG(HW_PIN));
+    IOInit(HWDetectPinA, OWNER_SYSTEM, 0);
+    IOConfigGPIO(HWDetectPinA, IOCFG_IPU);
+
+    delayMicroseconds(10);  // allow configuration to settle
+
+    if (!IORead(HWDetectPinA)) {
+        hardwareRevision = FF_RACEPIT_REV_1;
+    } else {
+        hardwareRevision = FF_RACEPIT_REV_2;
+    }
 }
-#endif
+
+void updateHardwareRevision(void)
+{
+}
