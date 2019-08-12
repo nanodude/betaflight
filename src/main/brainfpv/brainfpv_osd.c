@@ -137,7 +137,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .hd_frame_h_offset = 0,
   .hd_frame_v_offset = 0,
   .crsf_link_stats = 1,
-  .crsf_link_stats_power = CRSF_ON,
+  .crsf_link_stats_power = 1,
   .crsf_link_stats_rssi = CRSF_LQ_LOW,
   .crsf_link_stats_snr = CRSF_SNR_LOW,
   .crsf_link_stats_snr_threshold = -2
