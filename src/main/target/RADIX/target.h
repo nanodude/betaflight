@@ -93,7 +93,7 @@
 #define GYRO_1_CS_PIN             PB4
 #define GYRO_1_SPI_INSTANCE       SPI3
 #define GYRO_1_ALIGN              CW0_DEG
-#define ACC_1_ALIGN               CW0_DEG
+#define GYRO_1_ALIGN               CW0_DEG
 
 #define USE_BARO
 #define USE_BARO_SPI_BMP280
@@ -161,13 +161,7 @@
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN                   PB13
 #define SDCARD_SPI_CS_PIN                   PB15
-// SPI1 is on APB2, 90MHz
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 350kHz
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4   // 22.5MHz
-#define SDCARD_DMA_CHANNEL_TX                DMA2_Stream3
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG  DMA_FLAG_TCIF3
-#define SDCARD_DMA_CLK                       RCC_AHB1Periph_DMA2
-#define SDCARD_DMA_CHANNEL                   DMA_Channel_3
+#define SPI1_TX_DMA_OPT                         0     // DMA 2 Stream 3 Channel 3
 
 #define DEFAULT_FEATURES        (FEATURE_OSD)
 #define SERIALRX_UART           SERIAL_PORT_USART3
@@ -178,8 +172,6 @@
 // PPM input
 #define BIND_PIN                PB14
 
-#define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
@@ -187,6 +179,9 @@
 
 #define USE_DSHOT
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
+
+
+#undef USE_DSHOT_BITBANG
 
 extern bool brainfpv_settings_updated;
 extern bool brainfpv_settings_updated_from_cms;

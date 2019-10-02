@@ -29,6 +29,7 @@
 #include "sensors/gyro.h"
 #include "blackbox/blackbox.h"
 #include "osd/osd.h"
+#include "pg/motor.h"
 
 void targetConfiguration(void)
 {
