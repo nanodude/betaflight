@@ -84,12 +84,11 @@
 #include "ch.h"
 #include "brainfpv/spectrograph.h"
 static uint16_t spec_idx = 0;
+extern uint8_t spec_current_axis;
 extern binary_semaphore_t spectrographDataReadySemaphore;
 extern bool spec_data_processed;
 
-extern float spec_gyro_data_roll[];
-extern float spec_gyro_data_pitch[];
-extern float spec_gyro_data_yaw[];
+extern float spec_gyro_data[];
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
@@ -1167,13 +1166,9 @@ FAST_CODE void gyroUpdate(timeUs_t currentTimeUs)
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (spec_data_processed) {
         if (gyroDebugMode == DEBUG_GYRO_RAW) {
-            spec_gyro_data_roll[spec_idx] = debug[0];
-            spec_gyro_data_pitch[spec_idx] = debug[1];
-            spec_gyro_data_yaw[spec_idx] = debug[2];
+            spec_gyro_data[spec_idx] = debug[spec_current_axis];
         } else {
-            spec_gyro_data_roll[spec_idx] = gyro.gyroADC[0];
-            spec_gyro_data_pitch[spec_idx] = gyro.gyroADC[1];
-            spec_gyro_data_yaw[spec_idx] = gyro.gyroADC[2];
+            spec_gyro_data[spec_idx] = gyro.gyroADC[spec_current_axis];
         }
         spec_idx++;
         if (spec_idx == SPEC_FFT_LENGTH) {
