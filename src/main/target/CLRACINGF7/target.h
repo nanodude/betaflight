@@ -51,7 +51,13 @@
 #define GYRO_1_CS_PIN           PA4
 #define GYRO_1_SPI_INSTANCE     SPI1
 #define GYRO_1_ALIGN            CW0_DEG
-#define ACC_1_ALIGN             CW0_DEG
+
+#define GYRO_2_CS_PIN            PC13
+#define GYRO_2_SPI_INSTANCE     SPI1
+#define GYRO_2_ALIGN            CW90_DEG
+//#define ACC_2_ALIGN             CW90_DEG
+
+#define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_BOTH
 
 #define GYRO_2_CS_PIN            PC13
 #define GYRO_2_SPI_INSTANCE     SPI1
@@ -69,8 +75,6 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI3
 #define MAX7456_SPI_CS_PIN      PA15
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define USE_FLASHFS

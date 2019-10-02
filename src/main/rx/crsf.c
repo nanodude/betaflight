@@ -56,7 +56,7 @@
 
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
 
-#define CRSF_LINK_TIMEOUT_US 3000000
+#define CRSF_LINK_STATUS_UPDATE_TIMEOUT_US  250000 // 250ms, 4 Hz mode 1 telemetry
 
 STATIC_UNIT_TESTED bool crsfFrameDone = false;
 STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
@@ -118,25 +118,103 @@ struct crsfPayloadRcChannelsPacked_s {
 
 typedef struct crsfPayloadRcChannelsPacked_s crsfPayloadRcChannelsPacked_t;
 
-struct crsfPayloadLinkStatistics_s {
-    uint8_t     uplinkRSSIAnt1;
-    uint8_t     uplinkRSSIAnt2;
-    uint8_t     uplinkLQ;
-    int8_t      uplinkSNR;
-    uint8_t     activeAntenna;
-    uint8_t     rfMode;
-    uint8_t     uplinkTXPower;
-    uint8_t     downlinkRSSI;
-    uint8_t     downlinkLQ;
-    int8_t      downlinkSNR;
-} __attribute__ ((__packed__));
+#if defined(USE_CRSF_LINK_STATISTICS)
+/*
+ * 0x14 Link statistics
+ * Payload:
+ *
+ * uint8_t Uplink RSSI Ant. 1 ( dBm * -1 )
+ * uint8_t Uplink RSSI Ant. 2 ( dBm * -1 )
+ * uint8_t Uplink Package success rate / Link quality ( % )
+ * int8_t Uplink SNR ( db )
+ * uint8_t Diversity active antenna ( enum ant. 1 = 0, ant. 2 )
+ * uint8_t RF Mode ( enum 4fps = 0 , 50fps, 150hz)
+ * uint8_t Uplink TX Power ( enum 0mW = 0, 10mW, 25 mW, 100 mW, 500 mW, 1000 mW, 2000mW )
+ * uint8_t Downlink RSSI ( dBm * -1 )
+ * uint8_t Downlink package success rate / Link quality ( % )
+ * int8_t Downlink SNR ( db )
+ * Uplink is the connection from the ground to the UAV and downlink the opposite direction.
+ */
 
-typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
+typedef struct crsfPayloadLinkstatistics_s {
+    uint8_t uplink_RSSI_1;
+    uint8_t uplink_RSSI_2;
+    uint8_t uplink_Link_quality;
+    int8_t uplink_SNR;
+    uint8_t active_antenna;
+    uint8_t rf_Mode;
+    uint8_t uplink_TX_Power;
+    uint8_t downlink_RSSI;
+    uint8_t downlink_Link_quality;
+    int8_t downlink_SNR;
+} crsfLinkStatistics_t;
 
-volatile crsfPayloadLinkStatistics_t* linkStats;
+static timeUs_t lastLinkStatisticsFrameUs;
 
-void crsfUpdateLinkStats(void);
-static bool link_stats_received = false;
+#ifdef USE_RX_LINK_QUALITY_INFO
+STATIC_UNIT_TESTED uint16_t scaleCrsfLq(uint16_t lqvalue) {
+  return (lqvalue % 100) ? ((lqvalue * 3.41) + 1) : (lqvalue * 3.41);
+}
+#endif
+static void handleCrsfLinkStatisticsFrame(const crsfLinkStatistics_t* statsPtr, timeUs_t currentTimeUs)
+{
+    const crsfLinkStatistics_t stats = *statsPtr;
+    lastLinkStatisticsFrameUs = currentTimeUs;
+    if (rssiSource == RSSI_SOURCE_RX_PROTOCOL_CRSF) {
+        const uint8_t rssiDbm = stats.active_antenna ? stats.uplink_RSSI_2 : stats.uplink_RSSI_1;
+#ifdef USE_RX_RSSI_DBM
+        setRssiDbm(rssiDbm, RSSI_SOURCE_RX_PROTOCOL_CRSF);
+#endif
+        const uint16_t rssiPercentScaled = scaleRange(rssiDbm, 130, 0, 0, RSSI_MAX_VALUE);
+        setRssi(rssiPercentScaled, RSSI_SOURCE_RX_PROTOCOL_CRSF);
+    }
+
+#ifdef USE_RX_LINK_QUALITY_INFO
+    if (linkQualitySource == LQ_SOURCE_RX_PROTOCOL_CRSF) {
+        setLinkQualityDirect(scaleCrsfLq((stats.rf_Mode * 100) + stats.uplink_Link_quality));
+    }
+#endif
+
+    switch (debugMode) {
+    case DEBUG_CRSF_LINK_STATISTICS_UPLINK:
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_UPLINK, 0, stats.uplink_RSSI_1);
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_UPLINK, 1, stats.uplink_RSSI_2);
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_UPLINK, 2, stats.uplink_Link_quality);
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_UPLINK, 3, stats.rf_Mode);
+        break;
+    case DEBUG_CRSF_LINK_STATISTICS_PWR:
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_PWR, 0, stats.active_antenna);
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_PWR, 1, stats.uplink_SNR);
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_PWR, 2, stats.uplink_TX_Power);
+        break;
+    case DEBUG_CRSF_LINK_STATISTICS_DOWN:
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_DOWN, 0, stats.downlink_RSSI);
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_DOWN, 1, stats.downlink_Link_quality);
+        DEBUG_SET(DEBUG_CRSF_LINK_STATISTICS_DOWN, 2, stats.downlink_SNR);
+        break;
+    }
+
+}
+#endif
+
+#if defined(USE_CRSF_LINK_STATISTICS)
+static void crsfCheckRssi(uint32_t currentTimeUs) {
+
+    if (cmpTimeUs(currentTimeUs, lastLinkStatisticsFrameUs) > CRSF_LINK_STATUS_UPDATE_TIMEOUT_US) {
+        if (rssiSource == RSSI_SOURCE_RX_PROTOCOL_CRSF) {
+            setRssiDirect(0, RSSI_SOURCE_RX_PROTOCOL_CRSF);
+#ifdef USE_RX_RSSI_DBM
+            setRssiDbmDirect(130, RSSI_SOURCE_RX_PROTOCOL_CRSF);
+#endif
+        }
+#ifdef USE_RX_LINK_QUALITY_INFO
+        if (linkQualitySource == LQ_SOURCE_RX_PROTOCOL_CRSF) {
+            setLinkQualityDirect(0);
+        }
+#endif
+    }
+}
+#endif
 
 STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
 {
@@ -203,9 +281,18 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *data)
                             break;
                         }
 #endif
-                        case CRSF_FRAMETYPE_LINK_STATISTICS:
-                            crsfUpdateLinkStats();
+#if defined(USE_CRSF_LINK_STATISTICS)
+                        case CRSF_FRAMETYPE_LINK_STATISTICS: {
+                             // if to FC and 10 bytes + CRSF_FRAME_ORIGIN_DEST_SIZE
+                             if ((rssiSource == RSSI_SOURCE_RX_PROTOCOL_CRSF) &&
+                                 (crsfFrame.frame.deviceAddress == CRSF_ADDRESS_FLIGHT_CONTROLLER) &&
+                                 (crsfFrame.frame.frameLength == CRSF_FRAME_ORIGIN_DEST_SIZE + CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE)) {
+                                 const crsfLinkStatistics_t* statsFrame = (const crsfLinkStatistics_t*)&crsfFrame.frame.payload;
+                                 handleCrsfLinkStatisticsFrame(statsFrame, currentTimeUs);
+                             }
                             break;
+                        }
+#endif
                         default:
                             break;
                     }
@@ -220,14 +307,9 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxRuntimeConfig);
 
-    if (link_stats_received) {
-        if (micros() - crsf_link_info.updated_us > CRSF_LINK_TIMEOUT_US) {
-            memset(&crsf_link_info, 0, sizeof(crsf_link_info));
-            crsf_link_info.snr = -20;
-            link_stats_received = false;
-        }
-    }
-
+#if defined(USE_CRSF_LINK_STATISTICS)
+    crsfCheckRssi(micros());
+#endif
     if (crsfFrameDone) {
         crsfFrameDone = false;
         if (crsfFrame.frame.type == CRSF_FRAMETYPE_RC_CHANNELS_PACKED) {
@@ -369,6 +451,15 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         CRSF_PORT_MODE,
         CRSF_PORT_OPTIONS | (rxConfig->serialrx_inverted ? SERIAL_INVERTED : 0)
         );
+
+        if (rssiSource == RSSI_SOURCE_NONE) {
+            rssiSource = RSSI_SOURCE_RX_PROTOCOL_CRSF;
+        }
+#ifdef USE_RX_LINK_QUALITY_INFO
+        if (linkQualitySource == LQ_SOURCE_NONE) {
+            linkQualitySource = LQ_SOURCE_RX_PROTOCOL_CRSF;
+        }
+#endif
 
     return serialPort != NULL;
 }

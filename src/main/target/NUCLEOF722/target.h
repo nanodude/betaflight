@@ -38,7 +38,6 @@
 #define USE_ACC
 #define USE_FAKE_ACC
 #define USE_ACC_MPU6050
-#define ACC_1_ALIGN       CW270_DEG
 
 #define USE_GYRO
 #define USE_FAKE_GYRO
@@ -62,6 +61,7 @@
 #define USE_BARO
 #define USE_FAKE_BARO
 #define USE_BARO_MS5611
+#define USE_BARO_BMP388
 
 #define USABLE_TIMER_CHANNEL_COUNT 9
 

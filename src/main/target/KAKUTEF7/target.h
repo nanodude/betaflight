@@ -56,7 +56,6 @@
 #define GYRO_1_CS_PIN           SPI4_NSS_PIN
 #define GYRO_1_SPI_INSTANCE     SPI4
 #define GYRO_1_ALIGN            CW270_DEG
-#define ACC_1_ALIGN             CW270_DEG
 
 #define USE_GYRO_EXTI
 #define GYRO_1_EXTI_PIN         PE1
@@ -122,8 +121,6 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI2
 #define MAX7456_SPI_CS_PIN      SPI2_NSS_PIN
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
 
 #if defined(KAKUTEF7MINI)
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
