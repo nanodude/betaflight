@@ -194,6 +194,52 @@ static void handleCrsfLinkStatisticsFrame(const crsfLinkStatistics_t* statsPtr, 
         break;
     }
 
+    crsf_link_info.lq = stats.uplink_Link_quality;
+    if (stats.rf_Mode == 2) {
+        crsf_link_info.lq *= 3;
+    }
+
+    switch (stats.uplink_TX_Power) {
+        case 0:
+            crsf_link_info.tx_power = 0;
+            break;
+        case 1:
+            crsf_link_info.tx_power = 10;
+            break;
+        case 2:
+            crsf_link_info.tx_power = 25;
+            break;
+        case 3:
+            crsf_link_info.tx_power = 100;
+            break;
+        case 4:
+            crsf_link_info.tx_power = 500;
+            break;
+        case 5:
+            crsf_link_info.tx_power = 1000;
+            break;
+        case 6:
+            crsf_link_info.tx_power = 2000;
+            break;
+        case 7:
+            crsf_link_info.tx_power = 250;
+            break;
+        default:
+            crsf_link_info.tx_power = 0;
+            break;
+    }
+
+    if (stats.uplink_RSSI_1 == 0) {
+        crsf_link_info.rssi = stats.uplink_RSSI_2;
+    }
+    else if (stats.uplink_RSSI_2 == 0) {
+        crsf_link_info.rssi = stats.uplink_RSSI_1;
+    }
+    else {
+        crsf_link_info.rssi = MIN(stats.uplink_RSSI_1, stats.uplink_RSSI_2);
+    }
+
+    crsf_link_info.snr = stats.uplink_SNR;
 }
 #endif
 
@@ -212,6 +258,8 @@ static void crsfCheckRssi(uint32_t currentTimeUs) {
             setLinkQualityDirect(0);
         }
 #endif
+        memset(&crsf_link_info, 0, sizeof(crsf_link_info));
+        crsf_link_info.snr = -20;
     }
 }
 #endif
@@ -340,60 +388,6 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
         }
     }
     return RX_FRAME_PENDING;
-}
-
-void crsfUpdateLinkStats(void)
-{
-    const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
-
-    crsf_link_info.lq = linkStats->uplinkLQ;
-    if (linkStats->rfMode == 2) {
-        crsf_link_info.lq *= 3;
-    }
-
-    switch (linkStats->uplinkTXPower) {
-        case 0:
-            crsf_link_info.tx_power = 0;
-            break;
-        case 1:
-            crsf_link_info.tx_power = 10;
-            break;
-        case 2:
-            crsf_link_info.tx_power = 25;
-            break;
-        case 3:
-            crsf_link_info.tx_power = 100;
-            break;
-        case 4:
-            crsf_link_info.tx_power = 500;
-            break;
-        case 5:
-            crsf_link_info.tx_power = 1000;
-            break;
-        case 6:
-            crsf_link_info.tx_power = 2000;
-            break;
-        case 7:
-            crsf_link_info.tx_power = 250;
-            break;
-        default:
-            crsf_link_info.tx_power = 0;
-            break;
-    }
-
-    if (linkStats->uplinkRSSIAnt1 == 0) {
-        crsf_link_info.rssi = linkStats->uplinkRSSIAnt2;
-    }
-    else if (linkStats->uplinkRSSIAnt2 == 0) {
-        crsf_link_info.rssi = linkStats->uplinkRSSIAnt1;
-    }
-    else {
-        crsf_link_info.rssi = MIN(linkStats->uplinkRSSIAnt1, linkStats->uplinkRSSIAnt2);
-    }
-
-    crsf_link_info.snr = linkStats->uplinkSNR;
-    crsf_link_info.updated_us = micros();
-    link_stats_received = true;
 }
 
 STATIC_UNIT_TESTED uint16_t crsfReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
