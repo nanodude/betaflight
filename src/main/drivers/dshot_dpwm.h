@@ -32,13 +32,19 @@
 #define MOTOR_BIT_1           14
 #define MOTOR_BITLENGTH       20
 
+#if defined(STM32F446xx)
+#define MOTOR_PROSHOT1000_HZ         MHZ_TO_HZ(90)
+#define PROSHOT_BASE_SYMBOL          90 // 1uS
+#define PROSHOT_BIT_WIDTH            11
+#define MOTOR_NIBBLE_LENGTH_PROSHOT  360 // 4uS
+#else
 #define MOTOR_PROSHOT1000_HZ         MHZ_TO_HZ(24)
 #define PROSHOT_BASE_SYMBOL          24 // 1uS
 #define PROSHOT_BIT_WIDTH            3
 #define MOTOR_NIBBLE_LENGTH_PROSHOT  (PROSHOT_BASE_SYMBOL * 4) // 4uS
+#endif /* defined(STM32F446xx) */
 
 #define DSHOT_TELEMETRY_DEADTIME_US   (30 + 5) // 30 to switch lines and 5 to switch lines back
-
 
 typedef uint8_t loadDmaBufferFn(uint32_t *dmaBuffer, int stride, uint16_t packet);  // function pointer used to encode a digital motor value into the DMA buffer representation
 extern FAST_RAM_ZERO_INIT loadDmaBufferFn *loadDmaBuffer;
