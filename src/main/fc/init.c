@@ -391,7 +391,6 @@ void init(void)
 
     initEEPROM();
 
-    readEEPROM();
     ensureEEPROMStructureIsValid();
 
     bool readSuccess = readEEPROM();
@@ -674,29 +673,6 @@ void init(void)
 
     initBoardAlignment(boardAlignment());
 
-#ifdef CMS
-    cmsInit();
-#endif
-
-#ifdef USE_DASHBOARD
-    if (featureIsEnabled(FEATURE_DASHBOARD)) {
-        dashboardInit();
-    }
-#endif
-
-#ifdef USE_RTC6705
-    if (feature(FEATURE_VTX)) {
-        rtc6705_soft_spi_init();
-        current_vtx_channel = masterConfig.vtx_channel;
-        rtc6705_soft_spi_set_channel(vtx_freq[current_vtx_channel]);
-        rtc6705_soft_spi_set_rf_power(masterConfig.vtx_power);
-    }
-#endif
-
-#ifdef SONAR
-    const sonarConfig_t *sonarConfig = sonarConfig();
-#endif
-
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, notify and don't arm.
         if (true
@@ -866,7 +842,6 @@ void init(void)
 #endif
 #ifdef USE_FLASHFS
     flashfsInit();
-#endif
 #endif
 
 #ifdef USE_BLACKBOX

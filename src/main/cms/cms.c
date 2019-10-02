@@ -1176,7 +1176,7 @@ uint16_t cmsHandleKeyWithRepeat(displayPort_t *pDisplay, cms_key_e key, int repe
     return ret;
 }
 
-static void cmsUpdate(uint32_t currentTimeUs)
+void cmsUpdate(uint32_t currentTimeUs)
 {
     if (IS_RC_MODE_ACTIVE(BOXPARALYZE)
 #ifdef USE_RCDEVICE

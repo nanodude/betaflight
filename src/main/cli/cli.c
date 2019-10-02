@@ -5630,6 +5630,7 @@ static void printTimer(dumpFlags_t dumpMask, const char *headingStr)
         uint8_t defaultTimerIndex = 0;
         if (defaultConfig) {
             for (unsigned i = 0; i < MAX_TIMER_PINMAP_COUNT; i++) {
+                if (defaultConfig[i].ioTag == ioTag) {
                     defaultTimerIndex = defaultConfig[i].index;
                     tagsInUse[i] = true;
 
