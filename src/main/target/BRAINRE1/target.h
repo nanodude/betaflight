@@ -102,7 +102,6 @@
 #define GYRO_1_EXTI_PIN           PC13
 #define GYRO_1_SPI_INSTANCE       SPI1
 #define GYRO_1_ALIGN              CW0_DEG
-#define ACC_1_ALIGN               CW0_DEG
 
 #define USE_BARO
 #define DEFAULT_BARO_BMP280
@@ -180,8 +179,6 @@
 // PPM input
 #define BIND_PIN                PB14
 
-#define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
@@ -189,6 +186,8 @@
 
 #define USE_DSHOT
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(5) | TIM_N(12) )
+
+#undef USE_DSHOT_BITBANG
 
 extern bool brainfpv_settings_updated;
 extern bool brainfpv_settings_updated_from_cms;
