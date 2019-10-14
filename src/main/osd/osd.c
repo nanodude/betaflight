@@ -853,10 +853,14 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
                     osdStatsVisible = true;
                     osdStatsRefreshTimeUs = 0;
                 }
+#ifdef USE_BRAINFPV_OSD
+                osdRefreshStats();
+#else
                 if (currentTimeUs >= osdStatsRefreshTimeUs) {
                     osdStatsRefreshTimeUs = currentTimeUs + REFRESH_1S;
                     osdRefreshStats();
                 }
+#endif /* USE_BRAINFPV_OSD */
             }
         }
     }
