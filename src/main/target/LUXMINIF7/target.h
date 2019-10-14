@@ -20,69 +20,51 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "ABF7"
-#define USBD_PRODUCT_STRING     "Airbot-F7"
+#define USE_TARGET_CONFIG
 
-#define LED0_PIN                PB12
+#define TARGET_BOARD_IDENTIFIER "LMF7"
+#define USBD_PRODUCT_STRING     "Lux Mini F7"
 
+#define LED0_PIN                PC15
 #define USE_BEEPER
 #define BEEPER_PIN              PB0
 #define BEEPER_INVERTED
 
 #define ENABLE_DSHOT_DMAR       true
 
+
+
 // *************** Gyro & ACC **********************
+#define USE_SPI
+#define USE_SPI_DEVICE_1
+#define SPI1_NSS_PIN            PC4
+#define SPI1_SCK_PIN            PA5
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
+
+#define USE_GYRO
+#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_SPI_MPU6500
+#define GYRO_1_CS_PIN           SPI1_NSS_PIN
+#define GYRO_1_SPI_INSTANCE     SPI1
+#define GYRO_1_ALIGN            CW180_DEG
+#define GYRO_1_EXTI_PIN         NONE
+
+#define USE_ACC
+#define USE_ACC_SPI_MPU6000
+#define USE_ACC_SPI_MPU6500
+
+// *************** OSD *****************************
 #define USE_SPI
 #define USE_SPI_DEVICE_3
 
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
-#define SPI3_NSS_PIN            PD2
-
-#define USE_GYRO
-#define USE_GYRO_SPI_MPU6000
-#define USE_GYRO_SPI_MPU6500
-
-#define GYRO_1_SPI_INSTANCE     SPI3
-#define GYRO_1_CS_PIN           SPI3_NSS_PIN
-#define GYRO_1_ALIGN            CW90_DEG
-#define GYRO_1_EXTI_PIN         NONE
-
-
-#define GYRO_2_SPI_INSTANCE     SPI1
-#define GYRO_2_CS_PIN           PC4        
-#define GYRO_2_EXTI_PIN         NONE
-#define GYRO_2_ALIGN            CW0_DEG
-
-#define USE_ACC
-#define USE_ACC_SPI_MPU6000
-#define USE_ACC_SPI_MPU6500
-
-// *************** OSD **************************
-
-#define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
 
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI2
-#define MAX7456_SPI_CS_PIN      PC15
-
-
-// *************** FLASH *****************************
-#define USE_SPI_DEVICE_1
-#define SPI1_SCK_PIN            PA5
-#define SPI1_MISO_PIN           PA6
-#define SPI1_MOSI_PIN           PA7
-
-
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define FLASH_CS_PIN            PA3
-#define FLASH_SPI_INSTANCE      SPI1
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#define MAX7456_SPI_INSTANCE    SPI3
+#define MAX7456_SPI_CS_PIN      PD2
 
 // *************** UART *****************************
 #define USE_VCP
@@ -94,7 +76,7 @@
 #define UART1_TX_PIN            PA9
 
 #define USE_UART2
-#define UART2_TX_PIN            PA2
+#define UART2_RX_PIN            PA3
 
 #define USE_UART3
 #define UART3_RX_PIN            PC11
@@ -111,18 +93,19 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-
 #define USE_SOFTSERIAL1
 
 #define SERIAL_PORT_COUNT       8
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-#define SERIALRX_UART           SERIAL_PORT_USART6
+#define SERIALRX_UART           SERIAL_PORT_USART1
 
-// *************** CAM *****************************
 
-#define CAMERA_CONTROL_PIN      PA8
+// *************** PIN *****************************
+#define USE_PINIO
+#define PINIO1_PIN             PB10
+#define USE_PINIOBOX
 
 // *************** I2C *****************************
 
@@ -132,17 +115,21 @@
 #define I2C1_SDA                PB9
 #define I2C_DEVICE              (I2CDEV_1)
 
+
 // *************** ADC *****************************
 #define USE_ADC
-#define CURRENT_METER_ADC_PIN   PC1
+#define ADC3_DMA_STREAM         DMA2_Stream0
 #define VBAT_ADC_PIN            PC0
+#define CURRENT_METER_ADC_PIN   PC1
+#define RSSI_ADC_PIN            PC2
+
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_AIRMODE)
 #define DEFAULT_VOLTAGE_METER_SOURCE    VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE    CURRENT_METER_ADC
 #define CURRENT_METER_SCALE_DEFAULT 179
 
-#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL | FEATURE_AIRMODE)
-
 #define USE_ESCSERIAL
+#define ESCSERIAL_TIMER_TX_PIN  PA3
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
