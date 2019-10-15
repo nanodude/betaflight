@@ -106,6 +106,7 @@
 
 #if defined(USE_BRAINFPV_OSD)
 #include "brainfpv/brainfpv_osd.h"
+extern bool brainfpv_show_crsf_link_info;
 #endif // USE_BRAINFPV_OSD
 
 #define AH_SYMBOL_COUNT 9
@@ -881,7 +882,7 @@ static void osdElementHorizonSidebars(osdElementParms_t *element)
 }
 
 #ifdef USE_RX_LINK_QUALITY_INFO
-static void osdElementLinkQuality(osdElementParms_t *element)
+void osdElementLinkQuality(osdElementParms_t *element)
 {
     uint16_t osdLinkQuality = 0;
     if (linkQualitySource == LQ_SOURCE_RX_PROTOCOL_CRSF) { // 0-300
@@ -1234,7 +1235,18 @@ static void osdElementWarnings(osdElementParms_t *element)
 #endif // USE_LAUNCH_CONTROL
 
     // RSSI
+#if defined(USE_BRAINFPV_OSD)
+    bool rssi_warning;
+    if (brainfpv_show_crsf_link_info) {
+        rssi_warning = osdWarnGetState(OSD_WARNING_RSSI) && (rxGetLinkQualityPercent() < osdConfig()->rssi_alarm);
+    }
+    else {
+        rssi_warning = osdWarnGetState(OSD_WARNING_RSSI) && (getRssiPercent() < osdConfig()->rssi_alarm);
+    }
+    if (rssi_warning) {
+#else
     if (osdWarnGetState(OSD_WARNING_RSSI) && (getRssiPercent() < osdConfig()->rssi_alarm)) {
+#endif
         tfp_sprintf(element->buff, "RSSI LOW");
         SET_BLINK(OSD_WARNINGS);
         return;
@@ -1543,7 +1555,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_FLIP_ARROW]              = osdElementCrashFlipArrow,
 #endif
 #ifdef USE_RX_LINK_QUALITY_INFO
-    [OSD_LINK_QUALITY]            = osdElementLinkQuality,
+    [OSD_LINK_QUALITY]            = osdElementLinkQuality_BrainFPV,
 #endif
 #ifdef USE_GPS
     [OSD_FLIGHT_DIST]             = osdElementGpsFlightDistance,
@@ -1676,7 +1688,23 @@ void osdUpdateAlarms(void)
 
     int32_t alt = osdGetMetersToSelectedUnit(getEstimatedAltitudeCm()) / 100;
 
+#if defined(USE_BRAINFPV_OSD)
+    // If we use the CRSF widget for the RSSI field, use LQ for blinking
+    bool blink_rssi = false;
+    if (brainfpv_show_crsf_link_info) {
+        if (rxGetLinkQualityPercent() < osdConfig()->rssi_alarm) {
+            blink_rssi = true;
+        }
+    }
+    else {
+        if (getRssiPercent() < osdConfig()->rssi_alarm) {
+            blink_rssi = true;
+        }
+    }
+    if (blink_rssi) {
+#else
     if (getRssiPercent() < osdConfig()->rssi_alarm) {
+#endif
         SET_BLINK(OSD_RSSI_VALUE);
     } else {
         CLR_BLINK(OSD_RSSI_VALUE);

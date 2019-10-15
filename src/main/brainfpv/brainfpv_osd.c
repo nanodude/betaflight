@@ -157,7 +157,7 @@ extern bool osdStatsVisible;
 bool osdArming = false;
 
 extern crsfLinkInfo_t crsf_link_info;
-static bool show_crsf_link_info;
+bool brainfpv_show_crsf_link_info;
 
 bool brainfpv_user_avatar_set = false;
 bool brainfpv_hd_frame_menu = false;
@@ -286,10 +286,10 @@ void brainFpvOsdInit(void)
         }
     }
     if (bfOsdConfig()->crsf_link_stats && (rxConfig()->serialrx_provider == SERIALRX_CRSF)) {
-        show_crsf_link_info = true;
+        brainfpv_show_crsf_link_info = true;
     }
     else {
-        show_crsf_link_info = false;
+        brainfpv_show_crsf_link_info = false;
     }
 }
 
@@ -750,77 +750,89 @@ void osdElementCrosshairs_BrainFPV(osdElementParms_t *element)
     element->drawElement = false;
 }
 
-#define CRSF_LINE_SPACING 12
+void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold);
 
 void osdElementRssi(osdElementParms_t *element);
 void osdElementRssi_BrainFPV(osdElementParms_t *element)
 {
-    if (!show_crsf_link_info) {
+    if (!brainfpv_show_crsf_link_info) {
         osdElementRssi(element);
     }
     else {
-        char tmp_str[20];
+        osd_crsf_widget(element, osdConfig()->rssi_alarm);
+    }
+}
 
-        uint16_t x_pos = MAX_X(element->elemPosX);
-        uint16_t y_pos = MAX_Y(element->elemPosY);
+void osdElementLinkQuality(osdElementParms_t *element);
+void osdElementLinkQuality_BrainFPV(osdElementParms_t *element)
+{
+    if (!brainfpv_show_crsf_link_info) {
+        osdElementLinkQuality(element);
+    }
+    else {
+        osd_crsf_widget(element, osdConfig()->link_quality_alarm);
+    }
+}
 
-        //bool lq_alarm = (crsf_link_info.lq < osdConfig()->rssi_alarm);
-        //bool snr_alarm = (crsf_link_info.lq < osdConfig()->rssi_alarm);
-        bool show;
+#define CRSF_LINE_SPACING 12
+void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold)
+{
+    char tmp_str[20];
 
-        tfp_sprintf(tmp_str, "%c%d", SYM_RSSI, crsf_link_info.lq);
-        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
-        y_pos += 16;
+    uint16_t x_pos = MAX_X(element->elemPosX);
+    uint16_t y_pos = MAX_Y(element->elemPosY);
 
-        if (bfOsdConfig()->crsf_link_stats_power) {
-            tfp_sprintf(tmp_str, "%dmW", crsf_link_info.tx_power);
-            write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-            y_pos += CRSF_LINE_SPACING;
-        }
+    bool show;
 
-        switch (bfOsdConfig()->crsf_link_stats_rssi) {
-            case CRSF_OFF:
-                show = false;
-                break;
-            case CRSF_LQ_LOW:
-                show = (crsf_link_info.lq <= osdConfig()->rssi_alarm);
-                break;
-            case CRSF_SNR_LOW:
-                show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
-                break;
-            case CRSF_ON:
-                show = true;
-                break;
-        }
+    tfp_sprintf(tmp_str, "%c%d", SYM_RSSI, crsf_link_info.lq);
+    write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
+    y_pos += 16;
 
-        if (show) {
-            tfp_sprintf(tmp_str, "%ddBm", -1 * (int16_t)crsf_link_info.rssi);
-            write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-            y_pos += CRSF_LINE_SPACING;
-        }
+    if (bfOsdConfig()->crsf_link_stats_power) {
+        tfp_sprintf(tmp_str, "%dmW", crsf_link_info.tx_power);
+        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
+        y_pos += CRSF_LINE_SPACING;
+    }
 
-        switch (bfOsdConfig()->crsf_link_stats_snr) {
-            case CRSF_OFF:
-                show = false;
-                break;
-            case CRSF_LQ_LOW:
-                show = (crsf_link_info.lq <= osdConfig()->rssi_alarm);
-                break;
-            case CRSF_SNR_LOW:
-                show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
-                break;
-            case CRSF_ON:
-                show = true;
-                break;
-        }
+    switch (bfOsdConfig()->crsf_link_stats_rssi) {
+        case CRSF_OFF:
+            show = false;
+            break;
+        case CRSF_LQ_LOW:
+            show = (crsf_link_info.lq <= lq_threshold);
+            break;
+        case CRSF_SNR_LOW:
+            show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
+            break;
+        case CRSF_ON:
+            show = true;
+            break;
+    }
 
-        if (show) {
-            tfp_sprintf(tmp_str, "SN %ddB", crsf_link_info.snr);
-            write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-        }
+    if (show) {
+        tfp_sprintf(tmp_str, "%ddBm", -1 * (int16_t)crsf_link_info.rssi);
+        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
+        y_pos += CRSF_LINE_SPACING;
+    }
 
-        // set the RSSI for other things in betaflight
-        setRssiCrsfLq(crsf_link_info.lq);
+    switch (bfOsdConfig()->crsf_link_stats_snr) {
+        case CRSF_OFF:
+            show = false;
+            break;
+        case CRSF_LQ_LOW:
+            show = (crsf_link_info.lq <= lq_threshold);
+            break;
+        case CRSF_SNR_LOW:
+            show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
+            break;
+        case CRSF_ON:
+            show = true;
+            break;
+    }
+
+    if (show) {
+        tfp_sprintf(tmp_str, "SN %ddB", crsf_link_info.snr);
+        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
     }
 }
 
