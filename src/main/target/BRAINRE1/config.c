@@ -31,7 +31,7 @@
 
 void targetConfiguration(void)
 {
-    gyroConfigMutable()->gyro_sync_denom = 1;
+    gyroConfigMutable()->gyro_sync_denom = 2;
     pidConfigMutable()->pid_process_denom = 1;
     blackboxConfigMutable()->p_ratio = 128;
     osdConfigMutable()->rssi_alarm = 70; // for CRSF

@@ -613,7 +613,7 @@ void validateAndFixGyroConfig(void)
         break;
     case BMI_160_SPI:
         samplingTime = 0.0003125f;
-        gyroConfigMutable()->gyro_sync_denom = 1;
+        gyroConfigMutable()->gyro_sync_denom = 2;
         pidConfigMutable()->pid_process_denom = 1;
         break;
     default:
@@ -627,7 +627,7 @@ void validateAndFixGyroConfig(void)
             break;
         case BMI_160_SPI:
             samplingTime = 0.0003125f;
-            gyroConfigMutable()->gyro_sync_denom = 1;
+            gyroConfigMutable()->gyro_sync_denom = 2;
             pidConfigMutable()->pid_process_denom = 1;
             break;
         default:

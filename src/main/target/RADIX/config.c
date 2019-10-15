@@ -33,7 +33,7 @@
 
 void targetConfiguration(void)
 {
-    gyroConfigMutable()->gyro_sync_denom = 1;
+    gyroConfigMutable()->gyro_sync_denom = 2;
     pidConfigMutable()->pid_process_denom = 1;
     blackboxConfigMutable()->p_ratio = 128;
     motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_DSHOT600;
