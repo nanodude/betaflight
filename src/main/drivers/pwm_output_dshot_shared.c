@@ -148,7 +148,7 @@ static uint32_t decodeTelemetryPacket(uint32_t buffer[], uint32_t count)
             if (bits >= 21) {
                 break;
             }
-            len = (diff + 8) / 16;
+            len = (diff + GCR_BITLEN / 2) / GCR_BITLEN;
         } else {
             len = 21 - bits;
         }
