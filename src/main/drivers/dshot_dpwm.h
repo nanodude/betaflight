@@ -30,8 +30,8 @@
 #define MOTOR_DSHOT300_HZ     MHZ_TO_HZ(22.5)
 #define MOTOR_DSHOT150_HZ     MHZ_TO_HZ(11.25)
 
-#define MOTOR_BIT_0           29
-#define MOTOR_BIT_1           57
+#define MOTOR_BIT_0           25
+#define MOTOR_BIT_1           51
 #define MOTOR_BITLENGTH       75
 #define GCR_BITLEN            60
 
