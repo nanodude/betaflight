@@ -254,7 +254,7 @@ static void SystemClockHSE_Config(void)
 
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLM = 4;
+    RCC_OscInitStruct.PLL.PLLM = HSE_VALUE / 2000000;
     RCC_OscInitStruct.PLL.PLLN = 400; // 8M / 4 * 400 = 800 (PLL1N output)
     RCC_OscInitStruct.PLL.PLLP = 2;  // 400
     RCC_OscInitStruct.PLL.PLLQ = 8;  // 100, SPI123
@@ -598,6 +598,8 @@ void SystemInit (void)
     /* Configure the Vector Table location add offset address ------------------*/
 #if defined(VECT_TAB_SRAM)
     SCB->VTOR = D1_AXISRAM_BASE  | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal ITCMSRAM */
+#elif defined(RADIX2)
+    SCB->VTOR = 0x24010000; //XXX
 #elif defined(USE_EXST)
     // Don't touch the vector table, the bootloader will have already set it.
 #else
