@@ -1,0 +1,7 @@
+H750xB_TARGETS += $(TARGET)
+
+HSE_VALUE    = 16000000
+
+FEATURES       += VCP
+
+TARGET_SRC += \
