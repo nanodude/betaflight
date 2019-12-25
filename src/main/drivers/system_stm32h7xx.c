@@ -269,9 +269,13 @@ void systemCheckResetReason(void)
     case RESET_BOOTLOADER_POST:
         // Boot loader activity magically prevents SysTick from interrupting.
         // Issue a soft reset to prevent the condition.
+#if !defined(USE_BRAINFPV_BOOTLOADER)
         forcedSystemResetWithoutDisablingCaches(); // observed that disabling dcache after cold boot with BOOT pin high causes segfault.
+#endif
+    	break;
     }
 
+#if !defined(USE_BRAINFPV_BOOTLOADER)
     void (*SysMemBootJump)(void);
     __SYSCFG_CLK_ENABLE();
 
@@ -280,4 +284,5 @@ void systemCheckResetReason(void)
     SysMemBootJump = (void (*)(void)) (*((uint32_t *) 0x1ff09804)); // Point the PC to the System Memory reset vector (+4)
     SysMemBootJump();
     while (1);
+#endif
 }
