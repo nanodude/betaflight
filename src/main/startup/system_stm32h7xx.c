@@ -361,6 +361,23 @@ void SystemClock_Config(void)
 
     RCC_PeriphCLKInitTypeDef RCC_PeriphClkInit;
 
+
+#if defined(USE_USB48MHZ_PLL)
+    RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
+    RCC_PeriphClkInit.PLL3.PLL3M = 4;
+    RCC_PeriphClkInit.PLL3.PLL3N = 48;
+    RCC_PeriphClkInit.PLL3.PLL3P = 2;
+    RCC_PeriphClkInit.PLL3.PLL3Q = 4;
+    RCC_PeriphClkInit.PLL3.PLL3R = 2;
+    RCC_PeriphClkInit.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_2;
+    RCC_PeriphClkInit.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
+    RCC_PeriphClkInit.PLL3.PLL3FRACN = 0;
+    RCC_PeriphClkInit.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL;
+    RCC_PeriphClkInit.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
+    RCC_PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
+
+    HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
+#else
     // Configure HSI48 as peripheral clock for USB
 
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
@@ -370,7 +387,6 @@ void SystemClock_Config(void)
     // Configure CRS for dynamic calibration of HSI48
     // While ES0392 Rev 5 "STM32H742xI/G and STM32H743xI/G device limitations" states CRS not working for REV.Y,
     // it is always turned on as it seems that it has no negative effect on clock accuracy.
-
     RCC_CRSInitTypeDef crsInit = {
         .Prescaler = RCC_CRS_SYNC_DIV1,
         .Source = RCC_CRS_SYNC_SOURCE_USB2,
@@ -382,6 +398,7 @@ void SystemClock_Config(void)
 
     __HAL_RCC_CRS_CLK_ENABLE();
     HAL_RCCEx_CRSConfig(&crsInit);
+#endif
 
 #ifdef USE_CRS_INTERRUPTS
     // Turn on USE_CRS_INTERRUPTS to see CRS in action
@@ -598,8 +615,8 @@ void SystemInit (void)
     /* Configure the Vector Table location add offset address ------------------*/
 #if defined(VECT_TAB_SRAM)
     SCB->VTOR = D1_AXISRAM_BASE  | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal ITCMSRAM */
-#elif defined(RADIX2)
-    SCB->VTOR = 0x24010000; //XXX
+#elif defined(VECT_TAB_BASE)
+    SCB->VTOR = VECT_TAB_BASE;
 #elif defined(USE_EXST)
     // Don't touch the vector table, the bootloader will have already set it.
 #else
