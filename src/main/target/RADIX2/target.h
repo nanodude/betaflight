@@ -24,6 +24,7 @@
 #define USBD_PRODUCT_STRING "BrainFPV RADIX"
 
 #define USE_BRAINFPV_BOOTLOADER
+#define VECT_TAB_BASE 0x24000000
 
 #define USE_TARGET_CONFIG
 
@@ -70,6 +71,7 @@
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9
 #define VBUS_SENSING_ENABLED
+#define USE_USB48MHZ_PLL
 
 #define SERIAL_PORT_COUNT       7
 

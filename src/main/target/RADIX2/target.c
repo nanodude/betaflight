@@ -27,6 +27,18 @@
 #include "drivers/timer.h"
 #include "drivers/timer_def.h"
 
+#define RADIX2_TARGET_MAGIC 0x65DF92FE
+
+typedef struct __attribute__((packed)) {
+    uint32_t target_magic;
+    uint32_t isr_vector_base;
+} BrainFPVBlHeader_t;
+
+const BrainFPVBlHeader_t __attribute__((section (".bl_header_section"))) BRAINFPV_BL_HEADER = {
+	.target_magic = RADIX2_TARGET_MAGIC,
+	.isr_vector_base = VECT_TAB_BASE,
+};
+
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM12, CH1, PB14, TIM_USE_PPM,  0,  0,  0 ), // PPM input
 
