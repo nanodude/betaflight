@@ -99,7 +99,7 @@
 #error "TIM4 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM4_HANDLER
+#define ST_HANDLER                          TIM4_IRQHandler
 #define ST_NUMBER                           STM32_TIM4_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM4(true)
@@ -250,7 +250,7 @@ OSAL_IRQ_HANDLER(SysTick_Handler) {
  *
  * @isr
  */
-OSAL_IRQ_HANDLER(ST_HANDLER) {
+void ST_HANDLER(void) {
 
   OSAL_IRQ_PROLOGUE();
 
