@@ -381,7 +381,7 @@ void osdMain(void) {
     uint32_t currentTime;
 
     while (1) {
-        if (chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(500)) == MSG_TIMEOUT) {
+        if (chBSemWaitTimeout(&onScreenDisplaySemaphore, TIME_MS2I(500)) == MSG_TIMEOUT) {
             // No trigger received within 500ms, re-enable the video
             video_qspi_enable();
         }

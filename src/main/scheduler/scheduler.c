@@ -425,7 +425,7 @@ FAST_CODE void scheduler(void)
 #endif
         // wait for gyro if no tasks are ready
         if (selectedTask == NULL) {
-            chBSemWaitTimeout(&gyroSem, MS2ST(2));
+            chBSemWaitTimeout(&gyroSem, TIME_MS2I(2));
         }
     }
 #endif
