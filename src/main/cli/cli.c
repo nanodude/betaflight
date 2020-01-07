@@ -2574,7 +2574,7 @@ static void cliVtx(char *cmdline)
             ptr = nextArg(ptr);
             if (ptr) {
                 val = atoi(ptr);
-                if (val >= 0 && val <= vtxTableBandCount) {
+                if (val >= 0 && val <= vtxTableConfig()->bands) {
                     cac->band = val;
                     validArgumentCount++;
                 }
@@ -2582,7 +2582,7 @@ static void cliVtx(char *cmdline)
             ptr = nextArg(ptr);
             if (ptr) {
                 val = atoi(ptr);
-                if (val >= 0 && val <= vtxTableChannelCount) {
+                if (val >= 0 && val <= vtxTableConfig()->channels) {
                     cac->channel = val;
                     validArgumentCount++;
                 }
@@ -2590,7 +2590,7 @@ static void cliVtx(char *cmdline)
             ptr = nextArg(ptr);
             if (ptr) {
                 val = atoi(ptr);
-                if (val >= 0 && val < vtxTablePowerLevels) {
+                if (val >= 0 && val <= vtxTableConfig()->powerLevels) {
                     cac->power= val;
                     validArgumentCount++;
                 }
@@ -2817,7 +2817,7 @@ static void cliVtxTable(char *cmdline)
         tok = strtok_r(NULL, " ", &saveptr);
 
         int channels = atoi(tok);
-        if (channels < 0 || channels > VTX_TABLE_MAX_BANDS) {
+        if (channels < 0 || channels > VTX_TABLE_MAX_CHANNELS) {
             cliPrintErrorLinef("INVALID CHANNEL COUNT (SHOULD BE BETWEEN 0 AND %d)", VTX_TABLE_MAX_CHANNELS);
             return;
         }
@@ -4842,13 +4842,13 @@ static void cliRcSmoothing(char *cmdline)
     cliPrint("# RC Smoothing Type: ");
     if (rxConfig()->rc_smoothing_type == RC_SMOOTHING_TYPE_FILTER) {
         cliPrintLine("FILTER");
-        uint16_t avgRxFrameMs = rcSmoothingData->averageFrameTimeUs;
         if (rcSmoothingAutoCalculate()) {
+            const uint16_t avgRxFrameUs = rcSmoothingData->averageFrameTimeUs;
             cliPrint("# Detected RX frame rate: ");
-            if (avgRxFrameMs == 0) {
+            if (avgRxFrameUs == 0) {
                 cliPrintLine("NO SIGNAL");
             } else {
-                cliPrintLinef("%d.%dms", avgRxFrameMs / 1000, avgRxFrameMs % 1000);
+                cliPrintLinef("%d.%03dms", avgRxFrameUs / 1000, avgRxFrameUs % 1000);
             }
         }
         cliPrint("# Input filter type: ");
@@ -6132,12 +6132,12 @@ static void printConfig(char *cmdline, bool doDiff)
 
             printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0), "rxrange");
 
-#ifdef USE_VTX_CONTROL
-            printVtx(dumpMask, &vtxConfig_Copy, vtxConfig(), "vtx");
-#endif
-
 #ifdef USE_VTX_TABLE
             printVtxTable(dumpMask, &vtxTableConfig_Copy, vtxTableConfig(), "vtxtable");
+#endif
+
+#ifdef USE_VTX_CONTROL
+            printVtx(dumpMask, &vtxConfig_Copy, vtxConfig(), "vtx");
 #endif
 
             printRxFailsafe(dumpMask, rxFailsafeChannelConfigs_CopyArray, rxFailsafeChannelConfigs(0), "rxfail");
