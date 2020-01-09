@@ -422,9 +422,18 @@ endif
 ifneq ($(filter CHIBIOS,$(FEATURES)),)
 CHIBIOS := $(ROOT)/lib/main/ChibiOS
 
-#include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
-include $(CHIBIOS)/os/hal/hal.mk
+
+ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
+INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32F4xx
+endif
+
+ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
+include $(CHIBIOS)/os/hal/ports/STM32/STM32H7xx/platform.mk
+INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32H7xx
+endif
+
+include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
@@ -446,7 +455,6 @@ SRC += $(OSALASM)
 INCLUDE_DIRS += $(CHIBIOS)/os/license/
 INCLUDE_DIRS += $(CHIBIOS)//os/oslib/include/
 INCLUDE_DIRS += $(CHIBIOS)/os/common/ext/ST/STM32F4xx/
-INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32F4xx
 
 INCLUDE_DIRS += $(STARTUPINC)
 INCLUDE_DIRS += $(KERNINC)
@@ -467,9 +475,9 @@ SRC += brainfpv/spectrograph.c \
        brainfpv/ir_transponder.c \
        io/displayport_max7456.c \
        cms/cms_menu_brainfpv.c
-
-SRC += $(TARGET_SRC)
 endif
+SRC += $(TARGET_SRC)
+
 
 ifneq ($(filter SPECTROGRAPH,$(FEATURES)),)
 SRC += brainfpv/spectrograph.c
