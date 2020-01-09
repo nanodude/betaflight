@@ -20,11 +20,17 @@
 
 #pragma once
 
+#define DEBUG_PRINTF
+
 #define TARGET_BOARD_IDENTIFIER "RADIX2"
 #define USBD_PRODUCT_STRING "BrainFPV RADIX"
 
 #define USE_BRAINFPV_BOOTLOADER
+
 #define VECT_TAB_BASE 0x24000000
+
+//#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (83626942)
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (100000000)
 
 #define USE_TARGET_CONFIG
 
@@ -75,13 +81,12 @@
 
 #define SERIAL_PORT_COUNT       7
 
-//#define USE_SPI
-//
-//#define USE_SPI_DEVICE_2
-//#define SPI2_SCK_PIN            PD3
-//#define SPI2_MISO_PIN           PC2
-//#define SPI2_MOSI_PIN           PC3
-//#define SPI2_NSS_PIN            PB12
+#define USE_SPI
+
+#define USE_SPI_DEVICE_2
+#define SPI2_SCK_PIN            PD3
+#define SPI2_MISO_PIN           PC2
+#define SPI2_MOSI_PIN           PC1
 //
 //#define USE_SPI_DEVICE_3
 //#define SPI3_SCK_PIN            PB3
@@ -102,38 +107,33 @@
 //#define I2C_DEVICE              (I2CDEV_1)
 
 
-//
-//#define USE_GYRO
-//#define USE_GYRO_SPI_MPU6500
-//#define USE_MULTI_GYRO
 #undef USE_GYRO_REGISTER_DUMP
-//
-//#define USE_EXTI
-//#define USE_GYRO_EXTI
-//#define GYRO_1_EXTI_PIN         PD4
-//#define GYRO_2_EXTI_PIN         PE15
-//#define USE_MPU_DATA_READY_SIGNAL
-//#define ENSURE_MPU_DATA_READY_IS_LOW
-//
-//#define GYRO_1_CS_PIN           SPI3_NSS_PIN
-//#define GYRO_1_SPI_INSTANCE     SPI3
-//
-//#define GYRO_2_CS_PIN           SPI2_NSS_PIN
-//#define GYRO_2_SPI_INSTANCE     SPI2
-//
-//#define USE_ACC
-//#define USE_ACC_SPI_MPU6500
-//
-//#define GYRO_1_ALIGN        CW180_DEG
-//#define GYRO_2_ALIGN        ALIGN_CUSTOM
-//#define GYRO_2_CUSTOM_ALIGN SENSOR_ALIGNMENT(  0, 0, 225)
-//
-//#define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_BOTH
-//
-//#define USE_FLASHFS
-//#define USE_FLASH_TOOLS
-//#define USE_FLASH_W25N01G
-//#define FLASH_QUADSPI_INSTANCE    QUADSPI
+
+#define USE_EXTI
+#define USE_GYRO
+#define USE_ACC
+#undef USE_MULTI_GYRO
+
+#define USE_MPU_DATA_READY_SIGNAL
+#define USE_GYRO_EXTI
+#define USE_SPI_GYRO
+#define USE_GYRO_SPI_BMI270
+#define USE_ACCGYRO_BMI270
+
+// SPI2 is running at 80MHz
+#define BMI270_SPI_DIVISOR   8
+
+#define GYRO_1_EXTI_PIN           PD5
+#define GYRO_1_CS_PIN             PC3
+#define GYRO_1_SPI_INSTANCE       SPI2
+#define GYRO_1_ALIGN              CW0_DEG
+#define GYRO_1_ALIGN              CW0_DEG
+
+
+#define USE_BARO
+#define USE_BARO_SPI_BMP388
+#define BARO_SPI_INSTANCE       SPI2
+#define BARO_CS_PIN             PE15
 
 //
 //#ifdef USE_DMA_SPEC

@@ -34,7 +34,7 @@ typedef struct __attribute__((packed)) {
     uint32_t isr_vector_base;
 } BrainFPVBlHeader_t;
 
-const BrainFPVBlHeader_t __attribute__((section (".bl_header_section"))) BRAINFPV_BL_HEADER = {
+const BrainFPVBlHeader_t __attribute__((section (".bl_header_section"))) __attribute__((used)) BRAINFPV_BL_HEADER = {
 	.target_magic = RADIX2_TARGET_MAGIC,
 	.isr_vector_base = VECT_TAB_BASE,
 };
