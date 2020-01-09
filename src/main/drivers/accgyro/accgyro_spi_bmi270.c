@@ -965,10 +965,6 @@ static int32_t BMI270_Config(const busDevice_t *bus)
     //uint8_t val = spiBusReadRegister(bus, BMI270_REG_OFFSET_0);
     //spiBusWriteRegister(bus, BMI270_REG_OFFSET_0, val | 0xC0);
 
-#if defined(DEBUG_PRINTF)
-	tfp_printf("BMI270_Config OK\n\r");
-#endif
-
     return 0;
 }
 
