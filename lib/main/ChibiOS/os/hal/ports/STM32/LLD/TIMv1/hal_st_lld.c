@@ -124,7 +124,7 @@
 #error "TIM5 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM5_HANDLER
+#define ST_HANDLER                          TIM5_IRQHandler
 #define ST_NUMBER                           STM32_TIM5_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM5(true)
@@ -181,7 +181,7 @@
 #endif
 
 #if (ST_CLOCK_SRC / OSAL_ST_FREQUENCY) - 1 > 0xFFFF
-#error "the selected ST frequency is not obtainable because TIM timer prescaler limits"
+#error  "the selected ST frequency is not obtainable because TIM timer prescaler limits"
 #endif
 
 #endif /* OSAL_ST_MODE == OSAL_ST_MODE_FREERUNNING */

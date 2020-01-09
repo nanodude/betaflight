@@ -36,7 +36,7 @@
 /*===========================================================================*/
 /* STM32H743xx, STM32H753xx.                                                 */
 /*===========================================================================*/
-#if defined(STM32H743xx) || defined(STM32H753xx) ||                         \
+#if defined(STM32H743xx) || defined(STM32H753xx) || defined(STM32H750xx) ||   \
     defined(__DOXYGEN__)
 
 /* ADC attributes.*/

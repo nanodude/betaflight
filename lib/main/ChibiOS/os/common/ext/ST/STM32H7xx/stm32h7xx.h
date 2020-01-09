@@ -117,6 +117,8 @@
   #include "stm32h743xx.h"
 #elif defined(STM32H753xx)
   #include "stm32h753xx.h"
+#elif defined(STM32H750xx)
+  #include "stm32h750xx.h"
 #else
  #error "Please select first the target STM32H7xx device used in your application (in stm32h7xx.h file)"
 #endif

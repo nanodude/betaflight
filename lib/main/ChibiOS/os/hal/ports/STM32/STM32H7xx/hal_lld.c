@@ -36,7 +36,7 @@
  * @brief   CMSIS system core clock variable.
  * @note    It is declared in system_stm32f7xx.h.
  */
-uint32_t SystemCoreClock = STM32_CORE_CK;
+// uint32_t SystemCoreClock = STM32_CORE_CK;
 
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
@@ -126,6 +126,7 @@ static inline void init_pwr(void) {
  */
 void hal_lld_init(void) {
 
+#if STM32_NO_INIT == FALSE
   /* Reset of all peripherals. AHB3 is not reset entirely because FMC could
      have been initialized in the board initialization file (board.c).
      Note, GPIOs are not reset because initialized before this point in
@@ -184,6 +185,7 @@ void hal_lld_init(void) {
     SCB_CleanInvalidateDCache();
   }
 #endif
+#endif /* STM32_NO_INIT == FALSE */
 }
 
 /**
@@ -389,8 +391,6 @@ void stm32_clock_init(void) {
                   STM32_UART4SEL  | STM32_USART3SEL | STM32_USART2SEL |
                   STM32_USART1SEL;
 #endif
-#endif /* STM32_NO_INIT */
-
   /* RAM1 2 and 3 clocks enabled.*/
   rccEnableSRAM1(true);
   rccEnableSRAM2(true);
@@ -399,6 +399,9 @@ void stm32_clock_init(void) {
   /* SYSCFG clock enabled here because it is a multi-functional unit shared
      among multiple drivers.*/
   rccEnableAPB4(RCC_APB4ENR_SYSCFGEN, true);
+#else
+  (void)cfgr;
+#endif /* STM32_NO_INIT */
 }
 
 /** @} */
