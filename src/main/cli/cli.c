@@ -5267,6 +5267,10 @@ static const char *printPeripheralDmaopt(dmaoptEntry_t *entry, int index, dumpFl
     const void *currentConfig;
     const void *defaultConfig;
 
+    if (!pg) {
+    	return headingStr;
+    }
+
     if (isReadingConfigFromCopy()) {
         currentConfig = pg->copy;
         defaultConfig = pg->address;
@@ -6492,7 +6496,12 @@ static void processCharacter(const char c)
                 }
             }
             if (cmd < cmdTable + ARRAYLEN(cmdTable)) {
-                cmd->func(options);
+            	if (cmd->func) {
+            		cmd->func(options);
+            	}
+            	else {
+            		cliPrintError("CMD FUNCTION 0");
+            	}
             } else {
                 cliPrintError("UNKNOWN COMMAND, TRY 'HELP'");
             }
