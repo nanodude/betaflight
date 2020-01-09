@@ -63,7 +63,9 @@ _estack = ORIGIN(STACKRAM) + LENGTH(STACKRAM) - 8; /* Reserve 2 x 4bytes for inf
 
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0;      /* required amount of heap  */
-_Min_Stack_Size = 0x800; /* required amount of stack */
+_Min_Stack_Size = 0xF00; /* required amount of stack */
+
+__process_stack_size__  = 0x4000;
 
 /* Define output sections */
 SECTIONS
@@ -216,7 +218,7 @@ SECTIONS
     _efastram_bss = .;
     __fastram_bss_end__ = _efastram_bss;
   } >FASTRAM
-
+    
   .DMA_RAM (NOLOAD) :
   {
     . = ALIGN(32);
@@ -261,7 +263,17 @@ SECTIONS
     __persistent_data_end__ = .;
   } >RAM
 
-
+  /* Special section for process stack.*/
+  .pstack :
+  {
+	__process_stack_base__ = .;
+    __main_thread_stack_base__ = .;
+    . += __process_stack_size__;
+    . = ALIGN(8);
+    __process_stack_end__ = .;
+    __main_thread_stack_end__ = .;
+  } >STACKRAM
+  
   /* User_heap_stack section, used to check that there is enough RAM left */
   _heap_stack_end = ORIGIN(STACKRAM)+LENGTH(STACKRAM) - 8; /* 8 bytes to allow for alignment */
   _heap_stack_begin = _heap_stack_end - _Min_Stack_Size  - _Min_Heap_Size;
