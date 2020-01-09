@@ -45,6 +45,7 @@
 #include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_spi_bmi160.h"
+#include "drivers/accgyro/accgyro_spi_bmi270.h"
 #include "drivers/accgyro/accgyro_spi_icm20649.h"
 #include "drivers/accgyro/accgyro_spi_icm20689.h"
 #include "drivers/accgyro/accgyro_spi_mpu6000.h"
@@ -354,9 +355,18 @@ STATIC_UNIT_TESTED gyroHardware_e gyroDetect(gyroDev_t *dev)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACCGYRO_BMI160
+#ifdef USE_GYRO_SPI_BMI160
     case GYRO_BMI160:
         if (bmi160SpiGyroDetect(dev)) {
+            gyroHardware = GYRO_BMI160;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_GYRO_SPI_BMI270
+    case GYRO_BMI160:
+        if (bmi270SpiGyroDetect(dev)) {
             gyroHardware = GYRO_BMI160;
             break;
         }
@@ -387,7 +397,8 @@ STATIC_UNIT_TESTED gyroHardware_e gyroDetect(gyroDev_t *dev)
 static void gyroPreInitSensor(const gyroDeviceConfig_t *config)
 {
 #if defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU3050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) \
- || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20601) || defined(USE_GYRO_SPI_ICM20649) || defined(USE_GYRO_SPI_ICM20689)
+ || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20601) || defined(USE_GYRO_SPI_ICM20649) || defined(USE_GYRO_SPI_ICM20689) \
+// || defined(USE_GYRO_SPI_BMI160) || defined(USE_GYRO_SPI_BMI270)
     mpuPreInit(config);
 #else
     UNUSED(config);
@@ -397,7 +408,8 @@ static void gyroPreInitSensor(const gyroDeviceConfig_t *config)
 static bool gyroDetectSensor(gyroSensor_t *gyroSensor, const gyroDeviceConfig_t *config)
 {
 #if defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU3050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) \
- || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20601) || defined(USE_GYRO_SPI_ICM20649) || defined(USE_GYRO_SPI_ICM20689) || defined(USE_GYRO_L3GD20) || defined(USE_GYRO_SPI_BMI160)
+ || defined(USE_ACC_MPU6050) || defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20601) || defined(USE_GYRO_SPI_ICM20649) || defined(USE_GYRO_SPI_ICM20689) || defined(USE_GYRO_L3GD20) \
+ || defined(USE_GYRO_SPI_BMI160) || defined(USE_GYRO_SPI_BMI270)
 
     bool gyroFound = mpuDetect(&gyroSensor->gyroDev, config);
 

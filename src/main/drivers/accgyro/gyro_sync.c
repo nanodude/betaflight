@@ -80,9 +80,9 @@ uint32_t gyroSetSampleRate(gyroDev_t *gyro, uint8_t lpf, uint8_t gyroSyncDenomin
         gyroSyncDenominator = 1; // Always full Sampling 1khz
     }
 
-#if defined(BRAINFPV)
+#if defined(USE_GYRO_SPI_BMI160) || defined(USE_GYRO_SPI_BMI270)
     gyro->gyroRateKHz = GYRO_RATE_3200_Hz;
-    gyroSamplePeriod = 312.5;
+    gyroSamplePeriod = 300;  // Needs to be a bit less than the actual sampling period to make sure scheduler doesn't skip
     gyroSyncDenominator = 1; // Always full Sampling 1khz
 #endif /* defined(BRAINFPV) */
 
