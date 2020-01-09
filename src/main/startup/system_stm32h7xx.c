@@ -257,7 +257,11 @@ static void SystemClockHSE_Config(void)
     RCC_OscInitStruct.PLL.PLLM = HSE_VALUE / 2000000;
     RCC_OscInitStruct.PLL.PLLN = 400; // 8M / 4 * 400 = 800 (PLL1N output)
     RCC_OscInitStruct.PLL.PLLP = 2;  // 400
+#if defined(RADIX2)
+    RCC_OscInitStruct.PLL.PLLQ = 10;  // 80, SPI123
+#else
     RCC_OscInitStruct.PLL.PLLQ = 8;  // 100, SPI123
+#endif
     RCC_OscInitStruct.PLL.PLLR = 5;  // 160, no particular usage yet. (See note on PLL2/3 below)
 
     RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
@@ -537,7 +541,9 @@ void SystemInit (void)
 {
     memProtReset();
 
+#if !defined(USE_BRAINFPV_BOOTLOADER)
     initialiseMemorySections();
+#endif
 
 #if !defined(USE_EXST)
     // only stand-alone and bootloader firmware needs to do this.
@@ -631,12 +637,13 @@ void SystemInit (void)
     SystemCoreClockUpdate();
 
     // Configure MPU
-
     memProtConfigure(mpuRegions, mpuRegionCount);
 
+#if !defined(DEBUG)
     // Enable CPU L1-Cache
     SCB_EnableICache();
     SCB_EnableDCache();
+#endif
 }
 
 /**
