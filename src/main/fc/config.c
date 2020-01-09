@@ -641,7 +641,7 @@ void validateAndFixGyroConfig(void)
 //    gyroConfigMutable()->gyro_isr_update = false;
 #endif
 
-#if defined(BRAINFPV)
+#if defined(USE_GYRO_SPI_BMI160) || defined(USE_GYRO_SPI_BMI270)
     samplingTime = 0.0003125f;
 #endif
 
