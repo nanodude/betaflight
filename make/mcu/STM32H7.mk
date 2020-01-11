@@ -182,10 +182,7 @@ TARGET_FLASH := $(DEFAULT_TARGET_FLASH)
 endif
 
 ifeq ($(TARGET),RADIX2)
-FIRMWARE_SIZE      := 448
-# TARGET_FLASH now becomes the amount of RAM memory that is occupied by the firmware
-# and the maximum size of the data stored on the external storage device.
-TARGET_FLASH       := FIRMWARE_SIZE
+TARGET_FLASH       := 448
 DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h750_radix2.ld
 endif
 
