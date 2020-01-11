@@ -20,12 +20,15 @@
 
 #pragma once
 
-#define DEBUG_PRINTF
+//#define DEBUG_PRINTF
 
-#define TARGET_BOARD_IDENTIFIER "RADIX2"
+#define TARGET_BOARD_IDENTIFIER "RDX2"
 #define USBD_PRODUCT_STRING "BrainFPV RADIX"
 
 #define USE_BRAINFPV_BOOTLOADER
+
+#define USE_CUSTOM_RESET
+#define CUSTOM_RESET_PIN PC13
 
 #define VECT_TAB_BASE 0x24000000
 
@@ -34,8 +37,6 @@
 
 #define USE_TARGET_CONFIG
 
-// XXX for testing
-#define CONFIG_IN_RAM
 #undef USE_OSD
 #undef USE_MAX7456
 #undef USE_CMS
@@ -83,6 +84,11 @@
 
 #define USE_SPI
 
+#define USE_SPI_DEVICE_1
+#define SPI1_SCK_PIN            PA5
+#define SPI1_MISO_PIN           PB4
+#define SPI1_MOSI_PIN           PD7
+
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PD3
 #define SPI2_MISO_PIN           PC2
@@ -107,6 +113,15 @@
 //#define I2C_DEVICE              (I2CDEV_1)
 
 
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define M25P16_FIRST_SECTOR     34
+#define FLASH_CS_PIN           PA4
+#define FLASH_SPI_INSTANCE     SPI1
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#define CONFIG_IN_EXTERNAL_FLASH
+//#define CONFIG_IN_RAM
+
 #undef USE_GYRO_REGISTER_DUMP
 
 #define USE_EXTI
@@ -129,7 +144,7 @@
 #define GYRO_1_ALIGN              CW0_DEG
 #define GYRO_1_ALIGN              CW0_DEG
 
-
+// XXX: change to I2C
 #define USE_BARO
 #define USE_BARO_SPI_BMP388
 #define BARO_SPI_INSTANCE       SPI2

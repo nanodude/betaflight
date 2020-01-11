@@ -58,3 +58,20 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MOTOR,               0,  7,  2 ), // M8
 };
 
+#if defined(USE_CUSTOM_RESET)
+void CustomSystemReset(void)
+{
+	IO_t reset_pin = IOGetByTag(IO_TAG(CUSTOM_RESET_PIN));
+    IOInit(reset_pin, OWNER_PULLDOWN, 0);
+    IOConfigGPIO(reset_pin, IOCFG_OUT_OD);
+
+    __DSB();                                                          /* Ensure all outstanding memory accesses included
+                                                                         buffered write are completed before reset */
+
+    IOLo(reset_pin);
+    for(;;)                                                           /* wait until reset */
+    {
+      __NOP();
+    }
+}
+#endif
