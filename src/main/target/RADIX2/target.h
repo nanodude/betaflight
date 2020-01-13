@@ -106,12 +106,11 @@
 //#define SPI4_MOSI_PIN           PE14
 //#define SPI4_NSS_PIN            PE11
 
-//#define USE_I2C
-//#define USE_I2C_DEVICE_1
-//#define I2C1_SCL                PB8
-//#define I2C1_SDA                PB9
-//#define I2C_DEVICE              (I2CDEV_1)
-
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB7
+#define I2C_DEVICE              (I2CDEV_1)
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -144,11 +143,9 @@
 #define GYRO_1_ALIGN              CW0_DEG
 #define GYRO_1_ALIGN              CW0_DEG
 
-// XXX: change to I2C
 #define USE_BARO
-#define USE_BARO_SPI_BMP388
-#define BARO_SPI_INSTANCE       SPI2
-#define BARO_CS_PIN             PE15
+#define USE_BARO_BMP388
+
 
 //
 //#ifdef USE_DMA_SPEC
