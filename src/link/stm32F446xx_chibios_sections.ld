@@ -211,6 +211,12 @@ SECTIONS
         PROVIDE(end = .);
     } > BSS_RAM
 
+    video_ram (NOLOAD) : ALIGN(4)
+    {
+        *(.video_ram)
+        *(.video_ram.*)
+    } > BSS_RAM
+    
     .ram0_init : ALIGN(4)
     {
         . = ALIGN(4);
