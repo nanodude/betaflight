@@ -27,6 +27,9 @@
 #include "drivers/timer.h"
 #include "drivers/timer_def.h"
 
+#include "fpga_drv.h"
+#include "brainfpv/brainfpv_osd.h"
+
 #define RADIX2_TARGET_MAGIC 0x65DF92FE
 
 typedef struct __attribute__((packed)) {
@@ -75,3 +78,31 @@ void CustomSystemReset(void)
     }
 }
 #endif
+
+
+bool brainfpv_settings_updated = true;
+bool brainfpv_settings_updated_from_cms = false;
+
+extern bfOsdConfig_t bfOsdConfigCms;
+
+void brainFPVUpdateSettings(void) {
+    const bfOsdConfig_t * bfOsdConfigUse;
+
+    if (brainfpv_settings_updated_from_cms)
+        bfOsdConfigUse = &bfOsdConfigCms;
+    else
+        bfOsdConfigUse = bfOsdConfig();
+
+    if (!bfOsdConfigUse->invert){
+        BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->black_level, bfOsdConfigUse->white_level);
+    }
+    else {
+        BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->white_level, bfOsdConfigUse->black_level);
+    }
+
+    BRAINFPVFPGA_SetSyncThreshold(bfOsdConfigUse->sync_threshold);
+    BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
+    BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
+
+    brainfpv_settings_updated_from_cms = false;
+}

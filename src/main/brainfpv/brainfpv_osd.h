@@ -17,9 +17,11 @@ typedef struct bfOsdConfig_s {
     uint8_t sbs_3d_enabled;
     uint8_t sbs_3d_right_eye_offset;
     uint8_t font;
+#if defined(USE_BRAINFPV_IR_TRANSPONDER)
     uint8_t ir_system;
     uint16_t ir_trackmate_id;
     uint32_t ir_ilap_id;
+#endif
     uint8_t ahi_steps;
     uint8_t bmi160foc;
     uint16_t bmi160foc_ret;

@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 //#define DEBUG_PRINTF
 
 #define TARGET_BOARD_IDENTIFIER "RDX2"
@@ -37,9 +39,40 @@
 
 #define USE_TARGET_CONFIG
 
-#undef USE_OSD
-#undef USE_MAX7456
-#undef USE_CMS
+#define USE_BRAINFPV_FPGA
+#define BRAINFPVFPGA_SPI_INSTANCE SPI3
+#define BRAINFPVFPGA_SPI_DIVISOR  8
+#define BRAINFPVFPGA_CS_PIN       PE1
+#define BRAINFPVFPGA_RESET_PIN    PC4
+
+
+#define BRAINFPV
+#define USE_MAX7456
+#define USE_OSD
+#define USE_CMS
+#define OSD_CALLS_CMS
+#define USE_BRAINFPV_OSD
+#define VIDEO_BITS_PER_PIXEL 2
+#define INCLUDE_VIDEO_QUADSPI
+#define VIDEO_QSPI_CLOCK_PIN PB2
+#define VIDEO_QSPI_IO0_PIN   PD11
+#define VIDEO_QSPI_IO1_PIN   PC10
+#define VIDEO_VSYNC          PE3
+#define VIDEO_HSYNC          PE4
+
+#define BRAINFPV_OSD_SYNC_TH_DEFAULT 40
+#define BRAINFPV_OSD_SYNC_TH_MIN 10
+#define BRAINFPV_OSD_SYNC_TH_MAX 80
+
+#define BRAINFPV_OSD_BLACK_LEVEL_DEFAULT 20
+#define BRAINFPV_OSD_BLACK_LEVEL_MIN 0
+#define BRAINFPV_OSD_BLACK_LEVEL_MAX 150
+
+#define BRAINFPV_OSD_WHITE_LEVEL_DEFAULT 50
+#define BRAINFPV_OSD_WHITE_LEVEL_MIN 0
+#define BRAINFPV_OSD_WHITE_LEVEL_MAX 200
+
+#define USE_BRAINFPV_SPECTROGRAPH
 
 #define LED0_PIN                PE6
 #define LED1_PIN                PE7
@@ -48,6 +81,10 @@
 #define BEEPER_PIN              PD14
 #define BEEPER_INVERTED
 
+#define USE_PINIO
+#define PINIO1_PIN              PD15 // VTX
+#define PINIO2_PIN              PC15 // Video input
+#define USE_PINIOBOX
 
 #define USE_UART
 
@@ -93,18 +130,12 @@
 #define SPI2_SCK_PIN            PD3
 #define SPI2_MISO_PIN           PC2
 #define SPI2_MOSI_PIN           PC1
-//
-//#define USE_SPI_DEVICE_3
-//#define SPI3_SCK_PIN            PB3
-//#define SPI3_MISO_PIN           PB4
-//#define SPI3_MOSI_PIN           PD6
-//#define SPI3_NSS_PIN            PA15
-//
-//#define USE_SPI_DEVICE_4
-//#define SPI4_SCK_PIN            PE12
-//#define SPI4_MISO_PIN           PE13
-//#define SPI4_MOSI_PIN           PE14
-//#define SPI4_NSS_PIN            PE11
+
+#define USE_SPI_DEVICE_3
+#define SPI3_SCK_PIN            PB3
+#define SPI3_MISO_PIN           PC11
+#define SPI3_MOSI_PIN           PC12
+#define SPI3_NSS_PIN            PA15
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1
@@ -199,3 +230,6 @@
 #define USABLE_TIMER_CHANNEL_COUNT 10
 
 #define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(12) | TIM_N(14) )
+
+extern bool brainfpv_settings_updated;
+extern bool brainfpv_settings_updated_from_cms;
