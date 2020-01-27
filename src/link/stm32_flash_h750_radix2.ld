@@ -20,7 +20,7 @@
 0x00000000 to 0x0000FFFF   64K ITCM
 0x20000000 to 0x2001FFFF  128K DTCM
 0x24000000 to 0x2407FFFF  512K AXI SRAM, D1 domain, main RAM
-0x30000000 to 0x3001FFFF  128K SRAM1, D2 domain, unused
+0x30000000 to 0x3001FFFF  128K SRAM1, D2 domain, video ram
 0x30020000 to 0x3003FFFF  128K SRAM2, D2 domain, unused
 0x30040000 to 0x30047FFF   32K SRAM3, D2 domain, unused
 0x38000000 to 0x3800FFFF   64K SRAM4, D3 domain, unused
@@ -218,7 +218,18 @@ SECTIONS
     _efastram_bss = .;
     __fastram_bss_end__ = _efastram_bss;
   } >FASTRAM
+
+  images : ALIGN(16) SUBALIGN(16)
+  {
+    KEEP(*(.images_section))
+  } > D2_RAM
     
+  video_ram (NOLOAD) : ALIGN(4)
+  {
+    *(.video_ram)
+    *(.video_ram.*)
+  } > D2_RAM
+  
   .DMA_RAM (NOLOAD) :
   {
     . = ALIGN(32);
@@ -230,7 +241,7 @@ SECTIONS
     _edmaram = .;
     _dmaram_end__ = _edmaram;
   } >D2_RAM
-
+      
   .DMA_RW_D2 (NOLOAD) :
   {
     . = ALIGN(32);
