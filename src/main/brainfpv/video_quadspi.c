@@ -40,13 +40,33 @@
 #include "drivers/light_led.h"
 #include "drivers/time.h"
 
+#include "drivers/rcc.h"
+
+#if defined(STM32F446xx)
+#include <stm32f4xx_qspi.h>
+#else
+#if defined(STM32H750xx)
+#include "stm32h7xx_hal_qspi.h"
+#include "stm32h7xx_hal_mdma.h"
+
+QSPI_HandleTypeDef hqspi;
+MDMA_HandleTypeDef hmdma;
+#else
+#error "MCU not supported"
+#endif
+#endif
+
+
 #ifdef VIDEO_DEBUG_PIN
 static IO_t debugPin;
 #endif
 static IO_t hsync_io;
 static IO_t vsync_io;
 
-#if defined(INCLUDE_VIDEO_QUADSPI) | 1
+#if defined(INCLUDE_VIDEO_QUADSPI)
+
+static void Error_Handler(void) { while (1) { } }
+
 
 #if !defined(VIDEO_QUADSPI_Y_OFFSET)
 #define VIDEO_QUADSPI_Y_OFFSET 0
@@ -97,16 +117,9 @@ static const struct video_type_cfg video_type_cfg_pal = {
     .dma_buffer_length     = PAL_BYTES + PAL_BYTES % 4, // DMA buffer length in bytes (has to be multiple of 4)
 };
 
-// Allocate buffers.
-// Must be allocated in one block, so it is in a struct.
-struct _buffers {
-    uint8_t buffer0[BUFFER_HEIGHT * BUFFER_WIDTH];
-    uint8_t buffer1[BUFFER_HEIGHT * BUFFER_WIDTH];
-} buffers;
 
-// Remove the struct definition (makes it easier to write for).
-#define buffer0 (buffers.buffer0)
-#define buffer1 (buffers.buffer1)
+uint8_t buffer0[BUFFER_HEIGHT * BUFFER_WIDTH] __attribute__ ((section(".video_ram"), aligned(4)));
+uint8_t buffer1[BUFFER_HEIGHT * BUFFER_WIDTH] __attribute__ ((section(".video_ram"), aligned(4)));
 
 // Pointers to each of these buffers.
 uint8_t *draw_buffer;
@@ -222,8 +235,9 @@ void Hsync_ISR(extiCallbackRec_t *cb)
     IOHi(debugPin);
 #endif
     active_line++;
-    //LED1_TOGGLE;
+#if defined(STM32F446xx)
     EXTI->PR = 0x04;
+#endif
 
 
     if ((active_line >= 0) && (active_line < video_type_cfg_act->graphics_hight_real)) {
@@ -231,6 +245,7 @@ void Hsync_ISR(extiCallbackRec_t *cb)
         if (QUADSPI->SR & 0x20)
             return;
 
+#if defined(STM32F446xx)
         // Disable DMA
         DMA2_Stream7->CR &= ~(uint32_t)DMA_SxCR_EN;
 
@@ -247,6 +262,28 @@ void Hsync_ISR(extiCallbackRec_t *cb)
         // Enable DMA
         uint32_t cr = DMA2_Stream7->CR;
         DMA2_Stream7->CR = cr | (uint32_t)DMA_SxCR_EN;
+#endif /* defined(STM32F446xx) */
+
+#if defined(STM32H750xx)
+        // Disable
+        __HAL_MDMA_DISABLE(&hmdma);
+
+        // Clear interrupt flags
+        __HAL_MDMA_CLEAR_FLAG(&hmdma, MDMA_FLAG_TE | MDMA_FLAG_CTC | MDMA_FLAG_BFTC | MDMA_FLAG_BT | MDMA_FLAG_BRT);
+
+        // Load new line
+        hmdma.Instance->CSAR = (uint32_t)&disp_buffer[buffer_offset];
+
+        // Set length
+        hmdma.Instance->CBNDTR = (uint32_t)video_type_cfg_act->dma_buffer_length;
+        QUADSPI->DLR = (uint32_t)video_type_cfg_act->dma_buffer_length - 1;
+
+        // Enable DMA
+        __HAL_MDMA_ENABLE(&hmdma);
+
+        // Trigger transfer
+        //hmdma.Instance->CCR |=  MDMA_CCR_SWRQ;
+#endif /* defined(STM32H750xx) */
 
         buffer_offset += BUFFER_WIDTH;
     }
@@ -277,8 +314,9 @@ void Video_Init()
 {
     chBSemObjectInit(&onScreenDisplaySemaphore, FALSE);
 
-    /* Enable QUADSPI clock */
-    RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_QSPI, ENABLE);
+    /* Configure and clear buffers */
+    draw_buffer = buffer0;
+    disp_buffer = buffer1;
 
     /* Map pins to QUADSPI */
     IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_CLOCK_PIN)),  OWNER_OSD, 0);
@@ -288,6 +326,10 @@ void Video_Init()
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_CLOCK_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO0_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO1_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
+
+#if defined(STM32F446xx)
+    /* Enable QUADSPI clock */
+    RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_QSPI, ENABLE);
 
     /* Configure QUADSPI */
     QSPI_InitTypeDef qspi_init = {
@@ -335,10 +377,6 @@ void Video_Init()
         .DMA_PeripheralBurst    = DMA_PeripheralBurst_Single};
     DMA_Init(DMA2_Stream7, &dma_cfg);
 
-    /* Configure and clear buffers */
-    draw_buffer = buffer0;
-    disp_buffer = buffer1;
-
     /* Enable TC interrupt */
     QSPI_ITConfig(QSPI_IT_TC, ENABLE);
     QSPI_ITConfig(QSPI_IT_FT, ENABLE);
@@ -348,6 +386,81 @@ void Video_Init()
 
     // Enable the QUADSPI
     QSPI_Cmd(ENABLE);
+#endif /* defined(STM32F446xx) */
+
+#if defined(STM32H750xx)
+    __HAL_RCC_QSPI_CLK_ENABLE();
+    __HAL_RCC_QSPI_FORCE_RESET();
+    __HAL_RCC_QSPI_RELEASE_RESET();
+
+    hqspi.Instance = QUADSPI;
+
+    hqspi.Init.ClockPrescaler = 13; // 200MHz / 14 = 14.28MHz
+    hqspi.Init.FifoThreshold = 16;
+    hqspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_NONE;
+    hqspi.Init.FlashSize = 0x1F;
+    hqspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
+    hqspi.Init.ClockMode = QSPI_CLOCK_MODE_0;
+    hqspi.Init.FlashID = QSPI_FLASH_ID_1;
+    hqspi.Init.DualFlash = QSPI_DUALFLASH_DISABLE;
+
+    if (HAL_QSPI_Init(&hqspi) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // MDMA
+    __HAL_RCC_MDMA_CLK_ENABLE();
+
+    hmdma.Instance = MDMA_Channel0;
+    hmdma.Init.Request = MDMA_REQUEST_QUADSPI_FIFO_TH;
+    hmdma.Init.TransferTriggerMode = MDMA_BUFFER_TRANSFER;
+    hmdma.Init.Priority = MDMA_PRIORITY_VERY_HIGH;
+    hmdma.Init.Endianness = MDMA_LITTLE_ENDIANNESS_PRESERVE;
+    hmdma.Init.SourceInc = MDMA_SRC_INC_WORD;
+    hmdma.Init.DestinationInc = MDMA_DEST_INC_DISABLE;
+    hmdma.Init.SourceDataSize = MDMA_SRC_DATASIZE_WORD;
+    hmdma.Init.DestDataSize = MDMA_DEST_DATASIZE_WORD;
+    hmdma.Init.DataAlignment = MDMA_DATAALIGN_PACKENABLE;
+    hmdma.Init.BufferTransferLength = 16;
+    hmdma.Init.SourceBurst = MDMA_SOURCE_BURST_SINGLE;
+    hmdma.Init.DestBurst = MDMA_SOURCE_BURST_SINGLE;
+    hmdma.Init.SourceBlockAddressOffset = 0;
+    hmdma.Init.DestBlockAddressOffset = 0;
+
+    if (HAL_MDMA_Init(&hmdma) != HAL_OK) {
+        Error_Handler();
+    }
+
+    __HAL_LINKDMA(&hqspi, hmdma, hmdma);
+
+    QSPI_CommandTypeDef cmd;
+    cmd.InstructionMode   = QSPI_INSTRUCTION_NONE;
+    cmd.AddressMode       = QSPI_ADDRESS_NONE;
+    cmd.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+    cmd.DataMode          = QSPI_DATA_2_LINES;
+    cmd.DummyCycles       = 0;
+    cmd.DdrMode           = QSPI_DDR_MODE_DISABLE;
+    cmd.DdrHoldHalfCycle  = QSPI_DDR_HHC_ANALOG_DELAY;
+    cmd.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;
+    cmd.NbData            = 132;
+
+    if (HAL_QSPI_Command(&hqspi, &cmd, 100) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // Set DMA dest address
+    hmdma.Instance->CDAR = (uint32_t)&(QUADSPI->DR);
+
+    /* Configure QSPI: CCR register with functional mode as indirect write */
+    //MODIFY_REG(hqspi.Instance->CCR, QUADSPI_CCR_FMODE, QSPI_FUNCTIONAL_MODE_INDIRECT_WRITE);
+
+    // Enable interrupts
+    //__HAL_QSPI_ENABLE_IT(&hqspi, QSPI_IT_TE | QSPI_IT_TC);
+    // Test
+    //if (HAL_QSPI_Transmit_DMA(&hqspi, &buffer0[0]) != HAL_OK) {
+    //    Error_Handler();
+    //}
+#endif /* defined(STM32H750xx) */
 
 #ifdef VIDEO_DEBUG_PIN
     debugPin = IOGetByTag(IO_TAG(VIDEO_DEBUG_PIN));
