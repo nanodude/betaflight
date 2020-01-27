@@ -229,6 +229,7 @@ void EXTIEnable(IO_t io, bool enable)
 #endif
 }
 
+
 void EXTI_IRQHandler(uint32_t line_mask)
 {
     uint32_t exti_active = (EXTI->IMR & EXTI->PR) & line_mask;
