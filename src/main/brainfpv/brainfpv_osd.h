@@ -17,11 +17,9 @@ typedef struct bfOsdConfig_s {
     uint8_t sbs_3d_enabled;
     uint8_t sbs_3d_right_eye_offset;
     uint8_t font;
-#if defined(USE_BRAINFPV_IR_TRANSPONDER)
     uint8_t ir_system;
     uint16_t ir_trackmate_id;
     uint32_t ir_ilap_id;
-#endif
     uint8_t ahi_steps;
     uint8_t bmi160foc;
     uint16_t bmi160foc_ret;
@@ -43,9 +41,7 @@ typedef struct bfOsdConfig_s {
     uint8_t crsf_link_stats_rssi;
     uint8_t crsf_link_stats_snr;
     int8_t crsf_link_stats_snr_threshold;
-#if defined(USE_BRAINFPV_SPECTROGRAPH)
     uint8_t spec_enabled;
-#endif
 } bfOsdConfig_t;
 
 typedef enum {
@@ -74,5 +70,9 @@ void osdElementCraftName_BrainFPV(osdElementParms_t *element);
 void osdElementCrosshairs_BrainFPV(osdElementParms_t *element);
 void osdElementRssi_BrainFPV(osdElementParms_t *element);
 void osdElementLinkQuality_BrainFPV(osdElementParms_t *element);
+
+#if defined(BRAINFPV_OSD_USE_STM32CMP)
+void brainFpvOsdSetSyncThreshold(uint8_t threshold);
+#endif
 
 #endif /* BRAINFPV_OSD */

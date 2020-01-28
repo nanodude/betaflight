@@ -116,11 +116,9 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .sbs_3d_enabled = 0,
   .sbs_3d_right_eye_offset = 30,
   .font = 0,
-#if defined(USE_BRAINFPV_IR_TRANSPONDER)
   .ir_system = 0,
   .ir_trackmate_id = 0,
   .ir_ilap_id = 0,
-#endif
   .ahi_steps = 2,
   .bmi160foc = 0,
   .bmi160foc_ret = 0,
@@ -279,8 +277,85 @@ bool max7456BuffersSynced(void)
 
 /*******************************************************************************/
 
+#if defined(BRAINFPV_OSD_USE_STM32CMP)
+#include "stm32h7xx_hal.h"
+
+DAC_HandleTypeDef hdac_video_cmp;
+COMP_HandleTypeDef hcomp_video_cmp;
+
+static void Error_Handler(void) { while (1) { } }
+
+static void brainFpvOsdInitStm32Cmp(void)
+{
+    DAC_ChannelConfTypeDef sConfig;
+
+    IO_t cmp_input = IOGetByTag(IO_TAG(BRAINFPV_OSD_STM32CMP_CMP_INPUT_PIN));
+    IO_t cmp_output = IOGetByTag(IO_TAG(BRAINFPV_OSD_STM32CMP_CMP_OUTPUT_PIN));
+
+    IOInit(cmp_input,  OWNER_OSD, 0);
+    IOConfigGPIO(cmp_input, IO_CONFIG(GPIO_MODE_ANALOG, 0, GPIO_NOPULL));
+
+    IOInit(cmp_output, OWNER_OSD, 0);
+    IOConfigGPIOAF(cmp_output, IOCFG_AF_PP, GPIO_AF13_COMP2);
+
+    hdac_video_cmp.Instance = BRAINFPV_OSD_STM32CMP_DAC_INSTANCE;
+    if (HAL_DAC_Init(&hdac_video_cmp) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+
+    sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
+    sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
+    sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_ENABLE;
+    sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
+    if (HAL_DAC_ConfigChannel(&hdac_video_cmp, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    hcomp_video_cmp.Instance = BRAINFPV_OSD_STM32CMP_CMP_INSTANCE;
+    hcomp_video_cmp.Init.InvertingInput = COMP_INPUT_MINUS_DAC1_CH1;
+    hcomp_video_cmp.Init.NonInvertingInput = COMP_INPUT_PLUS_IO1;
+    hcomp_video_cmp.Init.OutputPol = COMP_OUTPUTPOL_NONINVERTED;
+    hcomp_video_cmp.Init.Hysteresis = COMP_HYSTERESIS_NONE;
+    hcomp_video_cmp.Init.BlankingSrce = COMP_BLANKINGSRC_NONE;
+    hcomp_video_cmp.Init.Mode = COMP_POWERMODE_HIGHSPEED;
+    hcomp_video_cmp.Init.WindowMode = COMP_WINDOWMODE_DISABLE;
+    hcomp_video_cmp.Init.TriggerMode = COMP_TRIGGERMODE_NONE;
+
+    if (HAL_COMP_Init(&hcomp_video_cmp) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    if(HAL_DAC_Start(&hdac_video_cmp, DAC_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    brainFpvOsdSetSyncThreshold(bfOsdConfig()->sync_threshold);
+
+    HAL_COMP_Start(&hcomp_video_cmp);
+}
+
+void brainFpvOsdSetSyncThreshold(uint8_t threshold)
+{
+    // threshold is in 2mV steps
+    if (hcomp_video_cmp.Instance) {
+        HAL_DAC_SetValue(&hdac_video_cmp, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ((uint32_t)threshold * 2 * 4095) / 3300);
+    }
+}
+#endif
+
+
 void brainFpvOsdInit(void)
 {
+#if defined(BRAINFPV_OSD_USE_STM32CMP)
+    brainFpvOsdInitStm32Cmp();
+#endif
+
     for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
         if (image_userlogo.data[i] != 0) {
             brainfpv_user_avatar_set = true;
@@ -779,12 +854,11 @@ void osdElementLinkQuality_BrainFPV(osdElementParms_t *element)
 #define CRSF_LINE_SPACING 12
 void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold)
 {
+    bool show = false;
     char tmp_str[20];
 
     uint16_t x_pos = MAX_X(element->elemPosX);
     uint16_t y_pos = MAX_Y(element->elemPosY);
-
-    bool show;
 
     tfp_sprintf(tmp_str, "%c%d", SYM_RSSI, crsf_link_info.lq);
     write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());

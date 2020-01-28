@@ -476,7 +476,8 @@ SRC += brainfpv/spectrograph.c \
        io/displayport_max7456.c \
        cms/cms_menu_brainfpv.c
 ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
-SRC +=  $(ROOT)/lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c 
+SRC +=  $(ROOT)/lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c \
+        $(ROOT)/lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_comp.c
 endif
 endif
 SRC += $(TARGET_SRC)

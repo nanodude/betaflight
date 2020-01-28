@@ -100,7 +100,11 @@ void brainFPVUpdateSettings(void) {
         BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->white_level, bfOsdConfigUse->black_level);
     }
 
+#if defined(BRAINFPV_OSD_USE_STM32CMP)
+    brainFpvOsdSetSyncThreshold(bfOsdConfigUse->sync_threshold);
+#else
     BRAINFPVFPGA_SetSyncThreshold(bfOsdConfigUse->sync_threshold);
+#endif
     BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
     BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
 
