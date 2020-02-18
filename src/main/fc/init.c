@@ -993,7 +993,9 @@ void init(void)
 
     setArmingDisabled(ARMING_DISABLED_BOOT_GRACE_TIME);
 
+#if !defined(BRAINFPV)
     initializeUnusedPins();
+#endif
 
     fcTasksInit();
 
