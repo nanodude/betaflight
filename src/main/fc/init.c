@@ -993,6 +993,8 @@ void init(void)
 
     setArmingDisabled(ARMING_DISABLED_BOOT_GRACE_TIME);
 
+    initializeUnusedPins();
+
     fcTasksInit();
 
     systemState |= SYSTEM_STATE_READY;
