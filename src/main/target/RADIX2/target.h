@@ -192,43 +192,18 @@
 #define USE_BARO_BMP388
 
 
-//
-//#ifdef USE_DMA_SPEC
-////#define UART1_TX_DMA_OPT        0
-////#define UART2_TX_DMA_OPT        1
-////#define UART3_TX_DMA_OPT        2
-////#define UART4_TX_DMA_OPT        3
-////#define UART5_TX_DMA_OPT        4
-////#define UART6_TX_DMA_OPT        5
-////#define UART7_TX_DMA_OPT        6
-////#define UART8_TX_DMA_OPT        7
-//#define ADC1_DMA_OPT 8
-//#define ADC3_DMA_OPT 9
-////#define ADC2_DMA_OPT 10 // ADC2 not used.
-//#else
-//#define ADC1_DMA_STREAM DMA2_Stream0
-//#define ADC3_DMA_STREAM DMA2_Stream1
-////#define ADC2_DMA_STREAM DMA2_Stream2  // ADC2 not used.
-//#endif
+#define USE_ADC
+#define ADC1_INSTANCE ADC1
+//#define RSSI_ADC_PIN            PC4
+#define VBAT_ADC_PIN            PA6
+#define CURRENT_METER_ADC_PIN   PB0
 
-
-
-//#define USE_ADC
-//#define USE_ADC_INTERNAL // ADC1
-//
-//#define ADC1_INSTANCE ADC1
-//#define ADC2_INSTANCE ADC2 // ADC2 not used
-//#define ADC3_INSTANCE ADC3 // ADC3 only for core temp and vrefint
-//
-//#define RSSI_ADC_PIN            PC4  // ADC123
-//#define VBAT_ADC_PIN            PC1  // ADC12
-//#define CURRENT_METER_ADC_PIN   PC0  // ADC123
-//#define EXTERNAL1_ADC_PIN       PC5  // ADC12
-//
-//#define CURRENT_METER_SCALE_DEFAULT         225
-//
-//#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
-//#define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
+#define BOARD_HAS_VOLTAGE_DIVIDER
+#define ADC_VOLTAGE_REFERENCE_MV 3285
+#define VBAT_SCALE_DEFAULT            176
+#define CURRENT_METER_SCALE_DEFAULT   200
+#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
+#define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
 
 #define DEFAULT_FEATURES        (FEATURE_OSD)
 #define SERIALRX_UART           SERIAL_PORT_USART3
