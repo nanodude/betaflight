@@ -72,6 +72,10 @@ static void Error_Handler(void) { while (1) { } }
 #define VIDEO_QUADSPI_Y_OFFSET 0
 #endif /* !defined(VIDEO_QUADSPI_Y_OFFSET) */
 
+#if defined(VIDEO_QSPI_IO2_PIN) && defined(VIDEO_QSPI_IO3_PIN)
+#define VIDEO_QSPI_USE_4_LINES
+#endif
+
 #include "ch.h"
 #include "video.h"
 
@@ -327,6 +331,12 @@ void Video_Init()
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO0_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO1_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
 
+#if defined(VIDEO_QSPI_USE_4_LINES)
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO2_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO3_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
+#endif
+
+
 #if defined(STM32F446xx)
     /* Enable QUADSPI clock */
     RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_QSPI, ENABLE);
@@ -350,7 +360,11 @@ void Video_Init()
     qspi_com_config.QSPI_ComConfig_DDRMode     = QSPI_ComConfig_DDRMode_Disable;
     qspi_com_config.QSPI_ComConfig_DHHC        = QSPI_ComConfig_DHHC_Disable;
     qspi_com_config.QSPI_ComConfig_SIOOMode    = QSPI_ComConfig_SIOOMode_Disable;
+#if defined(VIDEO_QSPI_USE_4_LINES)
+    qspi_com_config.QSPI_ComConfig_DMode       = QSPI_ComConfig_DMode_4Line;
+#else
     qspi_com_config.QSPI_ComConfig_DMode       = QSPI_ComConfig_DMode_2Line;
+#endif
     qspi_com_config.QSPI_ComConfig_DummyCycles = 0;
     qspi_com_config.QSPI_ComConfig_ABMode      = QSPI_ComConfig_ABMode_NoAlternateByte;
     qspi_com_config.QSPI_ComConfig_ADMode      = QSPI_ComConfig_ADMode_NoAddress;
@@ -437,7 +451,11 @@ void Video_Init()
     cmd.InstructionMode   = QSPI_INSTRUCTION_NONE;
     cmd.AddressMode       = QSPI_ADDRESS_NONE;
     cmd.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+#if defined(VIDEO_QSPI_USE_4_LINES)
+    cmd.DataMode          = QSPI_DATA_4_LINES;
+#else
     cmd.DataMode          = QSPI_DATA_2_LINES;
+#endif
     cmd.DummyCycles       = 0;
     cmd.DdrMode           = QSPI_DDR_MODE_DISABLE;
     cmd.DdrHoldHalfCycle  = QSPI_DDR_HHC_ANALOG_DELAY;
