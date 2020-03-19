@@ -46,25 +46,12 @@
 
 extern struct FontEntry* fonts[NUM_FONTS];
 
-#if defined(VIDEO_SPLITBUFFER)
-extern uint8_t *draw_buffer_level;
-extern uint8_t *draw_buffer_mask;
-extern uint8_t *disp_buffer_level;
-extern uint8_t *disp_buffer_mask;
-#else
 extern uint8_t *draw_buffer;
 extern uint8_t *disp_buffer;
-#endif /* defined(VIDEO_SPLITBUFFER) */
-
 
 void clearGraphics()
 {
-#if defined(VIDEO_SPLITBUFFER)
-	memset((uint8_t *)draw_buffer_mask, 0, BUFFER_HEIGHT * BUFFER_WIDTH);
-	memset((uint8_t *)draw_buffer_level, 0, BUFFER_HEIGHT * BUFFER_WIDTH);
-#else
 	memset((uint8_t *)draw_buffer, 0, BUFFER_HEIGHT * BUFFER_WIDTH);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 }
 
 void draw_image(uint16_t x, uint16_t y, const struct Image * image)
@@ -193,25 +180,7 @@ void drawBox(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 	write_line_lm(x1, y2, x2, y2, 1, 1); // bottom
 }
 
-#if defined(VIDEO_SPLITBUFFER)
-/**
- * write_pixel: Write a pixel at an x,y position to a given surface.
- *
- * @param       buff    pointer to buffer to write in
- * @param       x               x coordinate
- * @param       y               y coordinate
- * @param       mode    0 = clear bit, 1 = set bit, 2 = toggle bit
- */
-void write_pixel(uint8_t *buff, int x, int y, int mode)
-{
-	CHECK_COORDS(x, y);
-	// Determine the bit in the word to be set and the word
-	// index to set it in.
-	int wordnum = CALC_BUFF_ADDR(x, y);
-	uint8_t mask = CALC_BIT_MASK(x);
-	WRITE_WORD_MODE(buff, wordnum, mask, mode);
-}
-#else
+
 void write_pixel(int x, int y, uint8_t value)
 {
 	CHECK_COORDS(x, y);
@@ -221,7 +190,6 @@ void write_pixel(int x, int y, uint8_t value)
 	uint8_t mask = CALC_BIT_MASK(x);
 	WRITE_WORD(draw_buffer, wordnum, mask, value);
 }
-#endif /* VIDEO_SPLITBUFFER */
 
 /**
  * write_pixel_lm: write the pixel on both surfaces (level and mask.)
@@ -239,13 +207,9 @@ void write_pixel_lm(int x, int y, int mmode, int lmode)
 	// index to set it in.
 	int addr   = CALC_BUFF_ADDR(x, y);
 	uint8_t mask = CALC_BIT_MASK(x);
-#if defined(VIDEO_SPLITBUFFER)
-	WRITE_WORD_MODE(draw_buffer_mask, addr, mask, mmode);
-	WRITE_WORD_MODE(draw_buffer_level, addr, mask, lmode);
-#else
+
 	uint8_t value = PACK_BITS(mmode, lmode);
 	WRITE_WORD(draw_buffer, addr, mask, value);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 }
 
 /**
@@ -257,44 +221,6 @@ void write_pixel_lm(int x, int y, int mmode, int lmode)
  * @param       y       y coordinate
  * @param       mode    0 = clear, 1 = set, 2 = toggle
  */
-#if defined(VIDEO_SPLITBUFFER)
-void write_hline(uint8_t *buff, int x0, int x1, int y, int mode)
-{
-	CHECK_COORD_Y(y);
-	CLIP_COORD_X(x0);
-	CLIP_COORD_X(x1);
-	if (x0 > x1) {
-		SWAP(x0, x1);
-	}
-	if (x0 == x1) {
-		return;
-	}
-	/* This is an optimised algorithm for writing horizontal lines.
-	 * We begin by finding the addresses of the x0 and x1 points. */
-	int addr0     = CALC_BUFF_ADDR(x0, y);
-	int addr1     = CALC_BUFF_ADDR(x1, y);
-	int addr0_bit = CALC_BIT_IN_WORD(x0);
-	int addr1_bit = CALC_BIT_IN_WORD(x1);
-	int mask, mask_l, mask_r, i;
-	/* If the addresses are equal, we only need to write one word
-	 * which is an island. */
-	if (addr0 == addr1) {
-		mask = COMPUTE_HLINE_ISLAND_MASK(addr0_bit, addr1_bit);
-		WRITE_WORD_MODE(buff, addr0, mask, mode);
-	} else {
-		/* Otherwise we need to write the edges and then the middle. */
-		mask_l = COMPUTE_HLINE_EDGE_L_MASK(addr0_bit);
-		mask_r = COMPUTE_HLINE_EDGE_R_MASK(addr1_bit);
-		WRITE_WORD_MODE(buff, addr0, mask_l, mode);
-		WRITE_WORD_MODE(buff, addr1, mask_r, mode);
-		// Now write 0xffff words from start+1 to end-1.
-		for (i = addr0 + 1; i <= addr1 - 1; i++) {
-			uint8_t m = 0xff;
-			WRITE_WORD_MODE(buff, i, m, mode);
-		}
-	}
-}
-#else
 void write_hline(int x0, int x1, int y, uint8_t value)
 {
 	CHECK_COORD_Y(y);
@@ -331,8 +257,6 @@ void write_hline(int x0, int x1, int y, uint8_t value)
 		}
 	}
 }
-#endif /* defined(VIDEO_SPLITBUFFER) */
-
 
 /**
  * write_hline_lm: write both level and mask buffers.
@@ -345,15 +269,8 @@ void write_hline(int x0, int x1, int y, uint8_t value)
  */
 void write_hline_lm(int x0, int x1, int y, int lmode, int mmode)
 {
-#if defined(VIDEO_SPLITBUFFER)
-	// TODO: an optimisation would compute the masks and apply to
-	// both buffers simultaneously.
-	write_hline(draw_buffer_level, x0, x1, y, lmode);
-	write_hline(draw_buffer_mask, x0, x1, y, mmode);
-#else
 	uint8_t value = PACK_BITS(mmode, lmode);
 	write_hline(x0, x1, y, value);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 }
 
 /**
@@ -394,31 +311,6 @@ void write_hline_outlined(int x0, int x1, int y, int endcap0, int endcap1, int m
  * @param       y1      y1 coordinate
  * @param       mode    0 = clear, 1 = set, 2 = toggle
  */
-#if defined(VIDEO_SPLITBUFFER)
-void write_vline(uint8_t *buff, int x, int y0, int y1, int mode)
-{
-	CHECK_COORD_X(x);
-	CLIP_COORD_Y(y0);
-	CLIP_COORD_Y(y1);
-	if (y0 > y1) {
-		SWAP(y0, y1);
-	}
-	if (y0 == y1) {
-		return;
-	}
-	/* This is an optimised algorithm for writing vertical lines.
-	 * We begin by finding the addresses of the x,y0 and x,y1 points. */
-	int addr0  = CALC_BUFF_ADDR(x, y0);
-	int addr1  = CALC_BUFF_ADDR(x, y1);
-	/* Then we calculate the pixel data to be written. */
-	uint8_t mask = CALC_BIT_MASK(x);
-	/* Run from addr0 to addr1 placing pixels. Increment by the number
-	 * of words n each graphics line. */
-	for (int a = addr0; a <= addr1; a += BUFFER_WIDTH) {
-		WRITE_WORD_MODE(buff, a, mask, mode);
-	}
-}
-#else
 void write_vline(int x, int y0, int y1, uint8_t value)
 {
 	CHECK_COORD_X(x);
@@ -442,8 +334,6 @@ void write_vline(int x, int y0, int y1, uint8_t value)
 		WRITE_WORD(draw_buffer, a, mask, value);
 	}
 }
-#endif /* defined(VIDEO_SPLITBUFFER) */
-
 
 /**
  * write_vline_lm: write both level and mask buffers.
@@ -456,15 +346,8 @@ void write_vline(int x, int y0, int y1, uint8_t value)
  */
 void write_vline_lm(int x, int y0, int y1, int lmode, int mmode)
 {
-#if defined(VIDEO_SPLITBUFFER)
-	// TODO: an optimisation would compute the masks and apply to
-	// both buffers simultaneously.
-	write_vline(draw_buffer_level, x, y0, y1, lmode);
-	write_vline(draw_buffer_mask, x, y0, y1, mmode);
-#else
 	uint8_t value = PACK_BITS(mmode, lmode);
 	write_vline(x, y0, y1, value);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 }
 
 /**
@@ -510,61 +393,6 @@ void write_vline_outlined(int x, int y0, int y1, int endcap0, int endcap1, int m
  * @param       height  rectangle height
  * @param       mode    0 = clear, 1 = set, 2 = toggle
  */
-#if defined(VIDEO_SPLITBUFFER)
-void write_filled_rectangle(uint8_t *buff, int x, int y, int width, int height, int mode)
-{
-	int yy, addr0_old, addr1_old;
-
-	CHECK_COORDS(x, y);
-	CHECK_COORDS(x + width, y + height);
-	if (width <= 0 || height <= 0) {
-		return;
-	}
-	// Calculate as if the rectangle was only a horizontal line. We then
-	// step these addresses through each row until we iterate `height` times.
-	int addr0     = CALC_BUFF_ADDR(x, y);
-	int addr1     = CALC_BUFF_ADDR(x + width, y);
-	int addr0_bit = CALC_BIT_IN_WORD(x);
-	int addr1_bit = CALC_BIT_IN_WORD(x + width);
-	int mask, mask_l, mask_r, i;
-	// If the addresses are equal, we need to write one word vertically.
-	if (addr0 == addr1) {
-		mask = COMPUTE_HLINE_ISLAND_MASK(addr0_bit, addr1_bit);
-		while (height--) {
-			WRITE_WORD_MODE(buff, addr0, mask, mode);
-			addr0 += BUFFER_WIDTH;
-		}
-	} else {
-		// Otherwise we need to write the edges and then the middle repeatedly.
-		mask_l    = COMPUTE_HLINE_EDGE_L_MASK(addr0_bit);
-		mask_r    = COMPUTE_HLINE_EDGE_R_MASK(addr1_bit);
-		// Write edges first.
-		yy        = 0;
-		addr0_old = addr0;
-		addr1_old = addr1;
-		while (yy < height) {
-			WRITE_WORD_MODE(buff, addr0, mask_l, mode);
-			WRITE_WORD_MODE(buff, addr1, mask_r, mode);
-			addr0 += BUFFER_WIDTH;
-			addr1 += BUFFER_WIDTH;
-			yy++;
-		}
-		// Now write 0xffff words from start+1 to end-1 for each row.
-		yy    = 0;
-		addr0 = addr0_old;
-		addr1 = addr1_old;
-		while (yy < height) {
-			for (i = addr0 + 1; i <= addr1 - 1; i++) {
-				uint8_t m = 0xff;
-				WRITE_WORD_MODE(buff, i, m, mode);
-			}
-			addr0 += BUFFER_WIDTH;
-			addr1 += BUFFER_WIDTH;
-			yy++;
-		}
-	}
-}
-#else
 void write_filled_rectangle(int x, int y, int width, int height, uint8_t value)
 {
 	int yy, addr0_old, addr1_old;
@@ -618,7 +446,6 @@ void write_filled_rectangle(int x, int y, int width, int height, uint8_t value)
 		}
 	}
 }
-#endif /* defined(VIDEO_SPLITBUFFER) */
 
 /**
  * write_filled_rectangle_lm: draw a filled rectangle on both draw buffers.
@@ -632,13 +459,8 @@ void write_filled_rectangle(int x, int y, int width, int height, uint8_t value)
  */
 void write_filled_rectangle_lm(int x, int y, int width, int height, int lmode, int mmode)
 {
-#if defined(VIDEO_SPLITBUFFER)
-	write_filled_rectangle(draw_buffer_mask, x, y, width, height, mmode);
-	write_filled_rectangle(draw_buffer_level, x, y, width, height, lmode);
-#else
 	uint8_t value = PACK_BITS(mmode, lmode);
 	write_filled_rectangle(x, y, width, height, value);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 }
 
 /**
@@ -660,141 +482,6 @@ void write_rectangle_outlined(int x, int y, int width, int height, int mode, int
 	write_vline_outlined(x + width, y, y + height, ENDCAP_ROUND, ENDCAP_ROUND, mode, mmode);
 }
 
-#if defined(VIDEO_SPLITBUFFER)
-/**
- * write_circle: draw the outline of a circle on a given buffer,
- * with an optional dash pattern for the line instead of a normal line.
- *
- * @param       buff    pointer to buffer to write in
- * @param       cx              origin x coordinate
- * @param       cy              origin y coordinate
- * @param       r               radius
- * @param       dashp   dash period (pixels) - zero for no dash
- * @param       mode    0 = clear, 1 = set, 2 = toggle
- */
-void write_circle(uint8_t *buff, int cx, int cy, int r, int dashp, int mode)
-{
-	CHECK_COORDS(cx, cy);
-	int error = -r, x = r, y = 0;
-	while (x >= y) {
-		if (dashp == 0 || (y % dashp) < (dashp / 2)) {
-			CIRCLE_PLOT_8(buff, cx, cy, x, y, mode);
-		}
-		error += (y * 2) + 1;
-		y++;
-		if (error >= 0) {
-			--x;
-			error -= x * 2;
-		}
-	}
-}
-
-/**
- * write_circle_outlined: draw an outlined circle on the draw buffer.
- *
- * @param       cx              origin x coordinate
- * @param       cy              origin y coordinate
- * @param       r               radius
- * @param       dashp   dash period (pixels) - zero for no dash
- * @param       bmode   0 = 4-neighbour border, 1 = 8-neighbour border
- * @param       mode    0 = black outline, white body, 1 = white outline, black body
- * @param       mmode   0 = clear, 1 = set, 2 = toggle
- */
-void write_circle_outlined(int cx, int cy, int r, int dashp, int bmode, int mode, int mmode)
-{
-	int stroke, fill;
-
-	CHECK_COORDS(cx, cy);
-	SETUP_STROKE_FILL(stroke, fill, mode);
-	// This is a two step procedure. First, we draw the outline of the
-	// circle, then we draw the inner part.
-	int error = -r, x = r, y = 0;
-	while (x >= y) {
-		if (dashp == 0 || (y % dashp) < (dashp / 2)) {
-			CIRCLE_PLOT_8(draw_buffer_mask, cx, cy, x + 1, y, mmode);
-			CIRCLE_PLOT_8(draw_buffer_level, cx, cy, x + 1, y, stroke);
-			CIRCLE_PLOT_8(draw_buffer_mask, cx, cy, x, y + 1, mmode);
-			CIRCLE_PLOT_8(draw_buffer_level, cx, cy, x, y + 1, stroke);
-			CIRCLE_PLOT_8(draw_buffer_mask, cx, cy, x - 1, y, mmode);
-			CIRCLE_PLOT_8(draw_buffer_level, cx, cy, x - 1, y, stroke);
-			CIRCLE_PLOT_8(draw_buffer_mask, cx, cy, x, y - 1, mmode);
-			CIRCLE_PLOT_8(draw_buffer_level, cx, cy, x, y - 1, stroke);
-			if (bmode == 1) {
-				CIRCLE_PLOT_8(draw_buffer_mask, cx, cy, x + 1, y + 1, mmode);
-				CIRCLE_PLOT_8(draw_buffer_level, cx, cy, x + 1, y + 1, stroke);
-				CIRCLE_PLOT_8(draw_buffer_mask, cx, cy, x - 1, y - 1, mmode);
-				CIRCLE_PLOT_8(draw_buffer_level, cx, cy, x - 1, y - 1, stroke);
-			}
-		}
-		error += (y * 2) + 1;
-		y++;
-		if (error >= 0) {
-			--x;
-			error -= x * 2;
-		}
-	}
-	error = -r;
-	x     = r;
-	y     = 0;
-	while (x >= y) {
-		if (dashp == 0 || (y % dashp) < (dashp / 2)) {
-			CIRCLE_PLOT_8(draw_buffer_mask, cx, cy, x, y, mmode);
-			CIRCLE_PLOT_8(draw_buffer_level, cx, cy, x, y, fill);
-		}
-		error += (y * 2) + 1;
-		y++;
-		if (error >= 0) {
-			--x;
-			error -= x * 2;
-		}
-	}
-}
-
-/**
- * write_circle_filled: fill a circle on a given buffer.
- *
- * @param       buff    pointer to buffer to write in
- * @param       cx              origin x coordinate
- * @param       cy              origin y coordinate
- * @param       r               radius
- * @param       mode    0 = clear, 1 = set, 2 = toggle
- */
-void write_circle_filled(uint8_t *buff, int cx, int cy, int r, int mode)
-{
-	CHECK_COORDS(cx, cy);
-	int error = -r, x = r, y = 0, xch = 0;
-	// It turns out that filled circles can take advantage of the midpoint
-	// circle algorithm. We simply draw very fast horizontal lines across each
-	// pair of X,Y coordinates. In some cases, this can even be faster than
-	// drawing an outlined circle!
-	//
-	// Due to multiple writes to each set of pixels, we have a special exception
-	// for when using the toggling draw mode.
-	while (x >= y) {
-		if (y != 0) {
-			write_hline(buff, cx - x, cx + x, cy + y, mode);
-			write_hline(buff, cx - x, cx + x, cy - y, mode);
-			if (mode != 2 || (mode == 2 && xch && (cx - x) != (cx - y))) {
-				write_hline(buff, cx - y, cx + y, cy + x, mode);
-				write_hline(buff, cx - y, cx + y, cy - x, mode);
-				xch = 0;
-			}
-		}
-		error += (y * 2) + 1;
-		y++;
-		if (error >= 0) {
-			--x;
-			xch    = 1;
-			error -= x * 2;
-		}
-	}
-	// Handle toggle mode.
-	if (mode == 2) {
-		write_hline(buff, cx - r, cx + r, cy, mode);
-	}
-}
-#endif /* defined(VIDEO_SPLITBUFFER) */
-
 /**
  * write_line: Draw a line of arbitrary angle.
  *
@@ -805,45 +492,6 @@ void write_circle_filled(uint8_t *buff, int cx, int cy, int r, int mode)
  * @param       y1              second y coordinate
  * @param       mode    0 = clear, 1 = set, 2 = toggle
  */
-#if defined(VIDEO_SPLITBUFFER)
-void write_line(uint8_t *buff, int x0, int y0, int x1, int y1, int mode)
-{
-	// Based on http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-	int steep = abs(y1 - y0) > abs(x1 - x0);
-
-	if (steep) {
-		SWAP(x0, y0);
-		SWAP(x1, y1);
-	}
-	if (x0 > x1) {
-		SWAP(x0, x1);
-		SWAP(y0, y1);
-	}
-	int deltax     = x1 - x0;
-	int deltay = abs(y1 - y0);
-	int error      = deltax / 2;
-	int ystep;
-	int y = y0;
-	int x; // , lasty = y, stox = 0;
-	if (y0 < y1) {
-		ystep = 1;
-	} else {
-		ystep = -1;
-	}
-	for (x = x0; x < x1; x++) {
-		if (steep) {
-			write_pixel(buff, y, x, mode);
-		} else {
-			write_pixel(buff, x, y, mode);
-		}
-		error -= deltay;
-		if (error < 0) {
-			y     += ystep;
-			error += deltax;
-		}
-	}
-}
-#else
 void write_line(int x0, int y0, int x1, int y1, uint8_t value)
 {
 	// Based on http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
@@ -881,7 +529,6 @@ void write_line(int x0, int y0, int x1, int y1, uint8_t value)
 		}
 	}
 }
-#endif /* defined(VIDEO_SPLITBUFFER) */
 
 /**
  * write_line_lm: Draw a line of arbitrary angle.
@@ -895,13 +542,8 @@ void write_line(int x0, int y0, int x1, int y1, uint8_t value)
  */
 void write_line_lm(int x0, int y0, int x1, int y1, int mmode, int lmode)
 {
-#if defined(VIDEO_SPLITBUFFER)
-	write_line(draw_buffer_mask, x0, y0, x1, y1, mmode);
-	write_line(draw_buffer_level, x0, y0, x1, y1, lmode);
-#else
 	uint8_t value = PACK_BITS(mmode, lmode);
 	write_line(x0, y0, x1, y1, value);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 }
 
 /**
@@ -1180,11 +822,7 @@ void write_word_misaligned_MASKED(uint8_t *buff, uint16_t word, uint16_t mask, u
 void write_char(uint8_t ch, int x, int y, const struct FontEntry *font_info)
 {
 	int yy, row;
-#if defined(VIDEO_SPLITBUFFER)
-	uint16_t levels;
-#else
 	uint16_t data16;
-#endif
 
 	uint16_t mask;
 	ch = font_info->lookup[ch];
@@ -1208,23 +846,13 @@ void write_char(uint8_t ch, int x, int y, const struct FontEntry *font_info)
 		for (yy = y; yy < y + font_info->height; yy++) {
 			if (!partly_out || ((x >= GRAPHICS_LEFT) && (x + font_info->width <= GRAPHICS_RIGHT) && (yy >= GRAPHICS_TOP) && (yy <= GRAPHICS_BOTTOM))) {
 				data = ((uint32_t*)font_info->data)[row];
-#if defined(VIDEO_SPLITBUFFER)
-				mask = data & 0xFFFF;
-				levels   = (data >> 16) & 0xFFFF;
-				// mask
-				write_word_misaligned_OR(draw_buffer_mask, mask, addr, wbit);
-				// level
-				write_word_misaligned_OR(draw_buffer_level, mask, addr, wbit);
-				mask = (mask & levels);
-				write_word_misaligned_NAND(draw_buffer_level, mask, addr, wbit);
-#else
+
 				data16 = (data & 0xFFFF0000) >> 16;
 				mask = data16 | (data16 << 1);
 				write_word_misaligned_MASKED(draw_buffer, data16, mask, addr, wbit);
 				data16 = (data & 0x0000FFFF);
 				mask = data16 | (data16 << 1);
 				write_word_misaligned_MASKED(draw_buffer, data16, mask, addr + 2, wbit);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 			}
 			addr += BUFFER_WIDTH;
 			row++;
@@ -1235,19 +863,8 @@ void write_char(uint8_t ch, int x, int y, const struct FontEntry *font_info)
 		for (yy = y; yy < y + font_info->height; yy++) {
 			if (!partly_out || ((x >= GRAPHICS_LEFT) && (x + font_info->width <= GRAPHICS_RIGHT) && (yy >= GRAPHICS_TOP) && (yy <= GRAPHICS_BOTTOM))) {
 				data = font_info->data[row];
-#if defined(VIDEO_SPLITBUFFER)
-				levels = data & 0xFF00;
-				mask = (data & 0x00FF) << 8;
-				// mask
-				write_word_misaligned_OR(draw_buffer_mask, mask, addr, wbit);
-				// level
-				write_word_misaligned_OR(draw_buffer_level, mask, addr, wbit);
-				mask = (mask & levels);
-				write_word_misaligned_NAND(draw_buffer_level, mask, addr, wbit);
-#else
 				mask = data | (data << 1);
 				write_word_misaligned_MASKED(draw_buffer, data, mask, addr, wbit);
-#endif /* defined(VIDEO_SPLITBUFFER) */
 			}
 			addr += BUFFER_WIDTH;
 			row++;

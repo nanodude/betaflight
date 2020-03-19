@@ -42,15 +42,7 @@
 #define HUD_VSCALE_FLAG_CLEAR       1
 #define HUD_VSCALE_FLAG_NO_NEGATIVE 2
 
-#if defined(VIDEO_SPLITBUFFER)
-#define PIXELS_PER_BIT 8
-#define CALC_BIT_IN_WORD(x) ((x) & 7)
-#define CALC_BIT_MASK(x) (1 << (7 - ((x) & 7)))
-// Horizontal line calculations.
-// Edge cases.
-#define COMPUTE_HLINE_EDGE_L_MASK(b)      ((1 << (8 - (b))) - 1)
-#define COMPUTE_HLINE_EDGE_R_MASK(b)      (~((1 << (7 - (b))) - 1))
-#else
+
 #if VIDEO_BITS_PER_PIXEL != 2
 #error "Only 2 bits / pixel is currently supported"
 #endif
@@ -65,7 +57,6 @@
 // Edge cases.
 #define COMPUTE_HLINE_EDGE_L_MASK(b)      ((1 << (7 - (b))) - 1)
 #define COMPUTE_HLINE_EDGE_R_MASK(b)      (~((1 << (6 - (b))) - 1))
-#endif /* defined(VIDEO_SPLITBUFFER) */
 
 // Macros for computing addresses and bit positions.
 #define CALC_BUFF_ADDR(x, y) (((x) / PIXELS_PER_BIT) + ((y) * BUFFER_WIDTH))
