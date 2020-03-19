@@ -54,9 +54,7 @@
 * Address  Name   Type  Length  Default  Description
 * 0x00     HWREV  R     1       NA       Hardware/FPGA revision
 
-* 0x03     BLACK  R/W   1       XXX      OSD black level
-* 0x04     WHITE  R/W   1       XXX      OSD white level
-* 0x05     THR    R/W   1       XXX      OSD sync detect threshold
+
 * 0x06     XCFG   R/W   1       0x00     OSD X axis configuration
 *                                        XCFG[7:4] x-axis stretch
 *                                        XCFG[3:0] x-axis offset
@@ -67,9 +65,6 @@
 
 enum re1fpga_register {
     BRAINFPVFPGA_REG_HWREV   = 0x00,
-    BRAINFPVFPGA_REG_BLACK   = 0x03,
-    BRAINFPVFPGA_REG_WHITE   = 0x04,
-    BRAINFPVFPGA_REG_THR     = 0x05,
     BRAINFPVFPGA_REG_XCFG    = 0x06,
     BRAINFPVFPGA_REG_XCFG2   = 0x07,
     BRAINFPVFPGA_REG_LED     = 0x0F,
@@ -77,9 +72,6 @@ enum re1fpga_register {
 
 struct re1_shadow_reg {
     uint8_t reg_hwrev;
-    uint8_t reg_black;
-    uint8_t reg_white;
-    uint8_t reg_thr;
     uint8_t reg_xcfg;
     uint8_t reg_xcfg2;
 };
@@ -135,9 +127,6 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     delay(1);
 
     // Initialize registers
-    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_BLACK, BRAINFPV_OSD_BLACK_LEVEL_DEFAULT);
-    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_WHITE, BRAINFPV_OSD_WHITE_LEVEL_DEFAULT);
-    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_THR, BRAINFPV_OSD_SYNC_TH_DEFAULT);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG, 0x08);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
 
@@ -184,15 +173,6 @@ static int32_t BRAINFPVFPGA_WriteReg(enum re1fpga_register reg, uint8_t data, ui
     switch (reg) {
     case BRAINFPVFPGA_REG_HWREV:
         return -2;
-    case BRAINFPVFPGA_REG_BLACK:
-        cur_reg = &shadow_reg.reg_black;
-        break;
-    case BRAINFPVFPGA_REG_WHITE:
-        cur_reg = &shadow_reg.reg_white;
-        break;
-    case BRAINFPVFPGA_REG_THR:
-        cur_reg = &shadow_reg.reg_thr;
-        break;
     case BRAINFPVFPGA_REG_XCFG:
         cur_reg = &shadow_reg.reg_xcfg;
         break;
@@ -230,15 +210,6 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
     switch (reg) {
         case BRAINFPVFPGA_REG_LED:
         case BRAINFPVFPGA_REG_HWREV:
-            break;
-         case BRAINFPVFPGA_REG_BLACK:
-            shadow_reg.reg_black = data;
-            break;
-        case BRAINFPVFPGA_REG_WHITE:
-            shadow_reg.reg_white = data;
-            break;
-        case BRAINFPVFPGA_REG_THR:
-            shadow_reg.reg_thr = data;
             break;
         case BRAINFPVFPGA_REG_XCFG:
             shadow_reg.reg_xcfg = data;
@@ -318,24 +289,6 @@ int32_t BRAINFPVFPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, ui
     BRAINFPVFPGA_ReleaseBus();
 
     return 0;
-}
-
-
-/**
- * @brief Set OSD black and white levels
- */
-void BRAINFPVFPGA_SetBwLevels(uint8_t black, uint8_t white)
-{
-    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_BLACK, black, 0xFF);
-    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_WHITE, white, 0xFF);
-}
-
-/**
- * @brief Set the threshold for the video sync pulse detector
- */
-int32_t BRAINFPVFPGA_SetSyncThreshold(uint8_t threshold)
-{
-    return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_THR, threshold, 0xFF);
 }
 
 /**

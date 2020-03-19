@@ -107,6 +107,14 @@
 
 PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_CONFIG, 0);
 
+#if !defined(BRAINFPV_OSD_WHITE_LEVEL_DEFAULT)
+#define BRAINFPV_OSD_WHITE_LEVEL_DEFAULT 0
+#endif
+
+#if !defined(BRAINFPV_OSD_BLACK_LEVEL_DEFAULT)
+#define BRAINFPV_OSD_BLACK_LEVEL_DEFAULT 0
+#endif
+
 PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .sync_threshold = BRAINFPV_OSD_SYNC_TH_DEFAULT,
   .white_level    = BRAINFPV_OSD_WHITE_LEVEL_DEFAULT,
@@ -344,7 +352,7 @@ void brainFpvOsdSetSyncThreshold(uint8_t threshold)
 {
     // threshold is in 2mV steps
     if (hcomp_video_cmp.Instance) {
-        HAL_DAC_SetValue(&hdac_video_cmp, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ((uint32_t)threshold * 2 * 4095) / 3300);
+        HAL_DAC_SetValue(&hdac_video_cmp, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ((uint32_t)threshold * 4 * 4095) / 3300);
     }
 }
 #endif
