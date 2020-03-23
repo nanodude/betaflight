@@ -42,37 +42,53 @@
 #define HUD_VSCALE_FLAG_CLEAR       1
 #define HUD_VSCALE_FLAG_NO_NEGATIVE 2
 
+#define PIXELS_PER_BYTE (8 / VIDEO_BITS_PER_PIXEL)
 
-#if VIDEO_BITS_PER_PIXEL != 2
-#error "Only 2 bits / pixel is currently supported"
-#endif
-#define PIXELS_PER_BIT (8 / VIDEO_BITS_PER_PIXEL)
+#if VIDEO_BITS_PER_PIXEL == 2
+
 #define CALC_BIT_IN_WORD(x) (2 * ((x) & 3))
 #define CALC_BITSHIFT_WORD(x) (2 * ((x) & 3))
 #define CALC_BIT_MASK(x) (3 << (6 - CALC_BITSHIFT_WORD(x)))
-#define PACK_BITS(mask, level) (level << 7 | mask << 6 | level << 5 | mask << 4 | level << 3 | mask << 2 | level << 1 | mask)
+//#define PACK_BITS(mask, level) (level << 7 | mask << 6 | level << 5 | mask << 4 | level << 3 | mask << 2 | level << 1 | mask)
+#define PACK_BITS(color) ((color) << 6 | (color) << 4 | (color) << 2 | (color))
 #define CALC_BIT0_IN_WORD(x)  (2 * ((x) & 3))
 #define CALC_BIT1_IN_WORD(x)  (2 * ((x) & 3) + 1)
 // Horizontal line calculations.
 // Edge cases.
 #define COMPUTE_HLINE_EDGE_L_MASK(b)      ((1 << (7 - (b))) - 1)
 #define COMPUTE_HLINE_EDGE_R_MASK(b)      (~((1 << (6 - (b))) - 1))
+#elif VIDEO_BITS_PER_PIXEL == 4
+#define CALC_BIT_IN_WORD(x) (4 * ((x) & 1))
+#define CALC_BITSHIFT_WORD(x) (4 * ((x) & 1))
+#define CALC_BIT_MASK(x) (0xF << (4 - CALC_BITSHIFT_WORD(x)))
+//#define PACK_BITS(mask, level) (level << 5 | mask << 4 | level << 1 | mask)
+#define PACK_BITS(color) ((color) << 4 | (color))
+#define CALC_BIT0_IN_WORD(x)  (4 * ((x) & 1))
+#define CALC_BIT1_IN_WORD(x)  (4 * ((x) & 1) + 3)
+
+// Horizontal line calculations.
+// Edge cases.
+#define COMPUTE_HLINE_EDGE_L_MASK(b)      ((1 << (7 - (b))) - 1)
+#define COMPUTE_HLINE_EDGE_R_MASK(b)      (~((1 << (6 - (b))) - 1))
+#else
+#error "Only 2 or 4 bits per pixel are currently supported"
+#endif
 
 // Macros for computing addresses and bit positions.
-#define CALC_BUFF_ADDR(x, y) (((x) / PIXELS_PER_BIT) + ((y) * BUFFER_WIDTH))
+#define CALC_BUFF_ADDR(x, y) (((x) / PIXELS_PER_BYTE) + ((y) * BUFFER_WIDTH))
 #define DEBUG_DELAY
 // Macro for writing a word with a mode (NAND = clear, OR = set, XOR = toggle)
 // at a given position
-#define WRITE_WORD_MODE(buff, addr, mask, mode) \
+#define draw_WORD_MODE(buff, addr, mask, mode) \
 	switch (mode) { \
 	case 0: buff[addr] &= ~mask; break; \
 	case 1: buff[addr] |= mask; break; \
 	case 2: buff[addr] ^= mask; break; }
 
-#define WRITE_WORD_NAND(buff, addr, mask) { buff[addr] &= ~mask; DEBUG_DELAY; }
-#define WRITE_WORD_OR(buff, addr, mask)   { buff[addr] |= mask; DEBUG_DELAY; }
-#define WRITE_WORD_XOR(buff, addr, mask)  { buff[addr] ^= mask; DEBUG_DELAY; }
-#define WRITE_WORD(buff, addr, mask, value)  { buff[addr] = (buff[addr] & ~mask) | (value & mask);}
+#define draw_WORD_NAND(buff, addr, mask) { buff[addr] &= ~mask; DEBUG_DELAY; }
+#define draw_WORD_OR(buff, addr, mask)   { buff[addr] |= mask; DEBUG_DELAY; }
+#define draw_WORD_XOR(buff, addr, mask)  { buff[addr] ^= mask; DEBUG_DELAY; }
+#define draw_WORD(buff, addr, mask, value)  { buff[addr] = (buff[addr] & ~mask) | (value & mask);}
 
 
 // This computes an island mask.
@@ -90,17 +106,17 @@
 #define ENDCAP_ROUND 1
 #define ENDCAP_FLAT  2
 
-#define DRAW_ENDCAP_HLINE(e, x, y, s, f, l) \
+#define DRAW_ENDCAP_HLINE(e, x, y, lc, olc) \
 	if ((e) == ENDCAP_ROUND) /* single pixel endcap */ \
-{ write_pixel_lm(x, y, f, l); } \
+{ draw_pixel(x, y, lc); } \
 	else if ((e) == ENDCAP_FLAT) /* flat endcap: FIXME, quicker to draw a vertical line(?) */ \
-{ write_pixel_lm(x, y - 1, s, l); write_pixel_lm(x, y, s, l); write_pixel_lm(x, y + 1, s, l); }
+{ draw_pixel(x, y - 1, lc); draw_pixel(x, y, lc); draw_pixel(x, y + 1, lc); }
 
-#define DRAW_ENDCAP_VLINE(e, x, y, s, f, l) \
+#define DRAW_ENDCAP_VLINE(e, x, y, lc, olc) \
 	if ((e) == ENDCAP_ROUND) /* single pixel endcap */ \
-{ write_pixel_lm(x, y, f, l); } \
+{ draw_pixel(x, y, lc); } \
 	else if ((e) == ENDCAP_FLAT) /* flat endcap: FIXME, quicker to draw a horizontal line(?) */ \
-{ write_pixel_lm(x - 1, y, s, l); write_pixel_lm(x, y, s, l); write_pixel_lm(x + 1, y, s, l); }
+{ draw_pixel(x - 1, y, lc); draw_pixel(x, y, lc); draw_pixel(x + 1, y, lc); }
 
 // Macros for writing pixels in a midpoint circle algorithm.
 #define CIRCLE_PLOT_8(buff, cx, cy, x, y, mode) \
@@ -108,10 +124,10 @@
 	if ((x) != (y)) { CIRCLE_PLOT_4(buff, cx, cy, y, x, mode); }
 
 #define CIRCLE_PLOT_4(buff, cx, cy, x, y, mode) \
-	write_pixel(buff, (cx) + (x), (cy) + (y), mode); \
-	write_pixel(buff, (cx) - (x), (cy) + (y), mode); \
-	write_pixel(buff, (cx) + (x), (cy) - (y), mode); \
-	write_pixel(buff, (cx) - (x), (cy) - (y), mode);
+	draw_pixel(buff, (cx) + (x), (cy) + (y), mode); \
+	draw_pixel(buff, (cx) - (x), (cy) + (y), mode); \
+	draw_pixel(buff, (cx) + (x), (cy) - (y), mode); \
+	draw_pixel(buff, (cx) - (x), (cy) - (y), mode);
 
 // Font flags.
 #define FONT_BOLD      1               // bold text (no outline)
@@ -154,32 +170,49 @@ typedef struct {
 	int16_t y;
 } point_t;
 
+// OSD Colors
+typedef enum {
+    OSD_COLOR_TRANSP = 0x00,
+    OSD_COLOR_BLACK = 0x01,
+    OSD_COLOR_GRAY2 = 0x02,
+    OSD_COLOR_WHITE = 0x03,
+#if(VIDEO_BITS_PER_PIXEL == 4)
+    OSD_COLOR_GRAY1 = 0x04,
+    OSD_COLOR_GRAY3 = 0x05,
+    OSD_COLOR_GRAY4 = 0x06,
+    OSD_COLOR_GRAY5 = 0x07,
+    OSD_COLOR_GRAY6 = 0x08,
+    OSD_COLOR_STB = 0x09,
+    OSD_COLOR_STW = 0x0A,
+#endif
+    OSD_NUM_COLORS
+} OSDOSD_COLOR_t;
+
 void clearGraphics();
 void draw_image(uint16_t x, uint16_t y, const struct Image * image);
-void plotFourQuadrants(int32_t centerX, int32_t centerY, int32_t deltaX, int32_t deltaY);
-void ellipse(int centerX, int centerY, int horizontalRadius, int verticalRadius);
-void drawArrow(uint16_t x, uint16_t y, uint16_t angle, uint16_t size_quarter);
-void drawBox(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
-void write_pixel_lm(int x, int y, int mmode, int lmode);
-void write_hline_lm(int x0, int x1, int y, int lmode, int mmode);
-void write_hline_outlined(int x0, int x1, int y, int endcap0, int endcap1, int mode, int mmode);
-void write_vline_lm(int x, int y0, int y1, int lmode, int mmode);
-void write_vline_outlined(int x, int y0, int y1, int endcap0, int endcap1, int mode, int mmode);
-void write_filled_rectangle_lm(int x, int y, int width, int height, int lmode, int mmode);
-void write_rectangle_outlined(int x, int y, int width, int height, int mode, int mmode);
-void write_circle_outlined(int cx, int cy, int r, int dashp, int bmode, int mode, int mmode);
 
-void write_line_lm(int x0, int y0, int x1, int y1, int mmode, int lmode);
-void write_line_outlined(int x0, int y0, int x1, int y1,
+void draw_pixel(int x, int y, OSDOSD_COLOR_t color);
+void draw_hline(int x0, int x1, int y, OSDOSD_COLOR_t color);
+void draw_hline_outlined(int x0, int x1, int y, int endcap0, int endcap1, OSDOSD_COLOR_t line_color, OSDOSD_COLOR_t outline_color);
+
+void draw_vline(int x, int y0, int y1, OSDOSD_COLOR_t color);
+void draw_vline_outlined(int x, int y0, int y1, int endcap0, int endcap1, OSDOSD_COLOR_t line_color, OSDOSD_COLOR_t outline_color);
+
+void draw_filled_rectangle(int x, int y, int width, int height, OSDOSD_COLOR_t color);
+void draw_rectangle_outlined(int x, int y, int width, int height, OSDOSD_COLOR_t line_color, OSDOSD_COLOR_t outline_color);
+void draw_circle_outlined(int cx, int cy, int r, int dashp, int bmode, OSDOSD_COLOR_t line_color, OSDOSD_COLOR_t outline_color);
+
+void draw_line(int x0, int y0, int x1, int y1, OSDOSD_COLOR_t color);
+void draw_line_outlined(int x0, int y0, int x1, int y1,
 						 __attribute__((unused)) int endcap0, __attribute__((unused)) int endcap1,
-						 int mode, int mmode);
-void write_line_outlined_dashed(int x0, int y0, int x1, int y1,
+						 OSDOSD_COLOR_t line_color, OSDOSD_COLOR_t outline_color);
+void draw_line_outlined_dashed(int x0, int y0, int x1, int y1,
 								__attribute__((unused)) int endcap0, __attribute__((unused)) int endcap1,
-								int mode, int mmode, int dots);
+								OSDOSD_COLOR_t line_color, OSDOSD_COLOR_t outline_color, int dots);
 const struct FontEntry* get_font_info(int font);
 void calc_text_dimensions(const char *str, const struct FontEntry *font, int xs, int ys, struct FontDimensions *dim);
-void write_string(const char *str, int x, int y, int xs, int ys, int va, int ha, int font);
-void draw_polygon(int16_t x, int16_t y, float angle, const point_t * points, uint8_t n_points, int mode, int mmode);
+void draw_string(const char *str, int x, int y, int xs, int ys, int va, int ha, int font);
+void draw_polygon(int16_t x, int16_t y, float angle, const point_t * points, uint8_t n_points, OSDOSD_COLOR_t line_color, OSDOSD_COLOR_t outline_color);
 
 void osd_draw_vertical_scale(int v, int range, int halign, int x, int y, int height, int mintick_step, int majtick_step, int mintick_len,
                              int majtick_len, int boundtick_len, int flags);

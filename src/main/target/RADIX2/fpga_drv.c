@@ -53,8 +53,8 @@
 *
 * Address  Name   Type  Length  Default  Description
 * 0x00     HWREV  R     1       NA       Hardware/FPGA revision
-
-
+* 0x00     CFG    R/W   1       0x00     Configuration
+*                                        CFG[0] : 0: 2BIT_PIXEL 1: 4BIT_PIXEL
 * 0x06     XCFG   R/W   1       0x00     OSD X axis configuration
 *                                        XCFG[7:4] x-axis stretch
 *                                        XCFG[3:0] x-axis offset
@@ -65,6 +65,7 @@
 
 enum re1fpga_register {
     BRAINFPVFPGA_REG_HWREV   = 0x00,
+    BRAINFPVFPGA_REG_CFG     = 0x01,
     BRAINFPVFPGA_REG_XCFG    = 0x06,
     BRAINFPVFPGA_REG_XCFG2   = 0x07,
     BRAINFPVFPGA_REG_LED     = 0x0F,
@@ -127,6 +128,11 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     delay(1);
 
     // Initialize registers
+#if (VIDEO_BITS_PER_PIXEL == 4)
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_CFG, 0x01);
+#else
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_CFG, 0x00);
+#endif
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG, 0x08);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
 
