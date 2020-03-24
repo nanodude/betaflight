@@ -45,6 +45,9 @@
 #define PIXELS_PER_BYTE (8 / VIDEO_BITS_PER_PIXEL)
 
 #if VIDEO_BITS_PER_PIXEL == 2
+// 2 bit mode: Leftmost pixel in byte is MSB
+// MSB  P[P0.1, P0.0 | P1.1, P1.0 | P2.1, P2.0 | P3.1, P3.0] LSB
+
 
 #define CALC_BIT_IN_WORD(x) (2 * ((x) & 3))
 #define CALC_BITSHIFT_WORD(x) (2 * ((x) & 3))
@@ -57,19 +60,24 @@
 // Edge cases.
 #define COMPUTE_HLINE_EDGE_L_MASK(b)      ((1 << (7 - (b))) - 1)
 #define COMPUTE_HLINE_EDGE_R_MASK(b)      (~((1 << (6 - (b))) - 1))
+
 #elif VIDEO_BITS_PER_PIXEL == 4
-#define CALC_BIT_IN_WORD(x) (4 * ((x) & 1))
-#define CALC_BITSHIFT_WORD(x) (4 * ((x) & 1))
-#define CALC_BIT_MASK(x) (0xF << (4 - CALC_BITSHIFT_WORD(x)))
-//#define PACK_BITS(mask, level) (level << 5 | mask << 4 | level << 1 | mask)
+// 4 bit mode: Leftmost pixel in byte is LSB
+// MSB  P[P1.3, P1.2  P1.1, P1.0 | P0.3, P0.2 P0.1, P0.0] LSB
+
+#define CALC_BIT_IN_WORD(x) (4 * ((x) & 0x1))
+
+#define CALC_BIT_MASK(x) ((x) & 0x1 ? 0xF0 : 0x0F)
+
 #define PACK_BITS(color) ((color) << 4 | (color))
-#define CALC_BIT0_IN_WORD(x)  (4 * ((x) & 1))
-#define CALC_BIT1_IN_WORD(x)  (4 * ((x) & 1) + 3)
+
+#define CALC_BIT0_IN_WORD(x)  ((x) & 0x1 ? 4 : 0)
+#define CALC_BIT1_IN_WORD(x)  ((x) & 0x1 ? 7 : 3)
 
 // Horizontal line calculations.
 // Edge cases.
-#define COMPUTE_HLINE_EDGE_L_MASK(b)      ((1 << (7 - (b))) - 1)
-#define COMPUTE_HLINE_EDGE_R_MASK(b)      (~((1 << (6 - (b))) - 1))
+#define COMPUTE_HLINE_EDGE_L_MASK(b)    ((b) <= 3 ? 0xFF : 0xF0)
+#define COMPUTE_HLINE_EDGE_R_MASK(b)    ((b) >= 3 ? 0xFF : 0x0F)
 #else
 #error "Only 2 or 4 bits per pixel are currently supported"
 #endif
@@ -147,6 +155,8 @@
 
 // Check if coordinates are valid. If not, return. Assumes signed coordinates for working correct also with values lesser than 0.
 #define CHECK_COORDS(x, y)           if (x < GRAPHICS_LEFT || x > GRAPHICS_RIGHT || y < GRAPHICS_TOP || y > GRAPHICS_BOTTOM) { return; }
+#define CHECK_COORDS_UNSIGNED(x, y)  if (x > GRAPHICS_RIGHT || y > GRAPHICS_BOTTOM) { return; }
+
 #define CHECK_COORD_X(x)             if (x < GRAPHICS_LEFT || x > GRAPHICS_RIGHT) { return; }
 #define CHECK_COORD_Y(y)             if (y < GRAPHICS_TOP  || y > GRAPHICS_BOTTOM) { return; }
 
@@ -187,6 +197,11 @@ typedef enum {
 #endif
     OSD_NUM_COLORS
 } OSDOSD_COLOR_t;
+
+#if VIDEO_BITS_PER_PIXEL == 4
+void set_text_color(OSDOSD_COLOR_t main_color, OSDOSD_COLOR_t outline_color);
+void fill_2bit_mask_table(void);
+#endif
 
 void clearGraphics();
 void draw_image(uint16_t x, uint16_t y, const struct Image * image);

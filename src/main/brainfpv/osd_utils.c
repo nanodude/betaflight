@@ -43,6 +43,7 @@
 #include "fonts.h"
 #include "osd_utils.h"
 #include "common/printf.h"
+#include "platform.h"
 
 extern struct FontEntry* fonts[NUM_FONTS];
 
@@ -56,34 +57,76 @@ void clearGraphics()
 
 
 #if VIDEO_BITS_PER_PIXEL == 4
-static inline void draw_2bit_word_aligned(uint32_t addr, uint8_t value)
+
+
+static FAST_RAM_ZERO_INIT uint16_t TWOBIT_TO_4BIT_VALUE[256];
+static FAST_RAM_ZERO_INIT uint16_t TWOBIT_TO_4BIT_MASK[256];
+
+void fill_2bit_mask_table(void)
 {
-    uint8_t draw_value;
+    uint8_t value;
+    uint16_t mask_4bit;
 
-    // pixels 1, 2
-    draw_value = ((value & 0xC0) >> 2) | ((value & 0x30) >> 4);
-    draw_buffer[addr] = draw_value;
-
-    // pixels 3, 4
-    draw_value = ((value & 0x0C) << 2) | (value & 0x03);
-    draw_buffer[addr + 1] = draw_value;
+    for (uint16_t value_2bit = 0; value_2bit < 256; value_2bit++) {
+        mask_4bit = 0;
+        for (uint8_t pxl_idx = 0; pxl_idx < 4; pxl_idx++) {
+            value = (value_2bit >> (2 * (3 - pxl_idx)) & 0x03);
+            if (value != 0) {
+                mask_4bit |= 0xF << 4 * pxl_idx;
+            }
+        }
+        TWOBIT_TO_4BIT_MASK[value_2bit] = mask_4bit;
+    }
 }
 
-static inline void draw_2bit_word_unaligned(uint32_t addr, uint8_t value)
+FAST_CODE_NOINLINE void set_text_color(OSDOSD_COLOR_t main_color, OSDOSD_COLOR_t outline_color)
 {
-    uint8_t draw_value;
+    uint8_t value;
+    uint16_t value_4bit;
 
-    // pixel 1
-    draw_value = (draw_buffer[addr] & 0xF0) | ((value & 0xC0) >> 6);
-    draw_buffer[addr] = draw_value;
+    for (uint16_t value_2bit = 0; value_2bit < 256; value_2bit++) {
+        value_4bit = 0;
+        for (uint8_t pxl_idx = 0; pxl_idx < 4; pxl_idx++) {
+            value = (value_2bit >> (2 * (3 - pxl_idx)) & 0x03);
+            switch (value) {
+                case 1:
+                    // 2-bit black: outline
+                    value_4bit |= (uint16_t)outline_color << 4 * pxl_idx;
+                    break;
+                case 3:
+                    // 2-bit white: main color
+                    value_4bit |= (uint16_t)main_color << 4 * pxl_idx;
+                    break;
+                default:
+                    break;
 
-    // pixels 2, 3
-    draw_value = (value & 0x30) | ((value & 0x0C) >> 2) ;
-    draw_buffer[addr + 1] = draw_value;
+            }
+        }
+        TWOBIT_TO_4BIT_VALUE[value_2bit] = value_4bit;
+    }
+}
 
-    // pixel 4
-    draw_value = ((value & 0x03) << 4) | (draw_buffer[addr + 2] & 0x0F);
-    draw_buffer[addr + 2] = draw_value;
+FAST_CODE_NOINLINE static void draw_2bit_pixels_aligned(uint32_t addr, uint8_t value)
+{
+    uint16_t draw_value = TWOBIT_TO_4BIT_VALUE[value];
+    uint16_t draw_mask = TWOBIT_TO_4BIT_MASK[value];
+
+    uint16_t * p_draw = (uint16_t*)&draw_buffer[addr];
+
+    *p_draw = (*p_draw & ~draw_mask) | draw_value;
+}
+
+FAST_CODE_NOINLINE static void draw_2bit_pixels_unaligned(uint32_t addr, uint8_t value)
+{
+    uint32_t draw_value = TWOBIT_TO_4BIT_VALUE[value];
+    uint32_t draw_mask = TWOBIT_TO_4BIT_MASK[value];
+
+    draw_value = draw_value << 4;
+    draw_mask = draw_mask << 4;
+
+    uint32_t * p_draw = (uint32_t*)&draw_buffer[addr];
+
+    *p_draw = (*p_draw & ~draw_mask) | draw_value;
 }
 #endif
 
@@ -124,11 +167,11 @@ void draw_image(uint16_t x, uint16_t y, const struct Image * image)
 
 void draw_image(uint16_t x, uint16_t y, const struct Image * image)
 {
-    CHECK_COORDS(x + image->width, y);
+    CHECK_COORDS_UNSIGNED(x + image->width, y);
     int addr;
     uint8_t byte_width = image->width / 4;
     //uint8_t mask = CALC_BIT_MASK(x);
-    uint8_t img_value, draw_value;
+    uint8_t img_value;
 
 
     if ((x & 0x01) == 0x00) {
@@ -139,7 +182,7 @@ void draw_image(uint16_t x, uint16_t y, const struct Image * image)
             addr   = CALC_BUFF_ADDR(x, y + yp);
             for (uint16_t xp = 0; xp < byte_width; xp++) {
                 img_value = image->data[yp * byte_width + xp];
-                draw_2bit_word_aligned(addr, img_value);
+                draw_2bit_pixels_aligned(addr, img_value);
                 addr += 2;
             }
         }
@@ -152,7 +195,7 @@ void draw_image(uint16_t x, uint16_t y, const struct Image * image)
             addr   = CALC_BUFF_ADDR(x, y + yp);
             for (uint16_t xp = 0; xp < byte_width; xp++) {
                 img_value = image->data[yp * byte_width + xp];
-                draw_2bit_word_unaligned(addr, img_value);
+                draw_2bit_pixels_unaligned(addr, img_value);
                 addr += 2;
             }
         }
@@ -695,7 +738,10 @@ void draw_char(uint8_t ch, int x, int y, const struct FontEntry *font_info)
 	int yy, row;
 	uint16_t data16;
 
+#if VIDEO_BITS_PER_PIXEL == 2
 	uint16_t mask;
+#endif
+
 	ch = font_info->lookup[ch];
 	if (ch == 255)
 		return;
@@ -729,18 +775,18 @@ void draw_char(uint8_t ch, int x, int y, const struct FontEntry *font_info)
                 data16 = (data & 0xFFFF0000) >> 16;
 
                 if (wbit) {
-                    draw_2bit_word_unaligned(addr, (data16 & 0xFF00) >> 8);
-                    draw_2bit_word_unaligned(addr + 2, (data16 & 0xFF));
+                    draw_2bit_pixels_unaligned(addr, (data16 & 0xFF00) >> 8);
+                    draw_2bit_pixels_unaligned(addr + 2, (data16 & 0xFF));
                     data16 = (data & 0x0000FFFF);
-                    draw_2bit_word_unaligned(addr + 4, (data16 & 0xFF00) >> 8);
-                    draw_2bit_word_unaligned(addr + 6, (data16 & 0xFF));
+                    draw_2bit_pixels_unaligned(addr + 4, (data16 & 0xFF00) >> 8);
+                    draw_2bit_pixels_unaligned(addr + 6, (data16 & 0xFF));
                 }
                 else {
-                    draw_2bit_word_aligned(addr, (data16 & 0xFF00) >> 8);
-                    draw_2bit_word_aligned(addr + 2, (data16 & 0xFF));
+                    draw_2bit_pixels_aligned(addr, (data16 & 0xFF00) >> 8);
+                    draw_2bit_pixels_aligned(addr + 2, (data16 & 0xFF));
                     data16 = (data & 0x0000FFFF);
-                    draw_2bit_word_aligned(addr + 4, (data16 & 0xFF00) >> 8);
-                    draw_2bit_word_aligned(addr + 6, (data16 & 0xFF));
+                    draw_2bit_pixels_aligned(addr + 4, (data16 & 0xFF00) >> 8);
+                    draw_2bit_pixels_aligned(addr + 6, (data16 & 0xFF));
                 }
 #endif
 
@@ -754,17 +800,17 @@ void draw_char(uint8_t ch, int x, int y, const struct FontEntry *font_info)
 		for (yy = y; yy < y + font_info->height; yy++) {
 			if (!partly_out || ((x >= GRAPHICS_LEFT) && (x + font_info->width <= GRAPHICS_RIGHT) && (yy >= GRAPHICS_TOP) && (yy <= GRAPHICS_BOTTOM))) {
 				data = font_info->data[row];
-				mask = data | (data << 1);
 #if VIDEO_BITS_PER_PIXEL == 2
+				mask = data | (data << 1);
 				draw_word_misaligned_MASKED(draw_buffer, data, mask, addr, wbit);
 #elif VIDEO_BITS_PER_PIXEL == 4
                 if (wbit) {
-                    draw_2bit_word_unaligned(addr, (data & 0xFF00) >> 8);
-                    draw_2bit_word_unaligned(addr + 2, (data & 0xFF));
+                    draw_2bit_pixels_unaligned(addr, (data & 0xFF00) >> 8);
+                    draw_2bit_pixels_unaligned(addr + 2, (data & 0xFF));
                 }
                 else {
-                    draw_2bit_word_aligned(addr, (data & 0xFF00) >> 8);
-                    draw_2bit_word_aligned(addr + 2, (data & 0xFF));
+                    draw_2bit_pixels_aligned(addr, (data & 0xFF00) >> 8);
+                    draw_2bit_pixels_aligned(addr + 2, (data & 0xFF));
                 }
 #endif
 			}

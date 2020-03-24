@@ -364,6 +364,11 @@ void brainFpvOsdInit(void)
     brainFpvOsdInitStm32Cmp();
 #endif
 
+#if VIDEO_BITS_PER_PIXEL == 4
+    set_text_color(OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+    fill_2bit_mask_table();
+#endif
+
     for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
         if (image_userlogo.data[i] != 0) {
             brainfpv_user_avatar_set = true;
