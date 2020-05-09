@@ -232,7 +232,11 @@ void EXTIEnable(IO_t io, bool enable)
 
 void EXTI_IRQHandler(uint32_t line_mask)
 {
+#if defined(STM32H7)
+    uint32_t exti_active = (EXTI->IMR1 & EXTI->PR1) & line_mask;
+#else
     uint32_t exti_active = (EXTI->IMR & EXTI->PR) & line_mask;
+#endif
 
     while (exti_active) {
         unsigned idx = 31 - __builtin_clz(exti_active);

@@ -33,8 +33,8 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
+#include <stdint.h>
 #include "target.h"
-#include <stm32f4xx_qspi.h>
 
 // PAL/NTSC specific boundary values
 struct video_type_boundary {

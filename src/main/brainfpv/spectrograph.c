@@ -253,50 +253,50 @@ void spectrographDraw(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height,
         return;
     }
 
-    write_hline_lm(x0 ,x0 + width , y0, 1, 1);
-    write_hline_lm(x0 ,x0 + width , y0 + 1, 0, 1);
-    write_vline_lm(x0, y0, y0 - height + 10, 1, 1);
-    write_vline_lm(x0 - 1, y0 + 1, y0 - height + 10, 0, 1);
+    draw_hline(x0 ,x0 + width , y0, OSD_COLOR_WHITE);
+    draw_hline(x0 ,x0 + width , y0 + 1, OSD_COLOR_BLACK);
+    draw_vline(x0, y0, y0 - height + 10, OSD_COLOR_WHITE);
+    draw_vline(x0 - 1, y0 + 1, y0 - height + 10, OSD_COLOR_BLACK);
 
-    write_string(AXIS_NAMES[axis], x0 + width, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, FONT_OUTLINED8X8);
+    draw_string(AXIS_NAMES[axis], x0 + width, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_RIGHT, FONT_OUTLINED8X8);
 
     for (int i=0; i<5; i++) {
         tfp_sprintf(tmp_str, "%d", i * SPEC_MAX_FREQ / 4);
-        write_string(tmp_str, x0 + i * width / 4, y0 + 2, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+        draw_string(tmp_str, x0 + i * width / 4, y0 + 2, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }
 
     chMtxLock(&fftOutputMtx);
     for (int i=0; i < width; i++) {
         freq = (i * SPEC_MAX_FREQ) / width;
         this_height = (height * (uint16_t)spec_disp_buffer_rpy[axis][FFT_BIN(freq)]) >> 8;
-        write_vline_lm(x0 + i, y0, y0 -this_height , 1, 1);
-        write_pixel_lm(x0 + i, y0 -this_height , 1, 0);
+        draw_vline(x0 + i, y0, y0 -this_height, OSD_COLOR_WHITE);
+        draw_pixel(x0 + i, y0 -this_height , OSD_COLOR_BLACK);
 
         this_height = (height * (uint16_t)spec_disp_buffer_max_rpy[axis][FFT_BIN(freq)]) >> 8;
-        write_pixel_lm(x0 + i, y0 -this_height, 1, 0);
-        write_pixel_lm(x0 + i, y0 -this_height + 1, 1, 1);
-        write_pixel_lm(x0 + i, y0 -this_height - 1, 1, 1);
+        draw_pixel(x0 + i, y0 -this_height, OSD_COLOR_BLACK);
+        draw_pixel(x0 + i, y0 -this_height + 1, OSD_COLOR_WHITE);
+        draw_pixel(x0 + i, y0 -this_height - 1, OSD_COLOR_WHITE);
     }
     tfp_sprintf(tmp_str, "%d", (int)max_rpy[axis] / SPEC_FFT_LENGTH);
-    write_string(tmp_str, x0, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+    draw_string(tmp_str, x0, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     chMtxUnlock(&fftOutputMtx);
 
     if (gyroConfig()->gyro_soft_notch_hz_1) {
         uint16_t pos = x0 + (gyroConfig()->gyro_soft_notch_hz_1 * width) / SPEC_MAX_FREQ;
-        write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
-        write_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+        draw_vline(pos, y0, y0 - height + 10, OSD_COLOR_BLACK);
+        draw_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
         pos = x0 + (gyroConfig()->gyro_soft_notch_cutoff_1 * width) / SPEC_MAX_FREQ;
-        write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
-        write_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+        draw_vline(pos, y0, y0 - height + 10, OSD_COLOR_BLACK);
+        draw_string("N1", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }
 
     if (gyroConfig()->gyro_soft_notch_hz_2) {
         uint16_t pos = x0 + (gyroConfig()->gyro_soft_notch_hz_2 * width) / SPEC_MAX_FREQ;
-        write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
-        write_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+        draw_vline(pos, y0, y0 - height + 10, OSD_COLOR_BLACK);
+        draw_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
         pos = x0 + (gyroConfig()->gyro_soft_notch_cutoff_2 * width) / SPEC_MAX_FREQ;
-        write_vline_lm(pos, y0, y0 - height + 10, 0, 1);
-        write_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+        draw_vline(pos, y0, y0 - height + 10, OSD_COLOR_BLACK);
+        draw_string("N2", pos, y0 - height, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }
 }
 
@@ -339,8 +339,8 @@ void  spectrographOSD(enum SpecCommand command)
         default:
             break;
     }
-    write_string("GYRO SPECTRUM", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - GRAPH_HEIGHT_TOT - 30, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
-    write_string("ROLL RIGHT: SWITCH   ROLL LEFT: EXIT", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 18, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+    draw_string("GYRO SPECTRUM", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - GRAPH_HEIGHT_TOT - 30, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+    draw_string("ROLL RIGHT: SWITCH   ROLL LEFT: EXIT", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 18, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 }
 
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */

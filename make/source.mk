@@ -422,17 +422,26 @@ endif
 ifneq ($(filter CHIBIOS,$(FEATURES)),)
 CHIBIOS := $(ROOT)/lib/main/ChibiOS
 
-#include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
-include $(CHIBIOS)/os/hal/hal.mk
+
+ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
+INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32F4xx
+endif
+
+ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
+include $(CHIBIOS)/os/hal/ports/STM32/STM32H7xx/platform.mk
+INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32H7xx
+endif
+
+include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
+include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 
 DEVICE_FLAGS += -DUSE_CHIBIOS -DCORTEX_USE_FPU=TRUE -DCORTEX_SIMPLIFIED_PRIORITY=TRUE $(DDEFS)
 
 
-SRC += $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/crt1.c
+SRC += $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/crt1.c
 SRC += $(STARTUPSRC)
 SRC += $(PLATFORMSRC)
 SRC += $(HALSRC)
@@ -443,8 +452,10 @@ SRC += $(PORTASM)
 SRC += $(OSALASM)
 
 
-INCLUDE_DIRS += $(CHIBIOS)/os/ext/CMSIS/ST/STM32F4xx/
-INCLUDE_DIRS += $(CHIBIOS)/os/common/ports/ARMCMx/devices/STM32F4xx
+INCLUDE_DIRS += $(CHIBIOS)/os/license/
+INCLUDE_DIRS += $(CHIBIOS)//os/oslib/include/
+INCLUDE_DIRS += $(CHIBIOS)/os/common/ext/ST/STM32F4xx/
+
 INCLUDE_DIRS += $(STARTUPINC)
 INCLUDE_DIRS += $(KERNINC)
 INCLUDE_DIRS += $(PORTINC)
@@ -464,9 +475,13 @@ SRC += brainfpv/spectrograph.c \
        brainfpv/ir_transponder.c \
        io/displayport_max7456.c \
        cms/cms_menu_brainfpv.c
-
-SRC += $(TARGET_SRC)
+ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
+SRC +=  $(ROOT)/lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c \
+        $(ROOT)/lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_comp.c
 endif
+endif
+SRC += $(TARGET_SRC)
+
 
 ifneq ($(filter SPECTROGRAPH,$(FEATURES)),)
 SRC += brainfpv/spectrograph.c

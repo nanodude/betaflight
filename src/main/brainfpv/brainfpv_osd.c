@@ -107,10 +107,18 @@
 
 PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_CONFIG, 0);
 
+#if !defined(BRAINFPV_OSD_WHITE_LEVEL_DEFAULT)
+#define BRAINFPV_OSD_WHITE_LEVEL_DEFAULT 0
+#endif
+
+#if !defined(BRAINFPV_OSD_BLACK_LEVEL_DEFAULT)
+#define BRAINFPV_OSD_BLACK_LEVEL_DEFAULT 0
+#endif
+
 PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .sync_threshold = BRAINFPV_OSD_SYNC_TH_DEFAULT,
-  .white_level    = 110,
-  .black_level    = 20,
+  .white_level    = BRAINFPV_OSD_WHITE_LEVEL_DEFAULT,
+  .black_level    = BRAINFPV_OSD_BLACK_LEVEL_DEFAULT,
   .x_offset       = 0,
   .x_scale        = 8,
   .sbs_3d_enabled = 0,
@@ -245,14 +253,14 @@ uint8_t max7456GetRowsCount(void)
 void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
 
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
+    draw_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
 }
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 {
     char buff[2] = {c, 0};
 
-    write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
+    draw_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
 }
 
 void max7456ClearScreen(void)
@@ -277,8 +285,124 @@ bool max7456BuffersSynced(void)
 
 /*******************************************************************************/
 
+#if defined(BRAINFPV_OSD_USE_STM32CMP)
+#include "stm32h7xx_hal.h"
+
+DAC_HandleTypeDef hdac_video_cmp;
+COMP_HandleTypeDef hcomp_video_cmp;
+
+static void Error_Handler(void) { while (1) { } }
+
+static void brainFpvOsdInitStm32Cmp(void)
+{
+    DAC_ChannelConfTypeDef sConfig;
+
+    IO_t cmp_input = IOGetByTag(IO_TAG(BRAINFPV_OSD_STM32CMP_CMP_INPUT_PIN));
+    IO_t cmp_output = IOGetByTag(IO_TAG(BRAINFPV_OSD_STM32CMP_CMP_OUTPUT_PIN));
+
+    IOInit(cmp_input,  OWNER_OSD, 0);
+    IOConfigGPIO(cmp_input, IO_CONFIG(GPIO_MODE_ANALOG, 0, GPIO_NOPULL));
+
+    IOInit(cmp_output, OWNER_OSD, 0);
+    IOConfigGPIOAF(cmp_output, IOCFG_AF_PP, GPIO_AF13_COMP2);
+
+    hdac_video_cmp.Instance = BRAINFPV_OSD_STM32CMP_DAC_INSTANCE;
+    if (HAL_DAC_Init(&hdac_video_cmp) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+
+    sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
+    sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
+    sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_ENABLE;
+    sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
+    if (HAL_DAC_ConfigChannel(&hdac_video_cmp, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    hcomp_video_cmp.Instance = BRAINFPV_OSD_STM32CMP_CMP_INSTANCE;
+    hcomp_video_cmp.Init.InvertingInput = COMP_INPUT_MINUS_DAC1_CH1;
+    hcomp_video_cmp.Init.NonInvertingInput = COMP_INPUT_PLUS_IO1;
+    hcomp_video_cmp.Init.OutputPol = COMP_OUTPUTPOL_NONINVERTED;
+    hcomp_video_cmp.Init.Hysteresis = COMP_HYSTERESIS_NONE;
+    hcomp_video_cmp.Init.BlankingSrce = COMP_BLANKINGSRC_NONE;
+    hcomp_video_cmp.Init.Mode = COMP_POWERMODE_HIGHSPEED;
+    hcomp_video_cmp.Init.WindowMode = COMP_WINDOWMODE_DISABLE;
+    hcomp_video_cmp.Init.TriggerMode = COMP_TRIGGERMODE_NONE;
+
+    if (HAL_COMP_Init(&hcomp_video_cmp) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    if(HAL_DAC_Start(&hdac_video_cmp, DAC_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    brainFpvOsdSetSyncThreshold(bfOsdConfig()->sync_threshold);
+
+    HAL_COMP_Start(&hcomp_video_cmp);
+}
+
+void brainFpvOsdSetSyncThreshold(uint8_t threshold)
+{
+    // threshold is in 2mV steps
+    if (hcomp_video_cmp.Instance) {
+        HAL_DAC_SetValue(&hdac_video_cmp, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ((uint32_t)threshold * 4 * 4095) / 3300);
+    }
+}
+#endif
+
+#if defined(VTXFAULT_PIN)
+
+IO_t vtx_fault_pin;
+
+static void vtxFaultInit(void)
+{
+    vtx_fault_pin = IOGetByTag(IO_TAG(VTXFAULT_PIN));
+
+    IOInit(vtx_fault_pin,  OWNER_OSD, 0);
+    IOConfigGPIO(vtx_fault_pin, IO_CONFIG(GPIO_MODE_INPUT, 0, GPIO_PULLUP));
+}
+
+static void vtxFaultCheck(void)
+{
+    static bool fault_detected = false;
+
+    if (IORead(vtx_fault_pin) == false) {
+        // over current condition detected
+        LED1_ON;
+        fault_detected = true;
+    }
+    else {
+        if (fault_detected) {
+            // over current condition has been cleared
+            LED1_OFF;
+            fault_detected = false;
+        }
+    }
+}
+#endif /* defined(VTXFAULT_PIN) */
+
 void brainFpvOsdInit(void)
 {
+#if defined(BRAINFPV_OSD_USE_STM32CMP)
+    brainFpvOsdInitStm32Cmp();
+#endif
+
+#if VIDEO_BITS_PER_PIXEL == 4
+    set_text_color(OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+    fill_2bit_mask_table();
+#endif
+
+#if defined(VTXFAULT_PIN)
+    vtxFaultInit();
+#endif /* defined(VTXFAULT_PIN) */
+
     for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
         if (image_userlogo.data[i] != 0) {
             brainfpv_user_avatar_set = true;
@@ -301,11 +425,11 @@ void brainFpvOsdWelcome(void)
     brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
 
     tfp_sprintf(string_buffer, "BF VERSION: %s", gitTag);
-    write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
-    write_string("MENU: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+    draw_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+    draw_string("MENU: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (bfOsdConfig()->spec_enabled) {
-        write_string("SPECT: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 25, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
+        draw_string("SPECT: THRT MID YAW RIGHT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 25, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     }
 #endif
 }
@@ -370,6 +494,40 @@ void osdUpdateLocal()
 }
 
 
+#if defined(BRAINFPV_OSD_TEST)
+static void osd_draw_test_pattern(void) {
+
+#if (VIDEO_BITS_PER_PIXEL == 4)
+#define N_OSD_COLORS 16
+#define FILL_BYTE_COLOR(x) ((((x) << 4) & 0xF0) | ((x) & 0x0F))
+#elif (VIDEO_BITS_PER_PIXEL == 2)
+#define N_OSD_COLORS 4
+#define FILL_BYTE_COLOR(x) (x << 6 | x << 4 | x << 2 | x)
+
+#else
+#error "not supported"
+#endif
+
+#define TEST_START_X 0
+#define TEST_START_Y 16
+#define TEST_SIZE 16
+
+    for (uint8_t color = 0; color < N_OSD_COLORS; color++) {
+        uint8_t OSD_COLOR_byte = FILL_BYTE_COLOR(color);
+
+        for (uint16_t y = TEST_START_Y; y < TEST_START_Y + TEST_SIZE; y++) {
+            for (uint16_t x = TEST_START_X + color * TEST_SIZE; x < TEST_START_X + (color + 1) * TEST_SIZE; x++) {
+                    uint32_t buffer_pos = CALC_BUFF_ADDR(x, y);
+                    draw_buffer[buffer_pos] = OSD_COLOR_byte;
+                }
+            }
+
+    }
+}
+
+#endif
+
+
 
 #define IS_HI(X)  (rcData[X] > 1750)
 #define IS_LO(X)  (rcData[X] < 1250)
@@ -381,7 +539,7 @@ void osdMain(void) {
     uint32_t currentTime;
 
     while (1) {
-        if (chBSemWaitTimeout(&onScreenDisplaySemaphore, MS2ST(500)) == MSG_TIMEOUT) {
+        if (chBSemWaitTimeout(&onScreenDisplaySemaphore, TIME_MS2I(500)) == MSG_TIMEOUT) {
             // No trigger received within 500ms, re-enable the video
             video_qspi_enable();
         }
@@ -391,11 +549,16 @@ void osdMain(void) {
         static enum BrainFPVOSDMode mode = MODE_BETAFLIGHT;
         clearGraphics();
 
+#if defined(BRAINFPV_OSD_TEST)
+        osd_draw_test_pattern();
+        //continue;
+#endif /* defined(BRAINFPV_OSD_TEST) */
+
         /* Hide OSD when OSDSW mode is active */
         if (IS_RC_MODE_ACTIVE(BOXOSD))
           continue;
 
- #if defined(USE_BRAINFPV_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
         if (bfOsdConfig()->spec_enabled) {
             if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
                 mode = MODE_SPEC;
@@ -412,7 +575,7 @@ void osdMain(void) {
                 }
             }
         }
- #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
         if (millis() < 7000) {
             brainFpvOsdWelcome();
@@ -437,14 +600,24 @@ void osdMain(void) {
                     }
                     break;
                 case MODE_SPEC:
- #if defined(USE_BRAINFPV_SPECTROGRAPH)
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
                     spectrographOSD(spec_command);
- #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+#endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
                     break;
                 default:
                     break;
             }
         }
+#if defined(VTXFAULT_PIN)
+        vtxFaultCheck();
+#endif /* defined(VTXFAULT_PIN) */
+
+#if defined(BRAINFPV_OSD_SHOW_DRAW_TIME)
+        uint32_t t_draw = micros() - currentTime;
+        char tmp[20];
+        tfp_sprintf(tmp, "T DRAW: %d", t_draw);
+        draw_string(tmp, GRAPHICS_LEFT, GRAPHICS_BOTTOM - 10, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
+#endif /* defined(BRAINFPV_OSD_SHOW_DRAW_TIME) */
         draw_cnt += 1;
     }
 }
@@ -512,22 +685,22 @@ static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, in
         tfp_sprintf(tmp_str, "%d", angle);
 
         if (angle < 0) {
-            write_line_outlined_dashed(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 + d_x2, pp_y2 - d_y2, 2, 2, 0, 1, 5);
-            write_line_outlined(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 - d_x2 - d_x_2, pp_y2 + d_y2 - d_y_2, 2, 2, 0, 1);
-            write_line_outlined(pp_x2 + d_x2, pp_y2 - d_y2, pp_x2 + d_x2 - d_x_2, pp_y2 - d_y2 - d_y_2, 2, 2, 0, 1);
+            draw_line_outlined_dashed(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 + d_x2, pp_y2 - d_y2, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE, 5);
+            draw_line_outlined(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 - d_x2 - d_x_2, pp_y2 + d_y2 - d_y_2, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE);
+            draw_line_outlined(pp_x2 + d_x2, pp_y2 - d_y2, pp_x2 + d_x2 - d_x_2, pp_y2 - d_y2 - d_y_2, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE);
 
-            write_string(tmp_str, pp_x2 - d_x - 4, pp_y2 + d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
-            write_string(tmp_str, pp_x2 + d_x + 4, pp_y2 - d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+            draw_string(tmp_str, pp_x2 - d_x - 4, pp_y2 + d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+            draw_string(tmp_str, pp_x2 + d_x + 4, pp_y2 - d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
         } else if (angle > 0) {
-            write_line_outlined(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 + d_x2, pp_y2 - d_y2, 2, 2, 0, 1);
-            write_line_outlined(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 - d_x2 + d_x_2, pp_y2 + d_y2 + d_y_2, 2, 2, 0, 1);
-            write_line_outlined(pp_x2 + d_x2, pp_y2 - d_y2, pp_x2 + d_x2 + d_x_2, pp_y2 - d_y2 + d_y_2, 2, 2, 0, 1);
+            draw_line_outlined(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 + d_x2, pp_y2 - d_y2, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE);
+            draw_line_outlined(pp_x2 - d_x2, pp_y2 + d_y2, pp_x2 - d_x2 + d_x_2, pp_y2 + d_y2 + d_y_2, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE);
+            draw_line_outlined(pp_x2 + d_x2, pp_y2 - d_y2, pp_x2 + d_x2 + d_x_2, pp_y2 - d_y2 + d_y_2, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE);
 
-            write_string(tmp_str, pp_x2 - d_x - 4, pp_y2 + d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
-            write_string(tmp_str, pp_x2 + d_x + 4, pp_y2 - d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+            draw_string(tmp_str, pp_x2 - d_x - 4, pp_y2 + d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+            draw_string(tmp_str, pp_x2 + d_x + 4, pp_y2 - d_y, 0, 0, TEXT_VA_MIDDLE, TEXT_HA_CENTER, FONT_OUTLINED8X8);
         } else {
-            write_line_outlined(pp_x2 - d_x, pp_y2 + d_y, pp_x2 - d_x / 3, pp_y2 + d_y / 3, 2, 2, 0, 1);
-            write_line_outlined(pp_x2 + d_x / 3, pp_y2 - d_y / 3, pp_x2 + d_x, pp_y2 - d_y, 2, 2, 0, 1);
+            draw_line_outlined(pp_x2 - d_x, pp_y2 + d_y, pp_x2 - d_x / 3, pp_y2 + d_y / 3, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE);
+            draw_line_outlined(pp_x2 + d_x / 3, pp_y2 - d_y / 3, pp_x2 + d_x, pp_y2 - d_y, 2, 2, OSD_COLOR_BLACK, OSD_COLOR_WHITE);
         }
     }
 }
@@ -543,32 +716,32 @@ static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, in
 void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical)
 {
 
-    write_filled_rectangle_lm(x - STICK_LENGTH, y - STICK_WIDTH / 2, 2 * STICK_LENGTH, STICK_WIDTH, 0, 1);
-    write_filled_rectangle_lm(x - STICK_WIDTH / 2, y - STICK_LENGTH, STICK_WIDTH, 2 * STICK_LENGTH, 0, 1);
+    draw_filled_rectangle(x - STICK_LENGTH, y - STICK_WIDTH / 2, 2 * STICK_LENGTH, STICK_WIDTH, OSD_COLOR_BLACK);
+    draw_filled_rectangle(x - STICK_WIDTH / 2, y - STICK_LENGTH, STICK_WIDTH, 2 * STICK_LENGTH, OSD_COLOR_BLACK);
 
-    write_hline_lm(x - STICK_LENGTH - 1, x - STICK_WIDTH / 2 -1, y - STICK_WIDTH / 2 - 1, 1, 1);
-    write_hline_lm(x - STICK_LENGTH - 1, x - STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, 1, 1);
+    draw_hline(x - STICK_LENGTH - 1, x - STICK_WIDTH / 2 -1, y - STICK_WIDTH / 2 - 1, OSD_COLOR_WHITE);
+    draw_hline(x - STICK_LENGTH - 1, x - STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, OSD_COLOR_WHITE);
 
-    write_hline_lm(x + STICK_WIDTH / 2 + 1, x + STICK_LENGTH + 1, y - STICK_WIDTH / 2 - 1, 1, 1);
-    write_hline_lm(x + STICK_WIDTH / 2 + 1, x + STICK_LENGTH + 1, y + STICK_WIDTH / 2 + 1, 1, 1);
+    draw_hline(x + STICK_WIDTH / 2 + 1, x + STICK_LENGTH + 1, y - STICK_WIDTH / 2 - 1, OSD_COLOR_WHITE);
+    draw_hline(x + STICK_WIDTH / 2 + 1, x + STICK_LENGTH + 1, y + STICK_WIDTH / 2 + 1, OSD_COLOR_WHITE);
 
-    write_hline_lm(x - STICK_WIDTH / 2 -1, x + STICK_WIDTH / 2 + 1 , y - STICK_LENGTH -1, 1, 1);
-    write_hline_lm(x - STICK_WIDTH / 2 -1, x + STICK_WIDTH / 2 + 1 , y + STICK_LENGTH + 1, 1, 1);
+    draw_hline(x - STICK_WIDTH / 2 -1, x + STICK_WIDTH / 2 + 1 , y - STICK_LENGTH -1, OSD_COLOR_WHITE);
+    draw_hline(x - STICK_WIDTH / 2 -1, x + STICK_WIDTH / 2 + 1 , y + STICK_LENGTH + 1, OSD_COLOR_WHITE);
 
-    write_vline_lm(x - STICK_WIDTH / 2 - 1, y - STICK_WIDTH / 2 - 1, y - STICK_LENGTH -1, 1, 1);
-    write_vline_lm(x + STICK_WIDTH / 2 + 1, y - STICK_WIDTH / 2 - 1, y - STICK_LENGTH -1, 1, 1);
+    draw_vline(x - STICK_WIDTH / 2 - 1, y - STICK_WIDTH / 2 - 1, y - STICK_LENGTH -1, OSD_COLOR_WHITE);
+    draw_vline(x + STICK_WIDTH / 2 + 1, y - STICK_WIDTH / 2 - 1, y - STICK_LENGTH -1, OSD_COLOR_WHITE);
 
-    write_vline_lm(x - STICK_WIDTH / 2 - 1, y + STICK_LENGTH  + 1, y + STICK_WIDTH / 2 + 1, 1, 1);
-    write_vline_lm(x + STICK_WIDTH / 2 + 1, y + STICK_LENGTH  + 1, y + STICK_WIDTH / 2 + 1, 1, 1);
+    draw_vline(x - STICK_WIDTH / 2 - 1, y + STICK_LENGTH  + 1, y + STICK_WIDTH / 2 + 1, OSD_COLOR_WHITE);
+    draw_vline(x + STICK_WIDTH / 2 + 1, y + STICK_LENGTH  + 1, y + STICK_WIDTH / 2 + 1, OSD_COLOR_WHITE);
 
-    write_vline_lm(x - STICK_LENGTH - 1, y -STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, 1, 1);
-    write_vline_lm(x + STICK_LENGTH + 1, y -STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, 1, 1);
+    draw_vline(x - STICK_LENGTH - 1, y -STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, OSD_COLOR_WHITE);
+    draw_vline(x + STICK_LENGTH + 1, y -STICK_WIDTH / 2 -1, y + STICK_WIDTH / 2 + 1, OSD_COLOR_WHITE);
 
     int16_t stick_x =  x + (STICK_MOVEMENT_EXTENT * FIX_RC_RANGE(horizontal)) / 500.f;
     int16_t stick_y =  y - (STICK_MOVEMENT_EXTENT * FIX_RC_RANGE(vertical)) / 500.f;
 
-    write_filled_rectangle_lm(stick_x - (STICK_BOX_SIZE) / 2 - 1, stick_y - (STICK_BOX_SIZE) / 2 - 1, STICK_BOX_SIZE + 2, STICK_BOX_SIZE + 2, 0, 1);
-    write_filled_rectangle_lm(stick_x - (STICK_BOX_SIZE) / 2, stick_y - (STICK_BOX_SIZE) / 2, STICK_BOX_SIZE, STICK_BOX_SIZE, 1, 1);
+    draw_filled_rectangle(stick_x - (STICK_BOX_SIZE) / 2 - 1, stick_y - (STICK_BOX_SIZE) / 2 - 1, STICK_BOX_SIZE + 2, STICK_BOX_SIZE + 2, OSD_COLOR_BLACK);
+    draw_filled_rectangle(stick_x - (STICK_BOX_SIZE) / 2, stick_y - (STICK_BOX_SIZE) / 2, STICK_BOX_SIZE, STICK_BOX_SIZE, OSD_COLOR_WHITE);
 }
 
 
@@ -642,7 +815,7 @@ void draw_map_uav_center()
     y = GRAPHICS_Y_MIDDLE - roundf(dist_to_home_px * cosf(home_dir * (float)(M_PI / 180)));
 
     // draw H to indicate home
-    write_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+    draw_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
 }
 
 #define HD_FRAME_CORNER_LEN 10
@@ -671,24 +844,24 @@ void draw_hd_frame(const bfOsdConfig_t * config)
     switch (config->hd_frame) {
         case 1:
             // FULL frame
-            write_hline_lm(x1, x2, y1, 1, 1);
-            write_hline_lm(x1, x2, y2, 1, 1);
-            write_vline_lm(x1, y1, y2, 1, 1);
-            write_vline_lm(x2, y1, y2, 1, 1);
+            draw_hline(x1, x2, y1, OSD_COLOR_WHITE);
+            draw_hline(x1, x2, y2, OSD_COLOR_WHITE);
+            draw_vline(x1, y1, y2, OSD_COLOR_WHITE);
+            draw_vline(x2, y1, y2, OSD_COLOR_WHITE);
             break;
         default:
             // Corners
-            write_hline_lm(x1, x1 + HD_FRAME_CORNER_LEN, y1, 1, 1);
-            write_hline_lm(x2 - HD_FRAME_CORNER_LEN, x2, y1, 1, 1);
+            draw_hline(x1, x1 + HD_FRAME_CORNER_LEN, y1, OSD_COLOR_WHITE);
+            draw_hline(x2 - HD_FRAME_CORNER_LEN, x2, y1, OSD_COLOR_WHITE);
 
-            write_hline_lm(x1, x1 + HD_FRAME_CORNER_LEN, y2, 1, 1);
-            write_hline_lm(x2 - HD_FRAME_CORNER_LEN, x2, y2, 1, 1);
+            draw_hline(x1, x1 + HD_FRAME_CORNER_LEN, y2, OSD_COLOR_WHITE);
+            draw_hline(x2 - HD_FRAME_CORNER_LEN, x2, y2, OSD_COLOR_WHITE);
 
-            write_vline_lm(x1, y1, y1 + HD_FRAME_CORNER_LEN, 1, 1);
-            write_vline_lm(x1, y2 - HD_FRAME_CORNER_LEN, y2, 1, 1);
+            draw_vline(x1, y1, y1 + HD_FRAME_CORNER_LEN, OSD_COLOR_WHITE);
+            draw_vline(x1, y2 - HD_FRAME_CORNER_LEN, y2, OSD_COLOR_WHITE);
 
-            write_vline_lm(x2, y1, y1 + HD_FRAME_CORNER_LEN, 1, 1);
-            write_vline_lm(x2, y2 - HD_FRAME_CORNER_LEN, y2, 1, 1);
+            draw_vline(x2, y1, y1 + HD_FRAME_CORNER_LEN, OSD_COLOR_WHITE);
+            draw_vline(x2, y2 - HD_FRAME_CORNER_LEN, y2, OSD_COLOR_WHITE);
             break;
     }
 }
@@ -741,12 +914,13 @@ void osdElementCraftName_BrainFPV(osdElementParms_t *element)
 #define CENTER_RUDDER     5
 void osdElementCrosshairs_BrainFPV(osdElementParms_t *element)
 {
-    write_line_outlined(GRAPHICS_X_MIDDLE - CENTER_WING - CENTER_BODY, GRAPHICS_Y_MIDDLE ,
-            GRAPHICS_X_MIDDLE - CENTER_BODY, GRAPHICS_Y_MIDDLE, 2, 0, 0, 1);
-    write_line_outlined(GRAPHICS_X_MIDDLE + 1 + CENTER_BODY, GRAPHICS_Y_MIDDLE,
-            GRAPHICS_X_MIDDLE + 1 + CENTER_BODY + CENTER_WING, GRAPHICS_Y_MIDDLE, 0, 2, 0, 1);
-    write_line_outlined(GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE - CENTER_RUDDER - CENTER_BODY, GRAPHICS_X_MIDDLE,
-            GRAPHICS_Y_MIDDLE - CENTER_BODY, 2, 0, 0, 1);
+    draw_hline_outlined(GRAPHICS_X_MIDDLE - CENTER_WING - CENTER_BODY,
+                        GRAPHICS_X_MIDDLE - CENTER_BODY, GRAPHICS_Y_MIDDLE, 0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+    draw_hline_outlined(GRAPHICS_X_MIDDLE + CENTER_BODY + 1,
+                        GRAPHICS_X_MIDDLE + 1 + CENTER_BODY + CENTER_WING, GRAPHICS_Y_MIDDLE, 0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+    draw_vline_outlined(GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE - CENTER_RUDDER - CENTER_BODY,
+                        GRAPHICS_Y_MIDDLE - CENTER_BODY,  0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+
     element->drawElement = false;
 }
 
@@ -777,20 +951,19 @@ void osdElementLinkQuality_BrainFPV(osdElementParms_t *element)
 #define CRSF_LINE_SPACING 12
 void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold)
 {
+    bool show = false;
     char tmp_str[20];
 
     uint16_t x_pos = MAX_X(element->elemPosX);
     uint16_t y_pos = MAX_Y(element->elemPosY);
 
-    bool show;
-
     tfp_sprintf(tmp_str, "%c%d", SYM_RSSI, crsf_link_info.lq);
-    write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
+    draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
     y_pos += 16;
 
     if (bfOsdConfig()->crsf_link_stats_power) {
         tfp_sprintf(tmp_str, "%dmW", crsf_link_info.tx_power);
-        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
+        draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
         y_pos += CRSF_LINE_SPACING;
     }
 
@@ -811,7 +984,7 @@ void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold)
 
     if (show) {
         tfp_sprintf(tmp_str, "%ddBm", -1 * (int16_t)crsf_link_info.rssi);
-        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
+        draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
         y_pos += CRSF_LINE_SPACING;
     }
 
@@ -832,7 +1005,7 @@ void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold)
 
     if (show) {
         tfp_sprintf(tmp_str, "SN %ddB", crsf_link_info.snr);
-        write_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
+        draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
     }
 }
 

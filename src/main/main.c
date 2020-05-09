@@ -77,7 +77,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 1024);
+static THD_WORKING_AREA(waBetaFlightThread, 2048);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -130,23 +130,40 @@ static THD_FUNCTION(SpecThread, arg)
 }
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
+
+//#define USE_DUMMY_TASK
+#if defined(USE_DUMMY_TASK)
+static THD_WORKING_AREA(waDummyThread, 512);
+static THD_FUNCTION(DummyThread, arg)
+{
+    (void)arg;
+    chRegSetThreadName("Dummy");
+    while (1) {
+        chThdSleepMilliseconds(1);
+    }
+}
+#endif
+
 uint8_t safe_boot = 0;
 
 int main()
 {
+#if (STM32_NO_INIT == TRUE)
+  init();
+#endif
+
   halInit();
   chSysInit();
 
+#if (STM32_NO_INIT == FALSE)
   init();
+#endif
+
+  st_lld_init();
 
 #if defined(USE_BRAINFPV_OSD)
   Video_Init();
 #endif /* USE_BRAINFPV_OSD */
-
-  /* re-init timer irq to make sure it works */
-  //extern void *isr_vector_table_base;
-  //NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
-  st_lld_init();
 
   chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
 
@@ -160,6 +177,10 @@ int main()
     chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
   }
 #endif /* USE_BRAINFPV_SPECTROGRAPH */
+
+#if defined(USE_DUMMY_TASK)
+  chThdCreateStatic(waDummyThread, sizeof(waDummyThread), NORMALPRIO, DummyThread, NULL);
+#endif
 
   // sleep forever
   chThdSleep(TIME_INFINITE);

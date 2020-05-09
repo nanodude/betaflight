@@ -1133,6 +1133,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
             break;
     }
 #ifdef BRAINFPV
+#if defined(USE_BRAINFPV_IR_TRANSPONDER)
     OSD_UINT16_t *ptr = p->data;
     if (ptr == &entryIRTrackmate){
         if (key == CMS_KEY_RIGHT) {
@@ -1142,6 +1143,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
             *ptr->val = ir_next_valid_trackmateid(*ptr->val + 1, -1);
         }
     }
+#endif
     if (currentCtx.menu == &cmsx_menuBrainFPVOsd) {
         if ((key == CMS_KEY_RIGHT) || (key == CMS_KEY_LEFT)) {
             brainfpv_settings_updated = true;
