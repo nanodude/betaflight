@@ -357,6 +357,36 @@ void brainFpvOsdSetSyncThreshold(uint8_t threshold)
 }
 #endif
 
+#if defined(VTXFAULT_PIN)
+
+IO_t vtx_fault_pin;
+
+static void vtxFaultInit(void)
+{
+    vtx_fault_pin = IOGetByTag(IO_TAG(VTXFAULT_PIN));
+
+    IOInit(vtx_fault_pin,  OWNER_OSD, 0);
+    IOConfigGPIO(vtx_fault_pin, IO_CONFIG(GPIO_MODE_INPUT, 0, GPIO_PULLUP));
+}
+
+static void vtxFaultCheck(void)
+{
+    static bool fault_detected = false;
+
+    if (IORead(vtx_fault_pin) == false) {
+        // over current condition detected
+        LED1_ON;
+        fault_detected = true;
+    }
+    else {
+        if (fault_detected) {
+            // over current condition has been cleared
+            LED1_OFF;
+            fault_detected = false;
+        }
+    }
+}
+#endif /* defined(VTXFAULT_PIN) */
 
 void brainFpvOsdInit(void)
 {
@@ -368,6 +398,10 @@ void brainFpvOsdInit(void)
     set_text_color(OSD_COLOR_WHITE, OSD_COLOR_BLACK);
     fill_2bit_mask_table();
 #endif
+
+#if defined(VTXFAULT_PIN)
+    vtxFaultInit();
+#endif /* defined(VTXFAULT_PIN) */
 
     for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
         if (image_userlogo.data[i] != 0) {
@@ -574,6 +608,10 @@ void osdMain(void) {
                     break;
             }
         }
+#if defined(VTXFAULT_PIN)
+        vtxFaultCheck();
+#endif /* defined(VTXFAULT_PIN) */
+
 #if defined(BRAINFPV_OSD_SHOW_DRAW_TIME)
         uint32_t t_draw = micros() - currentTime;
         char tmp[20];
