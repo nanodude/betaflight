@@ -72,13 +72,15 @@
 #define BRAINFPV_OSD_STM32CMP_CMP_OUTPUT_PIN PE8
 
 #define BRAINFPV_OSD_SYNC_TH_DEFAULT 150
-#define BRAINFPV_OSD_SYNC_TH_MIN 100
+#define BRAINFPV_OSD_SYNC_TH_MIN 0
 #define BRAINFPV_OSD_SYNC_TH_MAX 255
 
 #define USE_BRAINFPV_SPECTROGRAPH
 
 #define LED0_PIN                PE6
+#define LED0_INVERTED
 #define LED1_PIN                PE7
+#define LED1_INVERTED
 
 #define USE_BEEPER
 #define BEEPER_PIN              PD14
@@ -88,6 +90,8 @@
 #define PINIO1_PIN              PD15 // VTX
 #define PINIO2_PIN              PC15 // Video input
 #define USE_PINIOBOX
+
+#define VTXFAULT_PIN            PD10
 
 #define USE_UART
 

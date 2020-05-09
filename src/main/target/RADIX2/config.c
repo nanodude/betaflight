@@ -38,10 +38,11 @@
 void targetConfiguration(void)
 {
     // VTX switch
-    pinioConfigMutable()->config[0] = PINIO_CONFIG_OUT_INVERTED | PINIO_CONFIG_MODE_OUT_PP;
-    pinioBoxConfigMutable()->permanentId[0] = 40;
+    pinioConfigMutable()->config[0] = PINIO_CONFIG_MODE_OUT_PP;
+    pinioBoxConfigMutable()->permanentId[0] = 41;
 
+    // Camera switch USER1
     pinioConfigMutable()->config[1] = PINIO_CONFIG_MODE_OUT_PP;
-    pinioBoxConfigMutable()->permanentId[1] = 41;
+    pinioBoxConfigMutable()->permanentId[1] = 40;
 }
 #endif
