@@ -22,8 +22,6 @@
 
 #ifdef USE_TARGET_CONFIG
 
-#include "fc/config.h"
-
 #include "flight/pid.h"
 #include "sensors/gyro.h"
 #include "blackbox/blackbox.h"
@@ -31,9 +29,6 @@
 
 void targetConfiguration(void)
 {
-    gyroConfigMutable()->gyro_sync_denom = 2;
-    pidConfigMutable()->pid_process_denom = 1;
-    blackboxConfigMutable()->p_ratio = 128;
     osdConfigMutable()->rssi_alarm = 70; // for CRSF
 }
 #endif
