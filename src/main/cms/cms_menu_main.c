@@ -43,6 +43,11 @@
 #include "cms/cms_menu_power.h"
 #include "cms/cms_menu_saveexit.h"
 
+
+#if defined(USE_BRAINFPV_OSD)
+#include "cms/cms_menu_brainfpv.h"
+#endif
+
 // VTX supplied menus
 
 #include "cms/cms_menu_vtx_common.h"
@@ -175,6 +180,10 @@ static const void *mainMenuOnEnter(displayPort_t *pDisp)
 static const OSD_Entry menuMainEntries[] =
 {
     {"-- MAIN --",  OME_Label, NULL, NULL, 0},
+
+#if defined(USE_BRAINFPV_OSD)
+    {"BRAINFPV", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPV, 0},
+#endif
 
     {"PROFILE",     OME_Submenu,  cmsMenuChange, &cmsx_menuImu, 0},
     {"FEATURES",    OME_Submenu,  cmsMenuChange, &cmsx_menuFeatures, 0},

@@ -95,18 +95,17 @@ static THD_FUNCTION(BetaFlightThread, arg)
 #include "pg/vcd.h"
 #include "config/config_eeprom.h"
 #include "config/feature.h"
+#include "cms/cms.h"
+
+
+displayPort_t *osdDisplayPort;
 
 static THD_WORKING_AREA(waOSDThread, 1024);
 static THD_FUNCTION(OSDThread, arg)
 {
     (void)arg;
     chRegSetThreadName("OSD");
-    vcdProfile_t vcdProfile_ = {
-        .video_system=VIDEO_SYSTEM_AUTO,
-        .h_offset = 0,
-        .v_offset = 0};
-    displayPort_t *osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
-    osdInit(osdDisplayPort, OSD_DISPLAYPORT_DEVICE_MAX7456);
+
     brainFpvOsdInit();
     osdMain();
 }

@@ -957,8 +957,7 @@ void init(void)
     osdDisplayPortDevice_e osdDisplayPortDevice = OSD_DISPLAYPORT_DEVICE_NONE;
 #endif
 
-#if defined(USE_OSD) && !defined(USE_BRAINFPV_OSD)
-
+#if defined(USE_OSD)
     //The OSD need to be initialised after GYRO to avoid GYRO initialisation failure on some targets
 
     if (featureIsEnabled(FEATURE_OSD)) {
@@ -985,7 +984,17 @@ void init(void)
 #if defined(USE_MAX7456)
         case OSD_DISPLAYPORT_DEVICE_MAX7456:
             // If there is a max7456 chip for the OSD configured and detectd then use it.
+#if defined(USE_BRAINFPV_OSD)
+            {
+                vcdProfile_t vcdProfile_ = {
+                    .video_system=VIDEO_SYSTEM_AUTO,
+                    .h_offset = 0,
+                    .v_offset = 0};
+                osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
+            }
+#else
             osdDisplayPort = max7456DisplayPortInit(vcdProfile());
+#endif
             if (osdDisplayPort || device == OSD_DISPLAYPORT_DEVICE_MAX7456) {
                 osdDisplayPortDevice = OSD_DISPLAYPORT_DEVICE_MAX7456;
                 break;
@@ -1015,7 +1024,7 @@ void init(void)
     }
 #endif // USE_OSD
 
-#if defined(USE_CMS) && defined(USE_MSP_DISPLAYPORT)
+#if defined(USE_CMS) && defined(USE_MSP_DISPLAYPORT) && !defined(USE_BRAINFPV_OSD)
     // If BFOSD is not active, then register MSP_DISPLAYPORT as a CMS device.
     if (!osdDisplayPort)
         cmsDisplayPortRegister(displayPortMspInit());
