@@ -335,8 +335,13 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->displayPortDevice = OSD_DISPLAYPORT_DEVICE_AUTO;
 
     osdConfig->distance_alarm = 0;
+#if defined(USE_BRAINFPV_OSD)
+    osdConfig->logo_on_arming = OSD_LOGO_ARMING_ON;
+    osdConfig->logo_on_arming_duration = 10;  // 1.0 seconds
+#else
     osdConfig->logo_on_arming = OSD_LOGO_ARMING_OFF;
     osdConfig->logo_on_arming_duration = 5;  // 0.5 seconds
+#endif
 
     osdConfig->camera_frame_width = 24;
     osdConfig->camera_frame_height = 11;
@@ -874,7 +879,7 @@ timeDelta_t osdShowArmed(void)
     } else {
         ret = (REFRESH_1S / 2);
     }
-    displayWrite(osdDisplayPort, 12, 7, DISPLAYPORT_ATTR_NONE, "ARMED");
+    displayWrite(osdDisplayPort, 12, 11, DISPLAYPORT_ATTR_NONE, "ARMED");
 
     return ret;
 }

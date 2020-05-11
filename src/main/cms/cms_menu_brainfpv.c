@@ -49,10 +49,13 @@
 #include "brainfpv/brainfpv_osd.h"
 
 bfOsdConfig_t bfOsdConfigCms;
+uint8_t logo_on_arming;
 
 static long menuBrainFPVOnEnter(void)
 {
     memcpy(&bfOsdConfigCms, bfOsdConfig(), sizeof(bfOsdConfig_t));
+    logo_on_arming = osdConfig()->logo_on_arming;
+
     return 0;
 }
 
@@ -61,6 +64,9 @@ static long menuBrainFPVOnExit(const OSD_Entry *self)
     UNUSED(self);
 
     memcpy(bfOsdConfigMutable(), &bfOsdConfigCms, sizeof(bfOsdConfig_t));
+
+    osdConfigMutable()->logo_on_arming = logo_on_arming;
+
     return 0;
 }
 
@@ -189,6 +195,10 @@ CMS_Menu cmsx_menuBrainFPVCrsfLink = {
     .entries = cmsx_menuBrainFPVCrsfLinkEntries,
 };
 
+
+const char * LOGO_ON_ARM_OPT_NAMES[] = {"OFF", "ON", "FIRST"};
+OSD_TAB_t entryLogoOnArmingMode = {&logo_on_arming, 3, &LOGO_ON_ARM_OPT_NAMES[0]};
+
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
     {"--- BRAINFPV ---", OME_Label, NULL, NULL, 0},
@@ -203,6 +213,7 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     {"SPECTROGRAPH", OME_Bool, NULL, &bfOsdConfigCms.spec_enabled, 0},
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+    {"SHOW LOGO ON ARM", OME_TAB, NULL, &entryLogoOnArmingMode, 0},
     {"SHOW PILOT LOGO", OME_Bool, NULL, &bfOsdConfigCms.show_pilot_logo, 0},
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}

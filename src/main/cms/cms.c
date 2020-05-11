@@ -187,7 +187,7 @@ static cms_key_e externKey = CMS_KEY_NONE;
 static bool osdElementEditing = false;
 
 bool cmsInMenu = false;
-//STATIC_UNIT_TESTED const CMS_Menu *currentMenu;    // Points to top entry of the current page
+STATIC_UNIT_TESTED const CMS_Menu *currentMenu;    // Points to top entry of the current page
 
 typedef struct cmsCtx_s {
     const CMS_Menu *menu;         // menu for this context
