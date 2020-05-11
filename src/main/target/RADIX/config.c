@@ -22,8 +22,6 @@
 
 #ifdef USE_TARGET_CONFIG
 
-#include "fc/config.h"
-
 #include "flight/pid.h"
 #include "flight/mixer.h"
 #include "sensors/gyro.h"
@@ -33,9 +31,7 @@
 
 void targetConfiguration(void)
 {
-    gyroConfigMutable()->gyro_sync_denom = 2;
-    pidConfigMutable()->pid_process_denom = 1;
-    blackboxConfigMutable()->p_ratio = 128;
+    //blackboxConfigMutable()->p_ratio = 128;
     motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_DSHOT600;
     osdConfigMutable()->rssi_alarm = 70; // for CRSF
 }

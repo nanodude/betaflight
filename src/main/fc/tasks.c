@@ -249,11 +249,11 @@ void tasksInit(void)
     if (sensors(SENSOR_GYRO)) {
 #ifdef BRAINFPV
         // Set the task period below the actual looptime, as the gyro interrupt kicks-off the scheduler
-	rescheduleTask(TASK_GYRO, gyro.sampleLooptime - 10);
+        rescheduleTask(TASK_GYRO, gyro.sampleLooptime - 10);
         rescheduleTask(TASK_FILTER, gyro.targetLooptime - 10);
         rescheduleTask(TASK_PID, gyro.targetLooptime - 10);     
 #else
-	rescheduleTask(TASK_GYRO, gyro.sampleLooptime);
+        rescheduleTask(TASK_GYRO, gyro.sampleLooptime);
         rescheduleTask(TASK_FILTER, gyro.targetLooptime);
         rescheduleTask(TASK_PID, gyro.targetLooptime);     
 #endif

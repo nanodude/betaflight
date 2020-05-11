@@ -187,7 +187,7 @@ static cms_key_e externKey = CMS_KEY_NONE;
 static bool osdElementEditing = false;
 
 bool cmsInMenu = false;
-STATIC_UNIT_TESTED const CMS_Menu *currentMenu;    // Points to top entry of the current page
+//STATIC_UNIT_TESTED const CMS_Menu *currentMenu;    // Points to top entry of the current page
 
 typedef struct cmsCtx_s {
     const CMS_Menu *menu;         // menu for this context
@@ -665,7 +665,7 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
         return;
     }
 
-    room -= displayWrite(pDisplay, leftMenuColumn, top + currentCtx.cursorRow * linesPerMenuItem, ">");
+    room -= displayWrite(pDisplay, leftMenuColumn, top + currentCtx.cursorRow * linesPerMenuItem, DISPLAYPORT_ATTR_NONE, ">");
     if (pDisplay->cursorRow != currentCtx.cursorRow) {
         room -= displayWrite(pDisplay, leftMenuColumn, top + currentCtx.cursorRow * linesPerMenuItem, DISPLAYPORT_ATTR_NONE, ">");
         pDisplay->cursorRow = currentCtx.cursorRow;

@@ -280,7 +280,6 @@ static void unusedPinInit(IO_t io)
     }
 }
 
-{
 void unusedPinsInit(void)
 {
     IOTraversePins(unusedPinInit);

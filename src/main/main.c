@@ -89,13 +89,12 @@ static THD_FUNCTION(BetaFlightThread, arg)
 
 #if defined(USE_BRAINFPV_OSD)
 #include "brainfpv/brainfpv_osd.h"
+#include "drivers/osd.h"
 #include "drivers/display.h"
 #include "io/displayport_max7456.h"
 #include "pg/vcd.h"
 #include "config/config_eeprom.h"
 #include "config/feature.h"
-
-void osdInit(displayPort_t *osdDisplayPortToUse);
 
 static THD_WORKING_AREA(waOSDThread, 1024);
 static THD_FUNCTION(OSDThread, arg)
@@ -107,7 +106,7 @@ static THD_FUNCTION(OSDThread, arg)
         .h_offset = 0,
         .v_offset = 0};
     displayPort_t *osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
-    osdInit(osdDisplayPort);
+    osdInit(osdDisplayPort, OSD_DISPLAYPORT_DEVICE_MAX7456);
     brainFpvOsdInit();
     osdMain();
 }

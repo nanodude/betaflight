@@ -23,7 +23,6 @@
 #include "drivers/sound_beeper.h"
 #include "pg/vcd.h"
 #include "drivers/max7456.h"
-#include "drivers/max7456_symbols.h"
 
 #include "sensors/sensors.h"
 #include "sensors/boardalignment.h"

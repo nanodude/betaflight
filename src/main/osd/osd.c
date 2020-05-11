@@ -363,16 +363,16 @@ void pgResetFn_osdElementConfig(osdElementConfig_t *osdElementConfig)
     osdElementConfig->item_pos[OSD_CAMERA_FRAME]       = OSD_POS(3, 1);
 
 #ifdef USE_BRAINFPV_OSD
-    osdConfig->item_pos[OSD_RSSI_VALUE]         = OSD_POS(8, 1)   | profileFlags;
-    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(12, 1)  | profileFlags;
-    osdConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(13, 6)   | profileFlags;
-    osdConfig->item_pos[OSD_ITEM_TIMER_1]       = OSD_POS(22, 1)  | profileFlags;
-    osdConfig->item_pos[OSD_ITEM_TIMER_2]       = OSD_POS(1, 1)   | profileFlags;
-    osdConfig->item_pos[OSD_FLYMODE]            = OSD_POS(1, 2)   | profileFlags;
-    osdConfig->item_pos[OSD_CRAFT_NAME]         = OSD_POS(10, 11) | profileFlags;
-    osdConfig->item_pos[OSD_CURRENT_DRAW]       = OSD_POS(1, 11)  | profileFlags;
-    osdConfig->item_pos[OSD_MAH_DRAWN]          = OSD_POS(1, 10)  | profileFlags;
-    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = OSD_POS(12, 2)  | profileFlags;
+    osdElementConfig->item_pos[OSD_RSSI_VALUE]         = OSD_POS(8, 1)   | profileFlags;
+    osdElementConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(12, 1)  | profileFlags;
+    osdElementConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(13, 6)   | profileFlags;
+    osdElementConfig->item_pos[OSD_ITEM_TIMER_1]       = OSD_POS(22, 1)  | profileFlags;
+    osdElementConfig->item_pos[OSD_ITEM_TIMER_2]       = OSD_POS(1, 1)   | profileFlags;
+    osdElementConfig->item_pos[OSD_FLYMODE]            = OSD_POS(1, 2)   | profileFlags;
+    osdElementConfig->item_pos[OSD_CRAFT_NAME]         = OSD_POS(10, 11) | profileFlags;
+    osdElementConfig->item_pos[OSD_CURRENT_DRAW]       = OSD_POS(1, 11)  | profileFlags;
+    osdElementConfig->item_pos[OSD_MAH_DRAWN]          = OSD_POS(1, 10)  | profileFlags;
+    osdElementConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = OSD_POS(12, 2)  | profileFlags;
 #endif
 
 }
@@ -857,26 +857,19 @@ static void osdRefreshStats(void)
     osdShowStats(osdStatsRowCount);
 }
 
-<<<<<<< HEAD
-void osdShowArmed(void)
-=======
-static timeDelta_t osdShowArmed(void)
->>>>>>> 4.2.0-RC1
+timeDelta_t osdShowArmed(void)
 {
     timeDelta_t ret;
 
     displayClearScreen(osdDisplayPort);
-<<<<<<< HEAD
-    if (bfOsdConfig()->show_logo_on_arm) {
-        #define GY (GRAPHICS_BOTTOM / 2 - 30)
-        brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
-    }
-
-    displayWrite(osdDisplayPort, 12, 11, "ARMED");
-=======
 
     if ((osdConfig()->logo_on_arming == OSD_LOGO_ARMING_ON) || ((osdConfig()->logo_on_arming == OSD_LOGO_ARMING_FIRST) && !ARMING_FLAG(WAS_EVER_ARMED))) {
+#if defined(USE_BRAINFPV_OSD)
+#define GY (GRAPHICS_BOTTOM / 2 - 30)
+        brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
+#else
         osdDrawLogo(3, 1);
+#endif
         ret = osdConfig()->logo_on_arming_duration * 1e5;
     } else {
         ret = (REFRESH_1S / 2);
@@ -884,7 +877,6 @@ static timeDelta_t osdShowArmed(void)
     displayWrite(osdDisplayPort, 12, 7, DISPLAYPORT_ATTR_NONE, "ARMED");
 
     return ret;
->>>>>>> 4.2.0-RC1
 }
 
 bool osdStatsVisible = false;
@@ -895,34 +887,15 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
     static bool osdStatsEnabled = false;
     static timeUs_t osdStatsRefreshTimeUs;
 
-<<<<<<< HEAD
-=======
-    if (!osdIsReady) {
-        if (!displayIsReady(osdDisplayPort)) {
-            displayResync(osdDisplayPort);
-            return;
-        }
-        osdCompleteInitialization();
-    }
->>>>>>> 4.2.0-RC1
-
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
         if (ARMING_FLAG(ARMED)) {
             osdStatsEnabled = false;
             osdStatsVisible = false;
             osdResetStats();
-<<<<<<< HEAD
-            osdShowArmed();
-#ifdef USE_BRAINFPV_OSD
+
             osdArming = true;
-            resumeRefreshAt = currentTimeUs + (REFRESH_1S);
-#else
-            resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
-#endif
-=======
             resumeRefreshAt = osdShowArmed() + currentTimeUs;
->>>>>>> 4.2.0-RC1
         } else if (isSomeStatEnabled()
                    && !suppressStatsDisplay
                    && (!(getArmingDisableFlags() & (ARMING_DISABLED_RUNAWAY_TAKEOFF | ARMING_DISABLED_CRASH_DETECTED))
@@ -1049,18 +1022,13 @@ void osdUpdate(timeUs_t currentTimeUs)
     // redraw values in buffer
 #ifdef USE_BRAINFPV_OSD
 #define DRAW_FREQ_DENOM   1
-#define STATS_FREQ_DENOM  50
 #else
 #ifdef USE_MAX7456
 #define DRAW_FREQ_DENOM 5
 #else
 #define DRAW_FREQ_DENOM 10 // MWOSD @ 115200 baud (
 #endif
-<<<<<<< HEAD
-#define STATS_FREQ_DENOM    50
 #endif
-=======
->>>>>>> 4.2.0-RC1
 
     if (counter % DRAW_FREQ_DENOM == 0) {
         osdRefresh(currentTimeUs);

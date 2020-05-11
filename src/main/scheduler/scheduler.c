@@ -295,7 +295,7 @@ void schedulerOptimizeRate(bool optimizeRate)
 {
 #if defined(USE_CHIBIOS)
     UNUSED(optimizeRate);
-    periodCalculationBasisOffset = offsetof(cfTask_t, lastExecutedAt);
+    periodCalculationBasisOffset = offsetof(task_t, lastExecutedAtUs);
 #else
     periodCalculationBasisOffset = optimizeRate ? offsetof(task_t, lastDesiredAt) : offsetof(task_t, lastExecutedAtUs);
 #endif // USE_CHIBIOS

@@ -55,7 +55,6 @@ binary_semaphore_t gyroSem;
 #endif
 
 #if defined(BRAINFPV)
-#include "fc/config.h"
 #include "brainfpv/brainfpv_osd.h"
 #endif
 

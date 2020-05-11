@@ -556,7 +556,7 @@ FAST_CODE void gyroFiltering(timeUs_t currentTimeUs)
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     if (spec_data_processed) {
-        if (gyroDebugMode == DEBUG_GYRO_RAW) {
+        if (gyro.gyroDebugMode == DEBUG_GYRO_RAW) {
             spec_gyro_data[spec_idx] = debug[spec_current_axis];
         } else {
             spec_gyro_data[spec_idx] = gyro.gyroADC[spec_current_axis];
