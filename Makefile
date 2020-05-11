@@ -115,8 +115,8 @@ include $(ROOT)/make/targets.mk
 REVISION := norevision
 ifeq ($(shell git diff --shortstat),)
 REVISION := $(shell git log -1 --format="%h")
-GIT_TAG =  $(shell git describe --tags)
 endif
+GIT_TAG =  $(shell git describe --tags)
 
 FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk '{print $$3}' )
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk '{print $$3}' )
