@@ -957,7 +957,8 @@ void init(void)
     osdDisplayPortDevice_e osdDisplayPortDevice = OSD_DISPLAYPORT_DEVICE_NONE;
 #endif
 
-#if defined(USE_OSD)
+#if defined(USE_OSD) && !defined(USE_BRAINFPV_OSD)
+
     //The OSD need to be initialised after GYRO to avoid GYRO initialisation failure on some targets
 
     if (featureIsEnabled(FEATURE_OSD)) {
@@ -1052,10 +1053,6 @@ void init(void)
     swdPinsInit();
 
     unusedPinsInit();
-
-#if !defined(BRAINFPV)
-    initializeUnusedPins();
-#endif
 
     tasksInit();
 

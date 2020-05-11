@@ -181,11 +181,13 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     }
 
     /* Configure 16MHz clock output to FPGA */
+    IOInit(IOGetByTag(IO_TAG(BRAINFPVFPGA_CLOCK_PIN)), OWNER_OSD, 0);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(BRAINFPVFPGA_CLOCK_PIN)), IOCFG_AF_PP, GPIO_AF_MCO);
     RCC_MCO1Config(RCC_MCO1Source_HSE, RCC_MCO1Div_1);
     RCC_MCO1Cmd(ENABLE);
 
     /* Configure reset pin */
+    IOInit(IOGetByTag(IO_TAG(BRAINFPVFPGA_RESET_PIN)), OWNER_OSD, 0);
     re1FPGAResetPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_RESET_PIN));
     IOInit(re1FPGAResetPin, OWNER_OSD, 0);
     IOConfigGPIO(re1FPGAResetPin, IO_CONFIG(GPIO_Mode_OUT, GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_DOWN));

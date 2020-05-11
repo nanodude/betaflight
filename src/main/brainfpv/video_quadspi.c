@@ -332,6 +332,8 @@ void Video_Init()
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO1_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
 
 #if defined(VIDEO_QSPI_USE_4_LINES)
+    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_IO2_PIN)), OWNER_OSD, 0);
+    IOInit(IOGetByTag(IO_TAG(VIDEO_QSPI_IO3_PIN)), OWNER_OSD, 0);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO2_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(VIDEO_QSPI_IO3_PIN)), IOCFG_AF_PP, GPIO_AF9_QUADSPI);
 #endif
@@ -489,13 +491,13 @@ void Video_Init()
     vsync_io = IOGetByTag(IO_TAG(VIDEO_VSYNC));
     IOInit(vsync_io, OWNER_OSD, 0);
     EXTIHandlerInit(&vsyncIntCallbackRec, Vsync_ISR);
-    EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_BUILD_PRIORITY(3, 1), IOCFG_IN_FLOATING, EXTI_TRIGGER_FALLING);
+    EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_BUILD_PRIORITY(3, 1), IOCFG_IN_FLOATING, BETAFLIGHT_EXTI_TRIGGER_FALLING);
 
     // HSYNC interrupt
     hsync_io = IOGetByTag(IO_TAG(VIDEO_HSYNC));
     IOInit(hsync_io, OWNER_OSD, 0);
     EXTIHandlerInit(&hsyncIntCallbackRec, Hsync_ISR);
-    EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_BUILD_PRIORITY(1, 1), IOCFG_IN_FLOATING, EXTI_TRIGGER_FALLING);
+    EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_BUILD_PRIORITY(1, 1), IOCFG_IN_FLOATING, BETAFLIGHT_EXTI_TRIGGER_FALLING);
 
     // Enable interrupts
     EXTIEnable(vsync_io, true);
