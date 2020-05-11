@@ -60,7 +60,7 @@
 #include "drivers/light_ws2811strip.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/max7456.h"
-#include "drivers/max7456_symbols.h"
+#include "drivers/osd_symbols.h"
 
 #include "sensors/sensors.h"
 #include "sensors/boardalignment.h"
@@ -136,7 +136,6 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .map_max_dist_m = 500,
   .sticks_display = 0,
   .spec_enabled = 0,
-  .show_logo_on_arm = 1,
   .show_pilot_logo = 1,
   .invert = 0,
   .hd_frame = 0,
@@ -229,6 +228,33 @@ void max7456Brightness(uint8_t black, uint8_t white)
     (void)white;
 }
 
+bool max7456LayerSupported(displayPortLayer_e layer)
+{
+    if (layer == DISPLAYPORT_LAYER_FOREGROUND || layer == DISPLAYPORT_LAYER_BACKGROUND) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool max7456LayerSelect(displayPortLayer_e layer)
+{
+    if (max7456LayerSupported(layer)) {
+        //activeLayer = layer;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool max7456LayerCopy(displayPortLayer_e destLayer, displayPortLayer_e sourceLayer)
+{
+    (void)destLayer;
+    (void)sourceLayer;
+
+    return true;
+}
+
 bool max7456DmaInProgress(void)
 {
     return false;
@@ -237,9 +263,10 @@ bool max7456DmaInProgress(void)
 void max7456DrawScreen(void)
 {}
 
-void  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
+bool  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 {
     (void)char_address; (void)font_data;
+    return true;
 }
 
 uint8_t max7456GetRowsCount(void)
@@ -283,6 +310,10 @@ bool max7456BuffersSynced(void)
     return true;
 }
 
+bool max7456IsDeviceDetected(void)
+{
+    return true;
+}
 /*******************************************************************************/
 
 #if defined(BRAINFPV_OSD_USE_STM32CMP)
@@ -896,7 +927,7 @@ void osdElementGpsHomeDirection_BrainFPV(osdElementParms_t *element)
     element->drawElement = false;
 }
 
-void osdElementCraftName(osdElementParms_t *element);
+void osdBackgroundCraftName(osdElementParms_t *element);
 
 void osdElementCraftName_BrainFPV(osdElementParms_t *element)
 {
@@ -905,7 +936,7 @@ void osdElementCraftName_BrainFPV(osdElementParms_t *element)
         element->drawElement = false;
     }
     else {
-        osdElementCraftName(element);
+        osdBackgroundCraftName(element);
     }
 }
 

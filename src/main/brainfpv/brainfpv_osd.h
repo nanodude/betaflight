@@ -28,7 +28,6 @@ typedef struct bfOsdConfig_s {
     uint8_t map;
     uint16_t map_max_dist_m;
     uint8_t sticks_display;
-    uint8_t show_logo_on_arm;
     uint8_t show_pilot_logo;
     uint8_t invert;
     uint8_t hd_frame;
