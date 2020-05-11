@@ -163,6 +163,10 @@ int main()
   Video_Init();
 #endif /* USE_BRAINFPV_OSD */
 
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
+  chBSemObjectInit(&spectrographDataReadySemaphore, FALSE);
+#endif
+
   chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
 
 #if defined(USE_BRAINFPV_OSD)
