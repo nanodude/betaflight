@@ -74,7 +74,7 @@
 #error "TIM3 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM3_HANDLER
+#define ST_HANDLER                          TIM3_IRQHandler
 #define ST_NUMBER                           STM32_TIM3_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM3(true)
