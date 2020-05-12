@@ -23,12 +23,15 @@
 #ifdef USE_TARGET_CONFIG
 
 #include "flight/pid.h"
+#include "flight/mixer.h"
 #include "sensors/gyro.h"
 #include "blackbox/blackbox.h"
 #include "osd/osd.h"
+#include "pg/motor.h"
 
 void targetConfiguration(void)
 {
+    motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_DSHOT600;
     osdConfigMutable()->rssi_alarm = 70; // for CRSF
 }
 #endif
