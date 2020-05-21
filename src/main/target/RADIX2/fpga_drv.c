@@ -111,6 +111,7 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     spiSetDivisor(BRAINFPVFPGA_SPI_INSTANCE, BRAINFPVFPGA_SPI_DIVISOR);
 
     /* Configure 16MHz clock output to FPGA */
+    IOInit(IOGetByTag(IO_TAG(BRAINFPVFPGA_CLOCK_PIN)), OWNER_OSD, 0);
     HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSE, RCC_MCODIV_1);
 
     /* Configure reset pin */
