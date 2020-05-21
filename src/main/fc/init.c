@@ -986,6 +986,8 @@ void init(void)
             // If there is a max7456 chip for the OSD configured and detectd then use it.
 #if defined(USE_BRAINFPV_OSD)
             {
+                Video_Init();
+
                 vcdProfile_t vcdProfile_ = {
                     .video_system=VIDEO_SYSTEM_AUTO,
                     .h_offset = 0,
