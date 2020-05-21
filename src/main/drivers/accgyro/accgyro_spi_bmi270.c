@@ -25,6 +25,15 @@
 
 #ifdef USE_ACCGYRO_BMI270
 
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+extern binary_semaphore_t gyroSem;
+#endif
+
+#if defined(BRAINFPV)
+#include "brainfpv/brainfpv_osd.h"
+#endif
+
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_spi_bmi270.h"
 #include "drivers/bus_spi.h"
@@ -35,7 +44,10 @@
 #include "drivers/sensor.h"
 #include "drivers/time.h"
 
+#if !defined(BMI270_SPI_DIVISOR)
 #define BMI270_SPI_DIVISOR 16
+#endif
+
 #define BMI270_FIFO_FRAME_SIZE 6
 
 #define BMI270_CONFIG_SIZE 8192
@@ -250,8 +262,19 @@ extiCallbackRec_t bmi270IntCallbackRec;
 #if defined(USE_GYRO_EXTI) && defined(USE_MPU_DATA_READY_SIGNAL)
 void bmi270ExtiHandler(extiCallbackRec_t *cb)
 {
+#if defined(USE_CHIBIOS)
+    CH_IRQ_PROLOGUE();
+#endif /* defined(USE_CHIBIOS) */
+
     gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
     gyro->dataReady = true;
+
+#if defined(USE_CHIBIOS)
+    chSysLockFromISR();
+    chBSemSignalI(&gyroSem);
+    chSysUnlockFromISR();
+    CH_IRQ_EPILOGUE();
+#endif /* defined(USE_CHIBIOS) */
 }
 
 static void bmi270IntExtiInit(gyroDev_t *gyro)
