@@ -50,7 +50,7 @@ const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
 };
 
 #if defined(USE_TIMER_MGMT)
-const timerHardware_t fullTimerHardware[FULL_TIMER_CHANNEL_COUNT] = {
+SLOW_CONST const timerHardware_t fullTimerHardware[FULL_TIMER_CHANNEL_COUNT] = {
 // Auto-generated from 'timer_def.h'
 // Port A
     DEF_TIM(TIM2, CH1, PA0, TIM_USE_ANY, 0, 0, 0),

@@ -145,6 +145,11 @@
 #define DEFAULT_CPU_OVERCLOCK 0
 #endif
 
+#if defined(STM32H7) && defined(RADIX2)
+#define SLOW_CONST                  __attribute__((section(".slow_const")))
+#else
+#define SLOW_CONST
+#endif
 
 #ifdef USE_ITCM_RAM
 #define FAST_CODE                   __attribute__((section(".tcm_code")))

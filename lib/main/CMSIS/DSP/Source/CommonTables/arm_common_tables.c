@@ -26,6 +26,7 @@
  * limitations under the License.
  */
 
+#include "common_pre.h"
 #include "arm_math.h"
 #include "arm_common_tables.h"
 
@@ -503,7 +504,7 @@ const float32_t twiddleCoef_128[256] = {
 * Cos and Sin values are in interleaved fashion
 *
 */
-const float32_t twiddleCoef_256[512] = {
+const float32_t __attribute__((section(".slow_const"))) twiddleCoef_256[512] = {
     1.000000000f,  0.000000000f,
     0.999698819f,  0.024541229f,
     0.998795456f,  0.049067674f,
@@ -18026,7 +18027,7 @@ const float32_t twiddleCoef_rfft_256[256] = {
     0.024541229f, -0.999698819f
 };
 
-const float32_t twiddleCoef_rfft_512[512] = {
+const float32_t __attribute__((section(".slow_const"))) twiddleCoef_rfft_512[512] = {
     0.000000000f,  1.000000000f,
     0.012271538f,  0.999924702f,
     0.024541229f,  0.999698819f,
