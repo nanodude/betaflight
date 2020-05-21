@@ -207,6 +207,29 @@ typedef struct pllConfig_s {
         400 420 440 460 (Rev.Y & V ends here) 480 500 520 540
  */
 
+#if defined(BRAINFPV)
+// 400MHz for Rev.Y (and Rev.X)
+pllConfig_t pll1ConfigRevY = {
+    .clockMhz = 400,
+    .m = 8,
+    .n = 400,
+    .p = 2,
+    .q = 10, // 80MHz SPI clock
+    .r = 5,
+    .vos = PWR_REGULATOR_VOLTAGE_SCALE1
+};
+
+// 480MHz for Rev.V
+pllConfig_t pll1ConfigRevV = {
+    .clockMhz = 480,
+    .m = 8,
+    .n = 480,
+    .p = 2,
+    .q = 12, // 80MHz SPI clock
+    .r = 5,
+    .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+};
+#else
 // 400MHz for Rev.Y (and Rev.X)
 pllConfig_t pll1ConfigRevY = {
     .clockMhz = 400,
@@ -228,6 +251,8 @@ pllConfig_t pll1ConfigRevV = {
     .r = 5,
     .vos = PWR_REGULATOR_VOLTAGE_SCALE0
 };
+#endif
+
 
 // HSE clock configuration, originally taken from
 // STM32Cube_FW_H7_V1.3.0/Projects/STM32H743ZI-Nucleo/Examples/RCC/RCC_ClockConfig/Src/main.c
