@@ -114,6 +114,7 @@ static THD_FUNCTION(OSDThread, arg)
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
 #include "brainfpv/spectrograph.h"
 extern binary_semaphore_t spectrographDataReadySemaphore;
+binary_semaphore_t gyroSem;
 
 static THD_WORKING_AREA(waSpecThread, 512);
 static THD_FUNCTION(SpecThread, arg)
@@ -159,9 +160,7 @@ int main()
 
   st_lld_init();
 
-#if defined(USE_BRAINFPV_OSD)
-  Video_Init();
-#endif /* USE_BRAINFPV_OSD */
+  chBSemObjectInit(&gyroSem, FALSE);
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
   chBSemObjectInit(&spectrographDataReadySemaphore, FALSE);

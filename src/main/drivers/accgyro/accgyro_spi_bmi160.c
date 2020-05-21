@@ -51,7 +51,7 @@
 #ifdef USE_ACCGYRO_BMI160
 #if defined(USE_CHIBIOS)
 #include "ch.h"
-binary_semaphore_t gyroSem;
+extern binary_semaphore_t gyroSem;
 #endif
 
 #if defined(BRAINFPV)
@@ -135,10 +135,6 @@ static void BMI160_Init(const busDevice_t *bus)
     if (BMI160_Config(bus) != 0) {
         return;
     }
-
-#if defined(USE_CHIBIOS)
-    chBSemObjectInit(&gyroSem, FALSE);
-#endif
 
 #ifdef BRAINFPV
     /* Perform fast offset compensation if requested */
