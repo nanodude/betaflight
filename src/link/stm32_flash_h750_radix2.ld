@@ -218,8 +218,20 @@ SECTIONS
     _efastram_bss = .;
     __fastram_bss_end__ = _efastram_bss;
   } >FASTRAM
-
-  images : ALIGN(16) SUBALIGN(16)
+  
+  /* D2 RAM */  
+  slow_const = LOADADDR(.slow_const); 
+  .slow_const :
+  {
+    . = ALIGN(4);
+    slow_const_start = .; 
+    *(.slow_const)
+    *(.slow_const*)
+    . = ALIGN(4);
+    slow_const_end = .; 
+  } > D2_RAM
+  
+  images : ALIGN(4) SUBALIGN(4)
   {
     KEEP(*(.images_section))
   } > D2_RAM
