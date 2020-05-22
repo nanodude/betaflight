@@ -411,7 +411,7 @@ void Video_Init()
 
     hqspi.Instance = QUADSPI;
 
-    hqspi.Init.ClockPrescaler = 13; // 200MHz / 14 = 14.28MHz
+    hqspi.Init.ClockPrescaler = 15; // 240MHz / 16 = 15MHz
     hqspi.Init.FifoThreshold = 16;
     hqspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_NONE;
     hqspi.Init.FlashSize = 0x1F;
