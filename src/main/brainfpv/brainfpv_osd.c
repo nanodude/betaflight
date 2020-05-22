@@ -328,6 +328,9 @@ static void brainFpvOsdInitStm32Cmp(void)
 {
     DAC_ChannelConfTypeDef sConfig;
 
+    __HAL_RCC_DAC12_CLK_ENABLE();
+    __HAL_RCC_COMP12_CLK_ENABLE();
+
     IO_t cmp_input = IOGetByTag(IO_TAG(BRAINFPV_OSD_STM32CMP_CMP_INPUT_PIN));
     IO_t cmp_output = IOGetByTag(IO_TAG(BRAINFPV_OSD_STM32CMP_CMP_OUTPUT_PIN));
 
@@ -342,7 +345,6 @@ static void brainFpvOsdInitStm32Cmp(void)
     {
         Error_Handler();
     }
-
 
     sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
     sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
