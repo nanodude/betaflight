@@ -146,6 +146,7 @@
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1
+#undef I2C1_OVERCLOCK
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB7
 #define I2C_DEVICE              (I2CDEV_1)
