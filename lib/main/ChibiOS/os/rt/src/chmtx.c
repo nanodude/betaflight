@@ -70,6 +70,7 @@
  */
 
 #include "ch.h"
+#include "platform.h"
 
 #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
 
@@ -120,7 +121,7 @@ void chMtxObjectInit(mutex_t *mp) {
  *
  * @api
  */
-void chMtxLock(mutex_t *mp) {
+FAST_CODE void chMtxLock(mutex_t *mp) {
 
   chSysLock();
   chMtxLockS(mp);
@@ -136,7 +137,7 @@ void chMtxLock(mutex_t *mp) {
  *
  * @sclass
  */
-void chMtxLockS(mutex_t *mp) {
+FAST_CODE void chMtxLockS(mutex_t *mp) {
   thread_t *ctp = currp;
 
   chDbgCheckClassS();
@@ -320,7 +321,7 @@ bool chMtxTryLockS(mutex_t *mp) {
  *
  * @api
  */
-void chMtxUnlock(mutex_t *mp) {
+FAST_CODE void chMtxUnlock(mutex_t *mp) {
   thread_t *ctp = currp;
   mutex_t *lmp;
 
