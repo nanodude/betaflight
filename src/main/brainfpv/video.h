@@ -34,7 +34,7 @@
 #define VIDEO_H
 
 #include <stdint.h>
-#include "target.h"
+#include "platform.h"
 
 // PAL/NTSC specific boundary values
 struct video_type_boundary {

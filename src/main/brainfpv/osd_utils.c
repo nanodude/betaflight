@@ -38,12 +38,12 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "platform.h"
 
 #include "video.h"
 #include "fonts.h"
 #include "osd_utils.h"
 #include "common/printf.h"
-#include "platform.h"
 
 extern struct FontEntry* fonts[NUM_FONTS];
 
