@@ -188,8 +188,12 @@
 
 
 #define USE_ADC
+#define USE_ADC_INTERNAL // ADC3
+
 #define ADC1_INSTANCE ADC1
-//#define RSSI_ADC_PIN            PC4
+#define ADC2_INSTANCE ADC2 // not used
+#define ADC3_INSTANCE ADC3 // ADC3 only for core temp and vrefint
+#define RSSI_ADC_PIN            PC0
 #define VBAT_ADC_PIN            PA6
 #define CURRENT_METER_ADC_PIN   PB0
 
@@ -199,6 +203,14 @@
 #define CURRENT_METER_SCALE_DEFAULT   200
 #define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
+
+#ifdef USE_DMA_SPEC
+#define ADC1_DMA_OPT 8
+#define ADC3_DMA_OPT 9
+#else
+#define ADC1_DMA_STREAM DMA2_Stream0
+#define ADC3_DMA_STREAM DMA2_Stream1
+#endif
 
 #define DEFAULT_FEATURES        (FEATURE_OSD)
 #define SERIALRX_UART           SERIAL_PORT_USART3
