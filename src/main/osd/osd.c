@@ -135,7 +135,7 @@ static uint8_t armState;
 static uint8_t osdProfile = 1;
 #endif
 static displayPort_t *osdDisplayPort;
-static osdDisplayPortDevice_e osdDisplayPortDevice;
+static osdDisplayPortDevice_e osdDisplayPortDeviceType;
 static bool osdIsReady;
 
 static bool suppressStatsDisplay = false;
@@ -439,14 +439,15 @@ static void osdCompleteInitialization(void)
     osdIsReady = true;
 }
 
-void osdInit(displayPort_t *osdDisplayPortToUse, osdDisplayPortDevice_e displayPortDeviceToUse)
+void osdInit(displayPort_t *osdDisplayPortToUse, osdDisplayPortDevice_e displayPortDeviceType)
 {
+    osdDisplayPortDeviceType = displayPortDeviceType;
+
     if (!osdDisplayPortToUse) {
         return;
     }
 
     osdDisplayPort = osdDisplayPortToUse;
-    osdDisplayPortDevice = displayPortDeviceToUse;
 #ifdef USE_CMS
     cmsDisplayPortRegister(osdDisplayPort);
 #endif
@@ -1113,10 +1114,10 @@ bool osdNeedsAccelerometer(void)
 }
 #endif // USE_ACC
 
-displayPort_t *osdGetDisplayPort(osdDisplayPortDevice_e *displayPortDevice)
+displayPort_t *osdGetDisplayPort(osdDisplayPortDevice_e *displayPortDeviceType)
 {
-    if (displayPortDevice) {
-        *displayPortDevice = osdDisplayPortDevice;
+    if (displayPortDeviceType) {
+        *displayPortDeviceType = osdDisplayPortDeviceType;
     }
     return osdDisplayPort;
 }
