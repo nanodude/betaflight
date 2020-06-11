@@ -188,6 +188,45 @@ LoopFillZerofastram_bss:
   ldr  r3, = _efastram_bss
   cmp  r2, r3
   bcc  FillZerofastram_bss
+
+  ldr  r2, =_sdmaram
+  b  LoopFillZerodmaram
+
+/* Zero fill the dmaram segment. */
+FillZerodmaram:
+  movs  r3, #0
+  str  r3, [r2], #4
+
+LoopFillZerodmaram:
+  ldr  r3, = _edmaram
+  cmp  r2, r3
+  bcc  FillZerodmaram
+
+  ldr  r2, =_sdmarw
+  b  LoopFillZerodmarw
+
+/* Zero fill the dmarw segment. */
+FillZerodmarw:
+  movs  r3, #0
+  str  r3, [r2], #4
+
+LoopFillZerodmarw:
+  ldr  r3, = _edmarw
+  cmp  r2, r3
+  bcc  FillZerodmarw
+
+  ldr  r2, =_sdmarwaxi
+  b  LoopFillZerodmarwaxi
+
+/* Zero fill the dmarwaxi segment. */
+FillZerodmarwaxi:
+  movs  r3, #0
+  str  r3, [r2], #4
+
+LoopFillZerodmarwaxi:
+  ldr  r3, = _edmarwaxi
+  cmp  r2, r3
+  bcc  FillZerodmarwaxi
 /*-----*/
 
 /* Call the clock system intitialization function.*/
