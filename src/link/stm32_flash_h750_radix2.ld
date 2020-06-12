@@ -36,7 +36,8 @@ MEMORY
     CODE_RAM (rwx)    : ORIGIN = 0x24000000, LENGTH = 448K
     RAM (rwx)         : ORIGIN = 0x24070000, LENGTH = 64K
 
-    D2_RAM (rwx)      : ORIGIN = 0x30000000, LENGTH = 256K /* SRAM1 + SRAM2 */
+    D2_RAM (rwx)      : ORIGIN = 0x30000000, LENGTH = 240K /* SRAM1 + SRAM2 */
+    D2_DMA_RAM (rwx)  : ORIGIN = 0x3003C000, LENGTH = 16K  /* Needs to be at address that aligns to size for MPU to work */
 
     MEMORY_B1 (rx)    : ORIGIN = 0x60000000, LENGTH = 0K
 }
@@ -252,31 +253,7 @@ SECTIONS
     PROVIDE(dmaram_end = .);
     _edmaram = .;
     _dmaram_end__ = _edmaram;
-  } >D2_RAM
-      
-  .DMA_RW_D2 (NOLOAD) :
-  {
-    . = ALIGN(32);
-    PROVIDE(dmarw_start = .);
-    _sdmarw = .;
-    _dmarw_start__ = _sdmarw;
-    KEEP(*(.DMA_RW))
-    PROVIDE(dmarw_end = .);
-    _edmarw = .;
-    _dmarw_end__ = _edmarw;
-  } >D2_RAM
-
-  .DMA_RW_AXI (NOLOAD) :
-  {
-    . = ALIGN(32);
-    PROVIDE(dmarwaxi_start = .);
-    _sdmarwaxi = .;
-    _dmarwaxi_start__ = _sdmarwaxi;
-    KEEP(*(.DMA_RW_AXI))
-    PROVIDE(dmarwaxi_end = .);
-    _edmarwaxi = .;
-    _dmarwaxi_end__ = _edmarwaxi;
-  } >RAM
+  } >D2_DMA_RAM
 
   .persistent_data (NOLOAD) :
   {
