@@ -230,6 +230,7 @@
 #define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(12) | TIM_N(14) )
 
 #undef USE_DSHOT_BITBANG
+#undef USE_BRUSHED_ESC_AUTODETECT
 
 extern bool brainfpv_settings_updated;
 extern bool brainfpv_settings_updated_from_cms;
