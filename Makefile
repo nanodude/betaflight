@@ -315,7 +315,6 @@ TARGET_BASENAME = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(REVISION)
 #
 # Things we will build
 #
-TARGET_S19      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).s19
 TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).bin
 TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).hex
 TARGET_ELF      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).elf
@@ -363,11 +362,6 @@ $(OBJECT_DIR)/$(TARGET)_firmwareinfo.c: $(TARGET_DIR)/firmwareinfotemplate.ct
 
 $(TARGET_LST): $(TARGET_ELF)
 	$(V0) $(OBJDUMP) -S --disassemble $< > $@
-
-
-$(TARGET_S19): $(TARGET_ELF)
-	@echo "Creating srec/S19 $(TARGET_S19)" "$(STDOUT)"
-	$(V1) $(OBJCOPY) --output-target=srec $(TARGET_S19)
 
 ifeq ($(EXST),no)
 $(TARGET_BIN): $(TARGET_ELF)
@@ -592,9 +586,6 @@ zip:
 
 binary:
 	$(V0) $(MAKE) -j $(TARGET_BIN)
-
-srec:
-	$(V0) $(MAKE) -j $(TARGET_S19)
 
 hex:
 	$(V0) $(MAKE) -j $(TARGET_HEX)
