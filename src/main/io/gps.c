@@ -634,7 +634,7 @@ void gpsInitUblox(void)
                 }
             }
 
-            if (gpsData.messageState >= GPS_MESSAGE_STATE_ENTRY_COUNT) {
+            if (gpsData.messageState >= GPS_MESSAGE_STATE_INITIALIZED) {
                 // ublox should be initialised, try receiving
                 gpsSetState(GPS_RECEIVING_DATA);
             }
