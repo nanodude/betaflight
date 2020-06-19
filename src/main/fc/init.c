@@ -621,7 +621,7 @@ void init(void)
     }
 #endif
 
-#if defined(USE_BEEPER) & !defined(USE_BRAINFPV_FPGA)
+#if defined(USE_BEEPER)
     beeperInit(beeperDevConfig());
 #endif
 /* temp until PGs are implemented. */
