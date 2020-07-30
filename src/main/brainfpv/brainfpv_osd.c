@@ -77,6 +77,7 @@
 #include "io/serial.h"
 #include "io/beeper.h"
 #include "osd/osd.h"
+#include "io/ledstrip.h"
 
 #include "telemetry/telemetry.h"
 
@@ -147,7 +148,8 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .crsf_link_stats_power = 1,
   .crsf_link_stats_rssi = CRSF_LQ_LOW,
   .crsf_link_stats_snr = CRSF_SNR_LOW,
-  .crsf_link_stats_snr_threshold = -2
+  .crsf_link_stats_snr_threshold = -2,
+  .status_led_color = COLOR_BLUE,
 );
 
 const char * const gitTag = __GIT_TAG__;

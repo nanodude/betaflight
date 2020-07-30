@@ -77,6 +77,8 @@
 
 #define USE_BRAINFPV_SPECTROGRAPH
 
+#define USE_BRAINFPV_RGB_STATUS_LED
+
 #define LED0_PIN                PE6
 #define LED0_INVERTED
 #define LED1_PIN                PE7

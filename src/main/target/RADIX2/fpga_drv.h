@@ -36,11 +36,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
-enum re1fpga_led_colors {
-    BRAINFPVFPGA_STATUS_BLUE_CUSTOM_GREEN,
-    BRAINFPVFPGA_STATUS_GREEN_CUSTOM_BLUE,
-};
+#include "io/ledstrip.h"
 
 
 int32_t BRAINFPVFPGA_Init(bool load_config);
@@ -53,4 +49,6 @@ void BRAINFPVFPGA_SetXScale(uint8_t x_scale);
 void BRAINFPVFPGA_Set3DConfig(bool enabled, uint8_t x_shift_right);
 int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
 int32_t BRAINFPVFPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, uint8_t blue);
+void BRAINFPVFPGA_SetStatusLEDColor(colorId_e color);
+
 #endif /* BRAINFPVFPGA_H */

@@ -694,6 +694,7 @@ void init(void)
 
 #ifdef USE_BRAINFPV_FPGA
     BRAINFPVFPGA_Init(true);
+    brainFPVUpdateSettings();
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION

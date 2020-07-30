@@ -45,7 +45,7 @@
 #include "drivers/io.h"
 #include "drivers/bus_spi.h"
 #include "drivers/time.h"
-
+#include "common/colorconversion.h"
 
 /**
 * RE1 Register Specification
@@ -68,6 +68,9 @@ enum re1fpga_register {
     BRAINFPVFPGA_REG_CFG     = 0x01,
     BRAINFPVFPGA_REG_XCFG    = 0x06,
     BRAINFPVFPGA_REG_XCFG2   = 0x07,
+    BRAINFPVFPGA_REG_LED_R   = 0x09,
+    BRAINFPVFPGA_REG_LED_G   = 0x0A,
+    BRAINFPVFPGA_REG_LED_B   = 0x0B,
     BRAINFPVFPGA_REG_LED     = 0x0F,
 };
 
@@ -76,6 +79,9 @@ struct re1_shadow_reg {
     uint8_t reg_cfg;
     uint8_t reg_xcfg;
     uint8_t reg_xcfg2;
+    uint8_t reg_led_r;
+    uint8_t reg_led_g;
+    uint8_t reg_led_b;
 };
 
 static bool fpga_initialized = false;
@@ -136,6 +142,10 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG, 0x08);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
 
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_LED_R, 0x00);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_LED_G, 0x00);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_LED_B, 0xFF);
+
     fpga_initialized = true;
 
     return 0;
@@ -188,7 +198,15 @@ static int32_t BRAINFPVFPGA_WriteReg(enum re1fpga_register reg, uint8_t data, ui
     case BRAINFPVFPGA_REG_XCFG2:
         cur_reg = &shadow_reg.reg_xcfg2;
         break;
-
+    case BRAINFPVFPGA_REG_LED_R:
+        cur_reg = &shadow_reg.reg_led_r;
+        break;
+    case BRAINFPVFPGA_REG_LED_G:
+        cur_reg = &shadow_reg.reg_led_g;
+        break;
+    case BRAINFPVFPGA_REG_LED_B:
+        cur_reg = &shadow_reg.reg_led_b;
+        break;
     default:
     case BRAINFPVFPGA_REG_LED:
         return -2;
@@ -228,6 +246,15 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
             break;
         case BRAINFPVFPGA_REG_XCFG2:
             shadow_reg.reg_xcfg2 = data;
+            break;
+        case BRAINFPVFPGA_REG_LED_R:
+            shadow_reg.reg_led_r = data;
+            break;
+        case BRAINFPVFPGA_REG_LED_G:
+            shadow_reg.reg_led_g = data;
+            break;
+        case BRAINFPVFPGA_REG_LED_B:
+            shadow_reg.reg_led_b = data;
             break;
     }
 
@@ -339,6 +366,16 @@ void BRAINFPVFPGA_Set3DConfig(bool enabled, uint8_t x_shift_right)
     BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_XCFG2, cfg, 0xFF);
 }
 
+extern const hsvColor_t hsv[];
+
+void BRAINFPVFPGA_SetStatusLEDColor(colorId_e color)
+{
+    rgbColor24bpp_t * rgb_color = hsvToRgb24(&hsv[color]);
+
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_LED_R, rgb_color->rgb.r, 0xFF);
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_LED_G, rgb_color->rgb.g, 0xFF);
+    BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_LED_B, rgb_color->rgb.b, 0xFF);
+}
 
 #endif /* defined(USE_BRAINFPV_FPGA) */
 

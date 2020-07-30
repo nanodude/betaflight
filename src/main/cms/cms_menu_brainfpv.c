@@ -48,6 +48,8 @@
 #include "brainfpv/ir_transponder.h"
 #include "brainfpv/brainfpv_osd.h"
 
+#include "cli/settings.h"
+
 bfOsdConfig_t bfOsdConfigCms;
 uint8_t logo_on_arming;
 
@@ -208,6 +210,10 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
     {"BRAIN OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
     {"HD FRAME", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVHdFrame, 0},
     {"CRSF LINK QUALITY", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVCrsfLink, 0},
+
+#if defined(USE_BRAINFPV_RGB_STATUS_LED)
+    {"STATUS LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&bfOsdConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }, 0 },
+#endif
 
 #if defined(USE_BRAINFPV_IR_TRANSPONDER)
     {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVIr, 0},

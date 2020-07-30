@@ -1199,7 +1199,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
         }
     }
 #endif
-    if (currentCtx.menu == &cmsx_menuBrainFPVOsd) {
+    if ((currentCtx.menu == &cmsx_menuBrainFPVOsd) || (currentCtx.menu == &cmsx_menuBrainFPV)) {
         if ((key == CMS_KEY_RIGHT) || (key == CMS_KEY_LEFT)) {
             brainfpv_settings_updated = true;
             brainfpv_settings_updated_from_cms = true;

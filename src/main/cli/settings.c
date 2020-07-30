@@ -1638,6 +1638,10 @@ SLOW_CONST const clivalue_t valueTable[] = {
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, spec_enabled) },
 #endif
 
+ #if defined(USE_BRAINFPV_RGB_STATUS_LED)
+    { "brainfpv_status_led_color",   VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_LEDSTRIP_COLOR }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, status_led_color) },
+#endif
+
 #ifdef USE_RX_FLYSKY
     { "flysky_spi_tx_id",       VAR_UINT32 | MASTER_VALUE, .config.u32Max = UINT32_MAX, PG_FLYSKY_CONFIG, offsetof(flySkyConfig_t, txId) },
     { "flysky_spi_rf_channels", VAR_UINT8 | MASTER_VALUE | MODE_ARRAY, .config.array.length = 16, PG_FLYSKY_CONFIG, offsetof(flySkyConfig_t, rfChannelMap) },
