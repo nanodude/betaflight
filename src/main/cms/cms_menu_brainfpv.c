@@ -51,23 +51,26 @@
 bfOsdConfig_t bfOsdConfigCms;
 uint8_t logo_on_arming;
 
-static long menuBrainFPVOnEnter(void)
+static const void *menuBrainFPVOnEnter(displayPort_t *pDisp)
 {
+    UNUSED(pDisp);
+
     memcpy(&bfOsdConfigCms, bfOsdConfig(), sizeof(bfOsdConfig_t));
     logo_on_arming = osdConfig()->logo_on_arming;
 
-    return 0;
+    return NULL;
 }
 
-static long menuBrainFPVOnExit(const OSD_Entry *self)
+static const void *menuBrainFPVOnExit(displayPort_t *pDisp, const OSD_Entry *self)
 {
+    UNUSED(pDisp);
     UNUSED(self);
 
     memcpy(bfOsdConfigMutable(), &bfOsdConfigCms, sizeof(bfOsdConfig_t));
 
     osdConfigMutable()->logo_on_arming = logo_on_arming;
 
-    return 0;
+    return NULL;
 }
 
 OSD_UINT8_t entryAhiSteps =  {&bfOsdConfigCms.ahi_steps, 0, 9, 1};
