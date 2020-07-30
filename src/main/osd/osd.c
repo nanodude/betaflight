@@ -922,7 +922,9 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
     static bool osdStatsEnabled = false;
+#if !defined(USE_BRAINFPV_OSD)
     static timeUs_t osdStatsRefreshTimeUs;
+#endif
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -964,7 +966,9 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             } else if (!IS_RC_MODE_ACTIVE(BOXOSD)) {
                 if (!osdStatsVisible) {
                     osdStatsVisible = true;
+#if !defined(USE_BRAINFPV_OSD)
                     osdStatsRefreshTimeUs = 0;
+#endif
                 }
 #ifdef USE_BRAINFPV_OSD
                 osdRefreshStats();

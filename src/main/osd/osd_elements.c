@@ -574,7 +574,7 @@ static void osdElementAntiGravity(osdElementParms_t *element)
     }
 }
 
-#ifdef USE_ACC
+#if defined(USE_ACC) && !defined(USE_BRAINFPV_OSD)
 static void osdElementArtificialHorizon(osdElementParms_t *element)
 {
     // Get pitch and roll limits in tenths of degrees
@@ -874,6 +874,7 @@ static void osdElementGpsFlightDistance(osdElementParms_t *element)
     }
 }
 
+#if !defined(USE_BRAINFPV_OSD)
 static void osdElementGpsHomeDirection(osdElementParms_t *element)
 {
     if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
@@ -891,6 +892,7 @@ static void osdElementGpsHomeDirection(osdElementParms_t *element)
 
     element->buff[1] = 0;
 }
+#endif
 
 static void osdElementGpsHomeDistance(osdElementParms_t *element)
 {

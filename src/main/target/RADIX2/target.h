@@ -234,3 +234,6 @@
 
 extern bool brainfpv_settings_updated;
 extern bool brainfpv_settings_updated_from_cms;
+
+void CustomSystemReset(void);
+void brainFPVUpdateSettings(void);

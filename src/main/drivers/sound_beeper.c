@@ -40,7 +40,7 @@ static IO_t beeperIO = DEFIO_IO(NONE);
 static bool beeperInverted = false;
 static uint16_t beeperFrequency = 0;
 
-#ifdef USE_PWM_OUTPUT
+#if defined(USE_PWM_OUTPUT) && !defined(USE_BRAINFPV_FPGA_BUZZER)
 static pwmOutputPort_t beeperPwm;
 static uint16_t freqBeep = 0;
 
@@ -105,7 +105,7 @@ void systemBeep(bool onoff)
 
 void systemBeepToggle(void)
 {
-#ifndef USE_BRAINFPV_FPGA
+#if !defined(USE_BRAINFPV_FPGA_BUZZER)
     if (beeperFrequency == 0) {
         IOToggle(beeperIO);
     }
@@ -113,9 +113,9 @@ void systemBeepToggle(void)
     else {
         pwmToggleBeeper();
     }
+#endif
 #else
      BRAINFPVFPGA_BuzzerToggle();
-#endif
 #endif
 }
 

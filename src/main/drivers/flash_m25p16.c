@@ -74,8 +74,6 @@
 #define DISABLE_M25P16       IOHi(bus->busdev_u.spi.csnPin); __NOP()
 #define ENABLE_M25P16        __NOP(); IOLo(bus->busdev_u.spi.csnPin)
 
-static busDevice_t busInstance;
-static busDevice_t *bus;
 static bool isLargeFlash = false;
 
 // Option to skip some sectors
