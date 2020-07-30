@@ -335,8 +335,10 @@ FAST_CODE static void wakeup(void *p) {
     chSemFastSignalI(tp->u.wtsemp);
 #endif
     /* Falls through.*/
+    __attribute__ ((fallthrough));
   case CH_STATE_QUEUED:
     /* Falls through.*/
+    __attribute__ ((fallthrough));
 #if (CH_CFG_USE_CONDVARS == TRUE) && (CH_CFG_USE_CONDVARS_TIMEOUT == TRUE)
   case CH_STATE_WTCOND:
 #endif

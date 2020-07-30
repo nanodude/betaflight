@@ -187,7 +187,9 @@ thread_t *chThdCreateSuspendedI(const thread_descriptor_t *tdp) {
 #endif
 
   /* Setting up the port-dependent part of the working area.*/
+#pragma GCC diagnostic ignored "-Wpedantic"
   PORT_SETUP_CONTEXT(tp, tdp->wbase, tp, tdp->funcp, tdp->arg);
+#pragma GCC diagnostic pop
 
   /* The driver object is initialized but not started.*/
   return _thread_init(tp, tdp->name, tdp->prio);
@@ -362,7 +364,9 @@ thread_t *chThdCreateStatic(void *wsp, size_t size,
 #endif
 
   /* Setting up the port-dependent part of the working area.*/
+#pragma GCC diagnostic ignored "-Wpedantic"
   PORT_SETUP_CONTEXT(tp, wsp, tp, pf, arg);
+#pragma GCC diagnostic pop
 
   tp = _thread_init(tp, "noname", prio);
 

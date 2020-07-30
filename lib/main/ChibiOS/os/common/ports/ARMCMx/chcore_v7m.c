@@ -161,6 +161,7 @@ void _port_irq_epilogue(void) {
 
     /* The exit sequence is different depending on if a preemption is
        required or not.*/
+#pragma GCC diagnostic ignored "-Wpedantic"
     if (chSchIsPreemptionRequired()) {
       /* Preemption is required we need to enforce a context switch.*/
       ctxp->pc = (regarm_t)_port_switch_from_isr;
@@ -170,7 +171,7 @@ void _port_irq_epilogue(void) {
          atomically.*/
       ctxp->pc = (regarm_t)_port_exit_from_isr;
     }
-
+#pragma GCC diagnostic pop
     /* Note, returning without unlocking is intentional, this is done in
        order to keep the rest of the context switch atomic.*/
     return;
