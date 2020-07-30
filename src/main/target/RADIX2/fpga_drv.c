@@ -53,7 +53,7 @@
 *
 * Address  Name   Type  Length  Default  Description
 * 0x00     HWREV  R     1       NA       Hardware/FPGA revision
-* 0x00     CFG    R/W   1       0x00     Configuration
+* 0x01     CFG    R/W   1       0x00     Configuration
 *                                        CFG[0] : 0: 2BIT_PIXEL 1: 4BIT_PIXEL
 * 0x06     XCFG   R/W   1       0x00     OSD X axis configuration
 *                                        XCFG[7:4] x-axis stretch
@@ -73,6 +73,7 @@ enum re1fpga_register {
 
 struct re1_shadow_reg {
     uint8_t reg_hwrev;
+    uint8_t reg_cfg;
     uint8_t reg_xcfg;
     uint8_t reg_xcfg2;
 };
@@ -81,8 +82,6 @@ static bool fpga_initialized = false;
 
 static volatile struct re1_shadow_reg shadow_reg;
 static IO_t re1FPGACsPin = IO_NONE;
-static IO_t re1FPGACdonePin = IO_NONE;
-static IO_t re1FPGACresetPin = IO_NONE;
 static IO_t re1FPGAResetPin = IO_NONE;
 
 
@@ -180,6 +179,9 @@ static int32_t BRAINFPVFPGA_WriteReg(enum re1fpga_register reg, uint8_t data, ui
     switch (reg) {
     case BRAINFPVFPGA_REG_HWREV:
         return -2;
+    case BRAINFPVFPGA_REG_CFG:
+        cur_reg = &shadow_reg.reg_cfg;
+        break;
     case BRAINFPVFPGA_REG_XCFG:
         cur_reg = &shadow_reg.reg_xcfg;
         break;
@@ -217,6 +219,9 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
     switch (reg) {
         case BRAINFPVFPGA_REG_LED:
         case BRAINFPVFPGA_REG_HWREV:
+            break;
+        case BRAINFPVFPGA_REG_CFG:
+            shadow_reg.reg_cfg = data;
             break;
         case BRAINFPVFPGA_REG_XCFG:
             shadow_reg.reg_xcfg = data;
