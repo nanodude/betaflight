@@ -194,6 +194,8 @@ typedef enum {
     OSD_COLOR_GRAY6 = 0x08,
     OSD_COLOR_STB = 0x09,
     OSD_COLOR_STW = 0x0A,
+    OSD_COLOR_WHITE2 = 0x0B,
+    OSD_COLOR_WHITE3 = 0x0C,
 #endif
     OSD_NUM_COLORS
 } OSDOSD_COLOR_t;
