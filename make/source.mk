@@ -485,7 +485,8 @@ INCLUDE_DIRS += $(PLATFORMINC)
 endif
 
 ifneq ($(filter BRAINFPV,$(FEATURES)),)
-SRC += brainfpv/spectrograph.c \
+SRC += brainfpv/brainfpv_system.c \
+	   brainfpv/spectrograph.c \
        brainfpv/brainfpv_osd.c \
        brainfpv/video_quadspi.c \
        brainfpv/osd_utils.c \

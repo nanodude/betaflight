@@ -44,7 +44,7 @@
 #define TASK_AVERAGE_EXECUTE_FALLBACK_US 30 // Default task average time if USE_TASK_STATISTICS is not defined
 #define TASK_AVERAGE_EXECUTE_PADDING_US 5   // Add a little padding to the average execution time
 
-#if defined(USE_CHIBIOS)
+#if defined(BRAINFPV)
 #include <math.h>
 #include "ch.h"
 
@@ -464,11 +464,7 @@ FAST_CODE void scheduler(void)
 #if defined(USE_CHIBIOS)
         else {
 #ifdef BRAINFPV
-            extern bool brainfpv_settings_updated;
-            if (brainfpv_settings_updated) {
-                brainFPVUpdateSettings();
-                brainfpv_settings_updated = false;
-            }
+
 #endif
             // wait for gyro if no tasks are ready
             if (selectedTask == NULL) {

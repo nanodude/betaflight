@@ -234,7 +234,6 @@
 #undef USE_DSHOT_BITBANG
 #undef USE_BRUSHED_ESC_AUTODETECT
 
-extern bool brainfpv_settings_updated;
 extern bool brainfpv_settings_updated_from_cms;
 
 void CustomSystemReset(void);

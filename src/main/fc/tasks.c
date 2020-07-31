@@ -110,6 +110,10 @@
 #endif
 #endif
 
+#if defined(BRAINFPV)
+#include "brainfpv/brainfpv_system.h"
+#endif
+
 #include "tasks.h"
 
 static void taskMain(timeUs_t currentTimeUs)
@@ -118,6 +122,10 @@ static void taskMain(timeUs_t currentTimeUs)
 
 #ifdef USE_SDCARD
     afatfs_poll();
+#endif
+
+#ifdef BRAINFPV
+    brainFPVSystemCheck();
 #endif
 }
 

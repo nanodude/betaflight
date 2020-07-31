@@ -45,12 +45,14 @@
 #include "cms/cms_menu_saveexit.h"
 #include "cms/cms_types.h"
 
-#ifdef BRAINFPV
+#if defined(BRAINFPV)
 #include "brainfpv/video.h"
 #include "brainfpv/osd_utils.h"
 #include "brainfpv/ir_transponder.h"
 #include "cms/cms_menu_brainfpv.h"
 extern bool brainfpv_hd_frame_menu;
+
+#include "brainfpv/brainfpv_system.h"
 #endif
 
 #include "common/maths.h"
@@ -864,7 +866,13 @@ const void *cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
             }
         }
 
+#if defined(BRAINFPV)
+        if ((exitType == CMS_EXIT_SAVE) || (exitType == CMS_POPUP_SAVE)) {
+            brainFPVSystemSetReq(BRAINFPV_REQ_SAVE_SETTINGS);
+        }
+#else
         saveConfigAndNotify();
+#endif
         break;
 
     case CMS_EXIT:
@@ -878,15 +886,20 @@ const void *cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
     if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT) || (exitType == CMS_POPUP_EXITREBOOT)) {
         displayClearScreen(pDisplay);
+
         displayWrite(pDisplay, 5, 3, DISPLAYPORT_ATTR_NONE, "REBOOTING...");
 
         displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
 
+#if defined(BRAINFPV)
+        brainFPVSystemSetReq(BRAINFPV_REQ_SAVE_SETTINGS_REBOOT);
+#else
         stopMotors();
         motorShutdown();
         delay(200);
 
         systemReset();
+#endif
     }
 
     unsetArmingDisabled(ARMING_DISABLED_CMS_MENU);
@@ -1201,8 +1214,8 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
 #endif
     if ((currentCtx.menu == &cmsx_menuBrainFPVOsd) || (currentCtx.menu == &cmsx_menuBrainFPV)) {
         if ((key == CMS_KEY_RIGHT) || (key == CMS_KEY_LEFT)) {
-            brainfpv_settings_updated = true;
             brainfpv_settings_updated_from_cms = true;
+            brainFPVSystemSetReq(BRAINFPV_REQ_UPDATE_HW_SETTINGS);
         }
     }
     if (currentCtx.menu == &cmsx_menuBrainFPVHdFrame) {

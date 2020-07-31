@@ -107,7 +107,6 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM2,  CH1, PA15,  TIM_USE_MOTOR, 0, 0), // S6
 };
 
-bool brainfpv_settings_updated = true;
 bool brainfpv_settings_updated_from_cms = false;
 
 extern bfOsdConfig_t bfOsdConfigCms;

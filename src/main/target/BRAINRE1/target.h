@@ -202,6 +202,5 @@
 
 #undef USE_DSHOT_BITBANG
 
-extern bool brainfpv_settings_updated;
 extern bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);

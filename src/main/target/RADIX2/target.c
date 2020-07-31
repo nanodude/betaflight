@@ -74,8 +74,6 @@ void CustomSystemReset(void)
 }
 #endif
 
-
-bool brainfpv_settings_updated = true;
 bool brainfpv_settings_updated_from_cms = false;
 
 extern bfOsdConfig_t bfOsdConfigCms;
