@@ -52,6 +52,7 @@
 #if defined(USE_CHIBIOS)
 #include "ch.h"
 extern binary_semaphore_t gyroSem;
+bool gyro_sample_processed = false;
 #endif
 
 #if defined(BRAINFPV)
@@ -257,6 +258,7 @@ void bmi160ExtiHandler(extiCallbackRec_t *cb)
     gyro->dataReady = true;
 
     chSysLockFromISR();
+    gyro_sample_processed = false;
     chBSemSignalI(&gyroSem);
     chSysUnlockFromISR();
     CH_IRQ_EPILOGUE();
@@ -335,6 +337,10 @@ bool bmi160GyroRead(gyroDev_t *gyro)
     gyro->gyroADCRaw[X] = (int16_t)((bmi160_rx_buf[IDX_GYRO_XOUT_H] << 8) | bmi160_rx_buf[IDX_GYRO_XOUT_L]);
     gyro->gyroADCRaw[Y] = (int16_t)((bmi160_rx_buf[IDX_GYRO_YOUT_H] << 8) | bmi160_rx_buf[IDX_GYRO_YOUT_L]);
     gyro->gyroADCRaw[Z] = (int16_t)((bmi160_rx_buf[IDX_GYRO_ZOUT_H] << 8) | bmi160_rx_buf[IDX_GYRO_ZOUT_L]);
+
+#if defined(USE_CHIBIOS)
+    gyro_sample_processed = true;
+#endif
 
     return true;
 }

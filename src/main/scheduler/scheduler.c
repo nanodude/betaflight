@@ -44,7 +44,7 @@
 #define TASK_AVERAGE_EXECUTE_FALLBACK_US 30 // Default task average time if USE_TASK_STATISTICS is not defined
 #define TASK_AVERAGE_EXECUTE_PADDING_US 5   // Add a little padding to the average execution time
 
-#if defined(BRAINFPV)
+#if defined(USE_CHIBIOS)
 #include <math.h>
 #include "ch.h"
 
@@ -52,6 +52,7 @@ uint32_t last_check = 0;
 extern binary_semaphore_t gyroSem;
 extern bool idleCounterClear;
 extern uint32_t idleCounter;
+extern bool gyro_sample_processed;
 #endif
 
 // DEBUG_SCHEDULER, timings for:
@@ -467,7 +468,7 @@ FAST_CODE void scheduler(void)
 
 #endif
             // wait for gyro if no tasks are ready
-            if (selectedTask == NULL) {
+            if ((selectedTask == NULL) && gyro_sample_processed) {
                 chBSemWaitTimeout(&gyroSem, TIME_MS2I(2));
             }
         }

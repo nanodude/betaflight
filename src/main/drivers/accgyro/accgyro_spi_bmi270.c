@@ -28,6 +28,7 @@
 #if defined(USE_CHIBIOS)
 #include "ch.h"
 extern binary_semaphore_t gyroSem;
+bool gyro_sample_processed = false;
 #endif
 
 #if defined(BRAINFPV)
@@ -271,6 +272,7 @@ void bmi270ExtiHandler(extiCallbackRec_t *cb)
 
 #if defined(USE_CHIBIOS)
     chSysLockFromISR();
+    gyro_sample_processed = false;
     chBSemSignalI(&gyroSem);
     chSysUnlockFromISR();
     CH_IRQ_EPILOGUE();
@@ -415,6 +417,9 @@ static bool bmi270GyroReadFifo(gyroDev_t *gyro)
 
 static bool bmi270GyroRead(gyroDev_t *gyro)
 {
+#if defined(USE_CHIBIOS)
+    gyro_sample_processed = true;
+#endif
 #ifdef USE_GYRO_DLPF_EXPERIMENTAL
     if (gyro->hardware_lpf == GYRO_HARDWARE_LPF_EXPERIMENTAL) {
         // running in 6.4KHz FIFO mode
