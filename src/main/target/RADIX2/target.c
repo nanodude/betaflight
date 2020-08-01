@@ -90,7 +90,7 @@ void brainFPVUpdateSettings(void) {
 
     BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
     BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
-    BRAINFPVFPGA_SetStatusLEDColor(bfOsdConfigUse->status_led_color);
+    BRAINFPVFPGA_SetStatusLEDColor(bfOsdConfigUse->status_led_color, bfOsdConfigUse->status_led_brightness);
 
     brainfpv_settings_updated_from_cms = false;
 }

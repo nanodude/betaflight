@@ -368,9 +368,15 @@ void BRAINFPVFPGA_Set3DConfig(bool enabled, uint8_t x_shift_right)
 
 extern const hsvColor_t hsv[];
 
-void BRAINFPVFPGA_SetStatusLEDColor(colorId_e color)
+void BRAINFPVFPGA_SetStatusLEDColor(colorId_e color, uint8_t brightness)
 {
-    rgbColor24bpp_t * rgb_color = hsvToRgb24(&hsv[color]);
+    hsvColor_t hsv_color;
+    rgbColor24bpp_t * rgb_color;
+
+    hsv_color = hsv[color];
+    hsv_color.v = brightness;
+
+    rgb_color = hsvToRgb24(&hsv_color);
 
     BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_LED_R, rgb_color->rgb.r, 0xFF);
     BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_LED_G, rgb_color->rgb.g, 0xFF);

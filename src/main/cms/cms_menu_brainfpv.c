@@ -203,6 +203,7 @@ CMS_Menu cmsx_menuBrainFPVCrsfLink = {
 
 const char * LOGO_ON_ARM_OPT_NAMES[] = {"OFF", "ON", "FIRST"};
 OSD_TAB_t entryLogoOnArmingMode = {&logo_on_arming, 3, &LOGO_ON_ARM_OPT_NAMES[0]};
+OSD_UINT8_t entryLEDBrightness =  {&bfOsdConfigCms.status_led_brightness, 0, 255, 1};
 
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
@@ -212,7 +213,8 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
     {"CRSF LINK QUALITY", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVCrsfLink, 0},
 
 #if defined(USE_BRAINFPV_RGB_STATUS_LED)
-    {"STATUS LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&bfOsdConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }, 0 },
+    {"LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&bfOsdConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }, 0 },
+    {"LED BRIGHTNESS ",  OME_UINT8, NULL, &entryLEDBrightness, 0},
 #endif
 
 #if defined(USE_BRAINFPV_IR_TRANSPONDER)

@@ -150,6 +150,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .crsf_link_stats_snr = CRSF_SNR_LOW,
   .crsf_link_stats_snr_threshold = -2,
   .status_led_color = COLOR_BLUE,
+  .status_led_brightness = 255,
 );
 
 const char * const gitTag = __GIT_TAG__;

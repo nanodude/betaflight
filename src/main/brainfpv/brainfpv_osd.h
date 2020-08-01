@@ -43,6 +43,7 @@ typedef struct bfOsdConfig_s {
     int8_t crsf_link_stats_snr_threshold;
     uint8_t spec_enabled;
     colorId_e status_led_color;
+    uint8_t status_led_brightness;
 } bfOsdConfig_t;
 
 typedef enum {

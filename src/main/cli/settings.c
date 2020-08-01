@@ -1638,8 +1638,9 @@ SLOW_CONST const clivalue_t valueTable[] = {
     { "brainfpv_spectrograph",      VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, spec_enabled) },
 #endif
 
- #if defined(USE_BRAINFPV_RGB_STATUS_LED)
+#if defined(USE_BRAINFPV_RGB_STATUS_LED)
     { "brainfpv_status_led_color",   VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_LEDSTRIP_COLOR }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, status_led_color) },
+    { "brainfpv_status_led_brightness", VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 255 }, PG_BRAINFPV_CONFIG, offsetof(bfOsdConfig_t, status_led_brightness) },
 #endif
 
 #ifdef USE_RX_FLYSKY
