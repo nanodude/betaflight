@@ -71,6 +71,8 @@ enum re1fpga_register {
     BRAINFPVFPGA_REG_LED_R   = 0x09,
     BRAINFPVFPGA_REG_LED_G   = 0x0A,
     BRAINFPVFPGA_REG_LED_B   = 0x0B,
+    BRAINFPVFPGA_REG_OSDC_0  = 0x0C,
+    BRAINFPVFPGA_REG_OSDC_1  = 0x0D,
     BRAINFPVFPGA_REG_LED     = 0x0F,
 };
 
@@ -82,6 +84,8 @@ struct re1_shadow_reg {
     uint8_t reg_led_r;
     uint8_t reg_led_g;
     uint8_t reg_led_b;
+    uint8_t reg_osdc_0;
+    uint8_t reg_osdc_1;
 };
 
 static bool fpga_initialized = false;
@@ -138,6 +142,9 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_CFG, 0x01);
 #else
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_CFG, 0x00);
+    // OSD colors for 2 bit mode
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_OSDC_0, 0x1C);
+    BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_OSDC_1, 0x02);
 #endif
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG, 0x08);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
@@ -255,6 +262,12 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
             break;
         case BRAINFPVFPGA_REG_LED_B:
             shadow_reg.reg_led_b = data;
+            break;
+        case BRAINFPVFPGA_REG_OSDC_0:
+            shadow_reg.reg_osdc_0 = data;
+            break;
+        case BRAINFPVFPGA_REG_OSDC_1:
+            shadow_reg.reg_osdc_1 = data;
             break;
     }
 
