@@ -25,7 +25,7 @@
 //#define DEBUG_PRINTF
 
 #define TARGET_BOARD_IDENTIFIER "RDX2"
-#define USBD_PRODUCT_STRING "BrainFPV RADIX"
+#define USBD_PRODUCT_STRING "BrainFPV RADIX 2"
 
 #define USE_BRAINFPV_BOOTLOADER
 
@@ -155,8 +155,7 @@
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-#define M25P16_FIRST_SECTOR     34
-// XXX: FLASH_CS_PIN needs to use different pin. Causes problem with DAC
+#define M25P16_FIRST_SECTOR     32
 #define FLASH_CS_PIN           PE14
 #define FLASH_SPI_INSTANCE     SPI1
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
