@@ -53,6 +53,10 @@ extern binary_semaphore_t gyroSem;
 extern bool idleCounterClear;
 extern uint32_t idleCounter;
 extern bool gyro_sample_processed;
+
+#if defined(USE_MULT_CPU_IDLE_COUNTS)
+extern uint32_t cpu_idle_counts_no_load;
+#endif /* defined(USE_MULT_CPU_IDLE_COUNTS) */
 #endif
 
 // DEBUG_SCHEDULER, timings for:
@@ -148,7 +152,11 @@ void taskSystemLoad(timeUs_t currentTimeUs)
     uint32_t now = millis();
     if ((idleCounterClear == 0) && (now - last_check > 1e3)) {
         float dT = (now - last_check) / 1e3;
+#if defined(USE_MULT_CPU_IDLE_COUNTS)
+        float idle = ((float)idleCounter / dT) / (float)cpu_idle_counts_no_load;
+#else
         float idle = ((float)idleCounter / dT) / (float)IDLE_COUNTS_PER_SEC_AT_NO_LOAD;
+#endif
         if (idle > 1)
             averageSystemLoadPercent = 0;
         else

@@ -229,6 +229,8 @@ pllConfig_t pll1ConfigRevV = {
     .r = 5,
     .vos = PWR_REGULATOR_VOLTAGE_SCALE0
 };
+
+uint32_t cpu_idle_counts_no_load;
 #else
 // 400MHz for Rev.Y (and Rev.X)
 pllConfig_t pll1ConfigRevY = {
@@ -277,6 +279,15 @@ static void SystemClockHSE_Config(void)
 #endif
 
     pllConfig_t *pll1Config = (HAL_GetREVID() == REV_ID_V) ? &pll1ConfigRevV : &pll1ConfigRevY;
+
+#if defined(BRAINFPV)
+    if (pll1Config->clockMhz == 480) {
+        cpu_idle_counts_no_load = IDLE_COUNTS_PER_SEC_AT_NO_LOAD_480;
+    }
+    else {
+        cpu_idle_counts_no_load = IDLE_COUNTS_PER_SEC_AT_NO_LOAD_400;
+    }
+#endif /* defined(BRAINFPV) */
 
     // Configure voltage scale.
     // It has been pre-configured at PWR_REGULATOR_VOLTAGE_SCALE1,
