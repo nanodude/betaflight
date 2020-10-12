@@ -50,10 +50,11 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 	DEF_TIM(TIM3,  CH2, PB5,   TIM_USE_MOTOR,               0,  1,  0 ), // M2
 	DEF_TIM(TIM4,  CH1, PD12,  TIM_USE_MOTOR,               0,  2,  0 ), // M3
     DEF_TIM(TIM4,  CH2, PD13,  TIM_USE_MOTOR,               0,  3,  0 ), // M4
-    DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_MOTOR,               0,  4,  1 ), // M5
-    DEF_TIM(TIM1,  CH3, PE13,  TIM_USE_MOTOR,               0,  5,  1 ), // M6
-    DEF_TIM(TIM8,  CH3, PC8,   TIM_USE_MOTOR,               0,  6,  2 ), // M7
-    DEF_TIM(TIM8,  CH4, PC9,   TIM_USE_MOTOR,               0,  7,  2 ), // M8
+
+    DEF_TIM(TIM8,  CH4, PC9,   TIM_USE_MOTOR,               0,  7,  2 ), // M5
+    DEF_TIM(TIM8,  CH3, PC8,   TIM_USE_MOTOR,               0,  6,  2 ), // M6
+    DEF_TIM(TIM1,  CH3, PE13,  TIM_USE_MOTOR,               0,  5,  1 ), // M7
+    DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_MOTOR,               0,  4,  1 ), // M8
 };
 
 #if defined(USE_CUSTOM_RESET)
