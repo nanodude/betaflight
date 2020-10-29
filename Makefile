@@ -428,6 +428,7 @@ $(TARGET_ELF): $(TARGET_OBJS) $(LD_SCRIPT)
 	@echo "Linking $(TARGET)" "$(STDOUT)"
 	$(V1) $(CROSS_CC) -o $@ $(filter-out %.ld,$^) $(LD_FLAGS)
 	$(V1) $(SIZE) $(TARGET_ELF)
+	$(V1) cp $(TARGET_ELF) $(BIN_DIR)/$(FORKNAME)_$(TARGET).elf
 
 # Compile
 
