@@ -117,6 +117,7 @@ ifeq ($(shell git diff --shortstat),)
 REVISION := $(shell git log -1 --format="%h")
 endif
 GIT_TAG =  $(shell git describe --tags)
+GIT_SHA1 = $(shell git rev-parse HEAD)
 
 FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk '{print $$3}' )
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk '{print $$3}' )
@@ -315,6 +316,8 @@ TARGET_BASENAME = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(REVISION)
 #
 # Things we will build
 #
+TARGET_BRAIN_BIN = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_brainfpv.bin
+
 TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).bin
 TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).hex
 TARGET_ELF      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).elf
@@ -424,6 +427,18 @@ $(TARGET_HEX): $(TARGET_BIN)
 
 endif
 
+ifneq ($(filter BRAINFPV_BL,$(FEATURES)),)
+$(TARGET_BRAIN_BIN): $(TARGET_HEX) $(TARGET_ELF)
+	$(V1) $(eval BLHEADER_ADDR = 0x$(shell $(OBJDUMP) -x $(TARGET_ELF) | grep BRAINFPV_BL_HEADER | cut -d' ' -f1))
+	@echo "Packing for BrainFPV bootloader. Header address: $(BLHEADER_ADDR)" "$(STDOUT)"
+	$(V1) python3 brainfpv_fw_packer/brainfpv_fw_packer.py --in $(TARGET_HEX) --out $(TARGET_BRAIN_BIN) \
+	    --dev $(TARGET) -t 1 -b $(BLHEADER_ADDR) -z \
+	    --name $(FORKNAME) --version $(FC_VER)_$(REVISION) --sha1 $(GIT_SHA1)
+else
+$(TARGET_BRAIN_BIN): $(TARGET_HEX)
+	$(V1)
+endif
+
 $(TARGET_ELF): $(TARGET_OBJS) $(LD_SCRIPT)
 	@echo "Linking $(TARGET)" "$(STDOUT)"
 	$(V1) $(CROSS_CC) -o $@ $(filter-out %.ld,$^) $(LD_FLAGS)
@@ -508,7 +523,7 @@ targets-group-rest: $(GROUP_OTHER_TARGETS)
 
 $(VALID_TARGETS):
 	$(V0) @echo "Building $@" && \
-	$(MAKE) binary hex TARGET=$@ && \
+	$(MAKE) binary hex brainfpv_bin TARGET=$@ && \
 	echo "Building $@ succeeded."
 
 $(NOBUILD_TARGETS):
@@ -593,6 +608,9 @@ hex:
 
 tlfw:
 	$(MAKE) -j $(TARGET_TLFW)
+
+brainfpv_bin:
+	$(MAKE) -j $(TARGET_BRAIN_BIN)
 
 unbrick_$(TARGET): $(TARGET_HEX)
 	$(V0) stty -F $(SERIAL_DEVICE) raw speed 115200 -crtscts cs8 -parenb -cstopb -ixon
