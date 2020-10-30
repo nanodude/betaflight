@@ -29,10 +29,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "platform.h"
+
 #include "common/utils.h"
 #include "common/maths.h"
 
-#include "platform.h"
 
 #if defined(USE_BRAINFPV_IR_TRANSPONDER)
 
