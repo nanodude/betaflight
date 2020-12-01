@@ -162,7 +162,7 @@ void video_qspi_enable(void)
 /**
  * @brief Vsync interrupt service routine
  */
-void Vsync_ISR(extiCallbackRec_t *cb)
+FAST_CODE void Vsync_ISR(extiCallbackRec_t *cb)
 {
     (void)cb;
     static uint32_t t_last = 0;
@@ -232,7 +232,7 @@ void Vsync_ISR(extiCallbackRec_t *cb)
     buffer_offset = 0;
 }
 
-void Hsync_ISR(extiCallbackRec_t *cb)
+FAST_CODE void Hsync_ISR(extiCallbackRec_t *cb)
 {
     (void)cb;
 #ifdef VIDEO_DEBUG_PIN
@@ -301,7 +301,7 @@ void Hsync_ISR(extiCallbackRec_t *cb)
  * buffer is seen on the output and the display buffer becomes
  * the new draw buffer.
  */
-static void swap_buffers()
+FAST_CODE static void swap_buffers()
 {
     // While we could use XOR swap this is more reliable and
     // dependable and it's only called a few times per second.
