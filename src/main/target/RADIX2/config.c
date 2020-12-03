@@ -37,6 +37,8 @@
 
 void targetConfiguration(void)
 {
+    osdConfigMutable()->core_temp_alarm = 85;
+
     // USER1: VTX PIT switch
     pinioConfigMutable()->config[0] = PINIO_CONFIG_MODE_OUT_PP | PINIO_CONFIG_OUT_INVERTED;
     pinioBoxConfigMutable()->permanentId[0] = 40;
