@@ -34,6 +34,7 @@
 #define VIDEO_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "platform.h"
 
 // PAL/NTSC specific boundary values
@@ -58,6 +59,7 @@ struct video_type_cfg {
 
 
 extern void Video_Init();
+bool VideoIsInitialized(void);
 extern void Video_SetLevels(uint8_t, uint8_t, uint8_t, uint8_t);
 extern void Video_SetXOffset(int8_t);
 extern void Video_SetYOffset(int8_t);

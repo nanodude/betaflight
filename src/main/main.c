@@ -172,12 +172,8 @@ int main()
   chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
 
 #if defined(USE_BRAINFPV_OSD)
-  if (featureIsEnabled(FEATURE_OSD)) {
-      osdDisplayPortDevice_e device = osdConfig()->displayPortDevice;
-
-      if (device == OSD_DISPLAYPORT_DEVICE_MAX7456) {
-          chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
-      }
+  if (VideoIsInitialized()) {
+      chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
   }
 #endif /* USE_BRAINFPV_OSD */
 

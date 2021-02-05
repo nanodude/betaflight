@@ -133,6 +133,7 @@ uint8_t *disp_buffer;
 const struct video_type_boundary *video_type_boundary_act = &video_type_boundary_pal;
 
 // Private variables
+static bool video_initialized = false;
 static uint8_t spurious_vsync_cnt = 0;
 static int16_t active_line = 0;
 static uint32_t buffer_offset;
@@ -502,6 +503,13 @@ void Video_Init()
     // Enable interrupts
     EXTIEnable(vsync_io, true);
     EXTIEnable(hsync_io, true);
+
+    video_initialized = true;
+}
+
+bool VideoIsInitialized(void)
+{
+    return video_initialized;
 }
 
 /**
