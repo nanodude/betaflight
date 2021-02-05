@@ -315,7 +315,7 @@ static void swdPinsInit(void)
     }
 }
 
-void init(void)
+SLOW_CODE void init(void)
 {
 #ifdef SERIAL_PORT_COUNT
     printfSerialInit();
