@@ -231,6 +231,17 @@ SECTIONS
     . = ALIGN(4);
     slow_const_end = .; 
   } > D2_RAM
+
+  slow_code = LOADADDR(.slow_code); 
+  .slow_code :
+  {
+    . = ALIGN(4);
+    slow_code_start = .; 
+    *(.slow_code)
+    *(.slow_code*)
+    . = ALIGN(4);
+    slow_code_end = .; 
+  } > D2_RAM
   
   images : ALIGN(4) SUBALIGN(4)
   {

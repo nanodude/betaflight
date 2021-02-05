@@ -147,8 +147,10 @@
 
 #if defined(STM32H7) && defined(RADIX2)
 #define SLOW_CONST                  __attribute__((section(".slow_const")))
+#define SLOW_CODE                  __attribute__((section(".slow_code")))
 #else
 #define SLOW_CONST
+#define SLOW_CODE
 #endif
 
 #ifdef USE_ITCM_RAM
