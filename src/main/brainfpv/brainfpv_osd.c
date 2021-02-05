@@ -106,7 +106,7 @@
 
 #if defined(USE_BRAINFPV_OSD) | 1
 
-PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_OSD_CONFIG, 0);
 
 #if !defined(BRAINFPV_OSD_WHITE_LEVEL_DEFAULT)
 #define BRAINFPV_OSD_WHITE_LEVEL_DEFAULT 0
@@ -149,8 +149,6 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .crsf_link_stats_rssi = CRSF_LQ_LOW,
   .crsf_link_stats_snr = CRSF_SNR_LOW,
   .crsf_link_stats_snr_threshold = -2,
-  .status_led_color = COLOR_BLUE,
-  .status_led_brightness = 255,
 );
 
 const char * const gitTag = __GIT_TAG__;
@@ -393,36 +391,6 @@ void brainFpvOsdSetSyncThreshold(uint8_t threshold)
 }
 #endif
 
-#if defined(VTXFAULT_PIN)
-
-IO_t vtx_fault_pin;
-
-static void vtxFaultInit(void)
-{
-    vtx_fault_pin = IOGetByTag(IO_TAG(VTXFAULT_PIN));
-
-    IOInit(vtx_fault_pin,  OWNER_OSD, 0);
-    IOConfigGPIO(vtx_fault_pin, IO_CONFIG(GPIO_MODE_INPUT, 0, GPIO_PULLUP));
-}
-
-static void vtxFaultCheck(void)
-{
-    static bool fault_detected = false;
-
-    if (IORead(vtx_fault_pin) == false) {
-        // over current condition detected
-        LED1_ON;
-        fault_detected = true;
-    }
-    else {
-        if (fault_detected) {
-            // over current condition has been cleared
-            LED1_OFF;
-            fault_detected = false;
-        }
-    }
-}
-#endif /* defined(VTXFAULT_PIN) */
 
 void brainFpvOsdInit(void)
 {
@@ -434,10 +402,6 @@ void brainFpvOsdInit(void)
     set_text_color(OSD_COLOR_WHITE, OSD_COLOR_BLACK);
     fill_2bit_mask_table();
 #endif
-
-#if defined(VTXFAULT_PIN)
-    vtxFaultInit();
-#endif /* defined(VTXFAULT_PIN) */
 
     for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
         if (image_userlogo.data[i] != 0) {
@@ -644,9 +608,6 @@ void osdMain(void) {
                     break;
             }
         }
-#if defined(VTXFAULT_PIN)
-        vtxFaultCheck();
-#endif /* defined(VTXFAULT_PIN) */
 
 #if defined(BRAINFPV_OSD_SHOW_DRAW_TIME)
         uint32_t t_draw = micros() - currentTime;

@@ -30,10 +30,56 @@
 #include "flight/mixer.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
+#include "drivers/light_led.h"
 
 #if defined(BRAINFPV)
 
 static BrainFPVSystemReq_t brainfpv_req = BRAINFPV_REQ_NONE;
+
+PG_RESET_TEMPLATE(brainFpvSystemConfig_t, brainFpvSystemConfig,
+  .status_led_color = COLOR_BLUE,
+  .status_led_brightness = 255,
+);
+
+PG_REGISTER_WITH_RESET_TEMPLATE(brainFpvSystemConfig_t, brainFpvSystemConfig, PG_BRAINFPV_SYSTEM_CONFIG, 0);
+
+
+#if defined(USE_VTXFAULT_PIN)
+IO_t vtx_fault_pin;
+
+static void vtxFaultInit(void)
+{
+    vtx_fault_pin = IOGetByTag(IO_TAG(VTXFAULT_PIN));
+
+    IOInit(vtx_fault_pin,  OWNER_OSD, 0);
+    IOConfigGPIO(vtx_fault_pin, IO_CONFIG(GPIO_MODE_INPUT, 0, GPIO_PULLUP));
+}
+
+static void vtxFaultCheck(void)
+{
+    static bool fault_detected = false;
+
+    if (IORead(vtx_fault_pin) == false) {
+        // over current condition detected
+        LED1_ON;
+        fault_detected = true;
+    }
+    else {
+        if (fault_detected) {
+            // over current condition has been cleared
+            LED1_OFF;
+            fault_detected = false;
+        }
+    }
+}
+#endif /* defined(USE_VTXFAULT_PIN) */
+
+void brainFPVSystemInit(void)
+{
+#if defined(USE_VTXFAULT_PIN)
+    vtxFaultInit();
+#endif /* defined(USE_VTXFAULT_PIN) */
+}
 
 // Set the request
 void brainFPVSystemSetReq(BrainFPVSystemReq_t req)
@@ -44,7 +90,6 @@ void brainFPVSystemSetReq(BrainFPVSystemReq_t req)
 // Execute request (called from betaflight system task)
 void brainFPVSystemCheck(void)
 {
-
     switch(brainfpv_req) {
         case BRAINFPV_REQ_NONE:
             // Nothing to do
@@ -66,5 +111,14 @@ void brainFPVSystemCheck(void)
             break;
     }
     brainfpv_req = BRAINFPV_REQ_NONE;
+
+#if defined(USE_VTXFAULT_PIN)
+        vtxFaultCheck();
+#endif /* defined(USE_VTXFAULT_PIN) */
 }
+
+
+
+
+
 #endif

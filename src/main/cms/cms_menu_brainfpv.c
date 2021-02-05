@@ -47,10 +47,12 @@
 #include "brainfpv/osd_utils.h"
 #include "brainfpv/ir_transponder.h"
 #include "brainfpv/brainfpv_osd.h"
+#include "brainfpv/brainfpv_system.h"
 
 #include "cli/settings.h"
 
 bfOsdConfig_t bfOsdConfigCms;
+brainFpvSystemConfig_t brainFpvSystemConfigCms;
 uint8_t logo_on_arming;
 
 static const void *menuBrainFPVOnEnter(displayPort_t *pDisp)
@@ -58,6 +60,8 @@ static const void *menuBrainFPVOnEnter(displayPort_t *pDisp)
     UNUSED(pDisp);
 
     memcpy(&bfOsdConfigCms, bfOsdConfig(), sizeof(bfOsdConfig_t));
+    memcpy(&brainFpvSystemConfigCms, brainFpvSystemConfig(), sizeof(brainFpvSystemConfig_t));
+
     logo_on_arming = osdConfig()->logo_on_arming;
 
     return NULL;
@@ -69,6 +73,7 @@ static const void *menuBrainFPVOnExit(displayPort_t *pDisp, const OSD_Entry *sel
     UNUSED(self);
 
     memcpy(bfOsdConfigMutable(), &bfOsdConfigCms, sizeof(bfOsdConfig_t));
+    memcpy(brainFpvSystemConfigMutable(), &brainFpvSystemConfigCms, sizeof(brainFpvSystemConfig_t));
 
     osdConfigMutable()->logo_on_arming = logo_on_arming;
 
@@ -203,7 +208,7 @@ CMS_Menu cmsx_menuBrainFPVCrsfLink = {
 
 const char * LOGO_ON_ARM_OPT_NAMES[] = {"OFF", "ON", "FIRST"};
 OSD_TAB_t entryLogoOnArmingMode = {&logo_on_arming, 3, &LOGO_ON_ARM_OPT_NAMES[0]};
-OSD_UINT8_t entryLEDBrightness =  {&bfOsdConfigCms.status_led_brightness, 0, 255, 1};
+OSD_UINT8_t entryLEDBrightness =  {&brainFpvSystemConfigCms.status_led_brightness, 0, 255, 1};
 
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
@@ -213,7 +218,7 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
     {"CRSF LINK QUALITY", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVCrsfLink, 0},
 
 #if defined(USE_BRAINFPV_RGB_STATUS_LED)
-    {"LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&bfOsdConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }, 0 },
+    {"LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&brainFpvSystemConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }, 0 },
     {"LED BRIGHTNESS ",  OME_UINT8, NULL, &entryLEDBrightness, 0},
 #endif
 

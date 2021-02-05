@@ -29,6 +29,8 @@
 
 #include "fpga_drv.h"
 #include "brainfpv/brainfpv_osd.h"
+#include "brainfpv/brainfpv_system.h"
+
 
 #define RADIX2_TARGET_MAGIC 0x65DF92FE
 
@@ -78,20 +80,26 @@ void CustomSystemReset(void)
 bool brainfpv_settings_updated_from_cms = false;
 
 extern bfOsdConfig_t bfOsdConfigCms;
+extern brainFpvSystemConfig_t brainFpvSystemConfigCms;
 
 void brainFPVUpdateSettings(void) {
     const bfOsdConfig_t * bfOsdConfigUse;
+    const brainFpvSystemConfig_t * brainFpvSystemConfigUse;
 
-    if (brainfpv_settings_updated_from_cms)
+    if (brainfpv_settings_updated_from_cms) {
         bfOsdConfigUse = &bfOsdConfigCms;
-    else
+        brainFpvSystemConfigUse = &brainFpvSystemConfigCms;
+    }
+    else {
         bfOsdConfigUse = bfOsdConfig();
+        brainFpvSystemConfigUse = brainFpvSystemConfig();
+    }
 
     brainFpvOsdSetSyncThreshold(bfOsdConfigUse->sync_threshold);
 
     BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
     BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
-    BRAINFPVFPGA_SetStatusLEDColor(bfOsdConfigUse->status_led_color, bfOsdConfigUse->status_led_brightness);
+    BRAINFPVFPGA_SetStatusLEDColor(brainFpvSystemConfigUse->status_led_color, brainFpvSystemConfigUse->status_led_brightness);
 
     brainfpv_settings_updated_from_cms = false;
 }

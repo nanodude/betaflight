@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "platform.h"
+#include "brainfpv/brainfpv_system.h"
 
 #include "fc/init.h"
 
@@ -109,7 +110,7 @@ static THD_FUNCTION(OSDThread, arg)
     brainFpvOsdInit();
     osdMain();
 }
-#endif
+#endif /* defined(USE_BRAINFPV_OSD) */
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
 #include "brainfpv/spectrograph.h"
@@ -160,6 +161,8 @@ int main()
 
   st_lld_init();
 
+  brainFPVSystemInit();
+
   chBSemObjectInit(&gyroSem, FALSE);
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
@@ -169,7 +172,13 @@ int main()
   chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
 
 #if defined(USE_BRAINFPV_OSD)
-  chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
+  if (featureIsEnabled(FEATURE_OSD)) {
+      osdDisplayPortDevice_e device = osdConfig()->displayPortDevice;
+
+      if (device == OSD_DISPLAYPORT_DEVICE_MAX7456) {
+          chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
+      }
+  }
 #endif /* USE_BRAINFPV_OSD */
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)

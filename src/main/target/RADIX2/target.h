@@ -95,6 +95,7 @@
 #define PINIO2_PIN              PC15 // Video input
 #define USE_PINIOBOX
 
+#define USE_VTXFAULT_PIN
 #define VTXFAULT_PIN            PD10
 
 #define USE_UART

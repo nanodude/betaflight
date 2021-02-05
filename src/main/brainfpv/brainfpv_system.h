@@ -20,6 +20,18 @@
 
 #pragma once
 
+#include <stdint.h>
+#include "pg/pg.h"
+#include "io/ledstrip.h"
+
+
+typedef struct brainFpvSystemConfig_s {
+    colorId_e status_led_color;
+    uint8_t status_led_brightness;
+} brainFpvSystemConfig_t;
+
+PG_DECLARE(brainFpvSystemConfig_t, brainFpvSystemConfig);
+
 typedef enum {
     BRAINFPV_REQ_NONE,
     BRAINFPV_REQ_UPDATE_HW_SETTINGS,
@@ -27,6 +39,7 @@ typedef enum {
     BRAINFPV_REQ_SAVE_SETTINGS_REBOOT
 } BrainFPVSystemReq_t;
 
+void brainFPVSystemInit(void);
 void brainFPVSystemSetReq(BrainFPVSystemReq_t req);
 void brainFPVSystemCheck(void);
 
