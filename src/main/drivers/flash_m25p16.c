@@ -237,9 +237,14 @@ bool m25p16_detect(flashDevice_t *fdevice, uint32_t chipID)
         return false;
     }
 
-#ifdef M25P16_FIRST_SECTOR
+#if defined(M25P16_FIRST_SECTOR)
     fdevice->geometry.sectors = fdevice->geometry.sectors - M25P16_FIRST_SECTOR;
 #endif
+#if defined(M25P16_SECTORS_SPARE_END)
+    fdevice->geometry.sectors = fdevice->geometry.sectors - M25P16_SECTORS_SPARE_END;
+#endif
+
+
     fdevice->geometry.flashType = FLASH_TYPE_NOR;
     fdevice->geometry.pageSize = M25P16_PAGESIZE;
     fdevice->geometry.sectorSize = fdevice->geometry.pagesPerSector * fdevice->geometry.pageSize;
