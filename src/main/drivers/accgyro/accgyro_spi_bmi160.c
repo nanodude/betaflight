@@ -37,7 +37,7 @@
 
 #include "platform.h"
 
-
+#include "config/config.h"
 #include "drivers/bus_spi.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
