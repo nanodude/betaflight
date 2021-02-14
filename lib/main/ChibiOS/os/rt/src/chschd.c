@@ -27,6 +27,7 @@
  */
 
 #include "ch.h"
+#include "platform.h"
 
 /*===========================================================================*/
 /* Module local definitions.                                                 */
@@ -56,7 +57,7 @@ ch_system_t ch;
 /*
  * Timeout wakeup callback.
  */
-static void wakeup(void *p) {
+FAST_CODE static void wakeup(void *p) {
   thread_t *tp = (thread_t *)p;
 
   chSysLockFromISR();
@@ -108,7 +109,7 @@ static void wakeup(void *p) {
  *
  * @notapi
  */
-void ch_sch_prio_insert(ch_queue_t *tp, ch_queue_t *qp) {
+FAST_CODE void ch_sch_prio_insert(ch_queue_t *tp, ch_queue_t *qp) {
 
   ch_queue_t *cp = qp;
   do {
@@ -152,7 +153,7 @@ void _scheduler_init(void) {
  *
  * @iclass
  */
-thread_t *chSchReadyI(thread_t *tp) {
+FAST_CODE thread_t *chSchReadyI(thread_t *tp) {
 
   chDbgCheckClassI();
   chDbgCheck(tp != NULL);
@@ -184,7 +185,7 @@ thread_t *chSchReadyI(thread_t *tp) {
  *
  * @iclass
  */
-thread_t *chSchReadyAheadI(thread_t *tp) {
+FAST_CODE thread_t *chSchReadyAheadI(thread_t *tp) {
 
   chDbgCheckClassI();
   chDbgCheck(tp != NULL);
@@ -209,7 +210,7 @@ thread_t *chSchReadyAheadI(thread_t *tp) {
  *
  * @sclass
  */
-void chSchGoSleepS(tstate_t newstate) {
+FAST_CODE void chSchGoSleepS(tstate_t newstate) {
   thread_t *otp = currp;
 
   chDbgCheckClassS();
@@ -257,7 +258,7 @@ void chSchGoSleepS(tstate_t newstate) {
  *
  * @sclass
  */
-msg_t chSchGoSleepTimeoutS(tstate_t newstate, sysinterval_t timeout) {
+FAST_CODE msg_t chSchGoSleepTimeoutS(tstate_t newstate, sysinterval_t timeout) {
 
   chDbgCheckClassS();
 
@@ -294,7 +295,7 @@ msg_t chSchGoSleepTimeoutS(tstate_t newstate, sysinterval_t timeout) {
  *
  * @sclass
  */
-void chSchWakeupS(thread_t *ntp, msg_t msg) {
+FAST_CODE void chSchWakeupS(thread_t *ntp, msg_t msg) {
   thread_t *otp = currp;
 
   chDbgCheckClassS();
@@ -338,7 +339,7 @@ void chSchWakeupS(thread_t *ntp, msg_t msg) {
  *
  * @sclass
  */
-void chSchRescheduleS(void) {
+FAST_CODE void chSchRescheduleS(void) {
 
   chDbgCheckClassS();
 
@@ -361,7 +362,7 @@ void chSchRescheduleS(void) {
  *
  * @special
  */
-bool chSchIsPreemptionRequired(void) {
+FAST_CODE bool chSchIsPreemptionRequired(void) {
   tprio_t p1 = firstprio(&ch.rlist.pqueue);
   tprio_t p2 = currp->hdr.pqueue.prio;
 
@@ -389,7 +390,7 @@ bool chSchIsPreemptionRequired(void) {
  *
  * @special
  */
-void chSchDoRescheduleBehind(void) {
+FAST_CODE void chSchDoRescheduleBehind(void) {
   thread_t *otp = currp;
 
   /* Picks the first thread from the ready queue and makes it current.*/
@@ -422,7 +423,7 @@ void chSchDoRescheduleBehind(void) {
  *
  * @special
  */
-void chSchDoRescheduleAhead(void) {
+FAST_CODE void chSchDoRescheduleAhead(void) {
   thread_t *otp = currp;
 
   /* Picks the first thread from the ready queue and makes it current.*/
@@ -452,7 +453,7 @@ void chSchDoRescheduleAhead(void) {
  *
  * @special
  */
-void chSchDoReschedule(void) {
+FAST_CODE void chSchDoReschedule(void) {
   thread_t *otp = currp;
 
   /* Picks the first thread from the ready queue and makes it current.*/

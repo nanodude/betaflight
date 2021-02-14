@@ -70,6 +70,7 @@
  */
 
 #include "ch.h"
+#include "platform.h"
 
 #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
 
@@ -120,7 +121,7 @@ void chMtxObjectInit(mutex_t *mp) {
  *
  * @api
  */
-void chMtxLock(mutex_t *mp) {
+FAST_CODE void chMtxLock(mutex_t *mp) {
 
   chSysLock();
   chMtxLockS(mp);
@@ -136,7 +137,7 @@ void chMtxLock(mutex_t *mp) {
  *
  * @sclass
  */
-void chMtxLockS(mutex_t *mp) {
+FAST_CODE void chMtxLockS(mutex_t *mp) {
   thread_t *currtp = chThdGetSelfX();
 
   chDbgCheckClassS();
@@ -254,7 +255,7 @@ void chMtxLockS(mutex_t *mp) {
  *
  * @api
  */
-bool chMtxTryLock(mutex_t *mp) {
+FAST_CODE bool chMtxTryLock(mutex_t *mp) {
   bool b;
 
   chSysLock();
@@ -281,7 +282,7 @@ bool chMtxTryLock(mutex_t *mp) {
  *
  * @sclass
  */
-bool chMtxTryLockS(mutex_t *mp) {
+FAST_CODE bool chMtxTryLockS(mutex_t *mp) {
   thread_t *currtp = chThdGetSelfX();
 
   chDbgCheckClassS();
@@ -323,7 +324,7 @@ bool chMtxTryLockS(mutex_t *mp) {
  *
  * @api
  */
-void chMtxUnlock(mutex_t *mp) {
+FAST_CODE void chMtxUnlock(mutex_t *mp) {
   thread_t *currtp = chThdGetSelfX();
   mutex_t *lmp;
 
@@ -410,7 +411,7 @@ void chMtxUnlock(mutex_t *mp) {
  *
  * @sclass
  */
-void chMtxUnlockS(mutex_t *mp) {
+FAST_CODE void chMtxUnlockS(mutex_t *mp) {
   thread_t *currtp = chThdGetSelfX();
   mutex_t *lmp;
 
@@ -487,7 +488,7 @@ void chMtxUnlockS(mutex_t *mp) {
  *
  * @sclass
  */
-void chMtxUnlockAllS(void) {
+FAST_CODE void chMtxUnlockAllS(void) {
   thread_t *currtp = chThdGetSelfX();
 
   if (currtp->mtxlist != NULL) {
@@ -528,7 +529,7 @@ void chMtxUnlockAllS(void) {
  *
  * @api
  */
-void chMtxUnlockAll(void) {
+FAST_CODE void chMtxUnlockAll(void) {
 
   chSysLock();
   chMtxUnlockAllS();
