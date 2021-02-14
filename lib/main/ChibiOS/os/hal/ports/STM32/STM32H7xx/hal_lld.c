@@ -36,7 +36,7 @@
  * @brief   CMSIS system core clock variable.
  * @note    It is declared in system_stm32f7xx.h.
  */
-uint32_t SystemCoreClock = STM32_CORE_CK;
+//uint32_t SystemCoreClock = STM32_CORE_CK;
 
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
