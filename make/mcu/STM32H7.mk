@@ -182,10 +182,10 @@ ifeq ($(TARGET_FLASH),)
 MCU_FLASH_SIZE := $(DEFAULT_TARGET_FLASH) 
 endif
 
-ifeq ($(TARGET),RADIX2)
+ifeq ($(TARGET),$(filter $(TARGET),$(BRAINFPV_H750_TARGETS)))
 FIRMWARE_SIZE      := 448
 MCU_FLASH_SIZE     := FIRMWARE_SIZE
-DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h750_radix2.ld
+DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h750_brainfpv.ld
 endif
 
 ifeq ($(EXST),yes)

@@ -15,6 +15,10 @@ VALID_TARGETS     = $(sort $(filter-out $(NOBUILD_TARGETS),$(BASE_TARGETS) $(ALT
 find_target_pair  = $(filter %/$(1),$(BASE_ALT_PAIRS))
 get_base_target   = $(if $(call find_target_pair,$(1)),$(patsubst %/,%,$(dir $(call find_target_pair,$(1)))),$(1))
 
+BRAINFPV_H750_TARGETS := \
+	RADIX2 \
+	RADIX2HD
+
 UNSUPPORTED_TARGETS := \
     AFROMINI \
     ALIENFLIGHTF1 \
