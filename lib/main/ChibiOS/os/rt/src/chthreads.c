@@ -296,7 +296,11 @@ thread_t *chThdCreate(const thread_descriptor_t *tdp) {
   tp = chThdCreateSuspendedI(tdp);
   chSchWakeupS(tp, MSG_OK);
   chSysUnlock();
-
+#if (CH_DBG_ENABLE_STACK_CHECK == TRUE) || (CH_CFG_USE_DYNAMIC == TRUE) || (CH_DBG_FILL_THREADS == TRUE)
+  /* Stack boundary.*/
+  tp->wabase = tdp->wbase;
+  tp->waend = tdp->wend;
+#endif
   return tp;
 }
 
@@ -350,9 +354,10 @@ thread_t *chThdCreateStatic(void *wsp, size_t size,
   tp = (thread_t *)((uint8_t *)wsp + size -
                     MEM_ALIGN_NEXT(sizeof (thread_t), PORT_STACK_ALIGN));
 
-#if (CH_DBG_ENABLE_STACK_CHECK == TRUE) || (CH_CFG_USE_DYNAMIC == TRUE)
+#if (CH_DBG_ENABLE_STACK_CHECK == TRUE) || (CH_CFG_USE_DYNAMIC == TRUE) || (CH_DBG_FILL_THREADS == TRUE)
   /* Stack boundary.*/
   tp->wabase = (stkalign_t *)wsp;
+  tp->waend = (stkalign_t*)((uint8_t *)wsp + size);
 #endif
 
   /* Setting up the port-dependent part of the working area.*/

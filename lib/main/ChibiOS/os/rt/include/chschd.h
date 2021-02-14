@@ -150,7 +150,7 @@ struct ch_thread {
    */
   const char            *name;
 #endif
-#if (CH_DBG_ENABLE_STACK_CHECK == TRUE) || (CH_CFG_USE_DYNAMIC == TRUE) ||  \
+#if (CH_DBG_ENABLE_STACK_CHECK == TRUE) || (CH_CFG_USE_DYNAMIC == TRUE) || (CH_DBG_FILL_THREADS == TRUE) || \
     defined(__DOXYGEN__)
   /**
    * @brief   Working area base address.
@@ -158,6 +158,7 @@ struct ch_thread {
    *          dynamic threading.
    */
   stkalign_t            *wabase;
+  stkalign_t            *waend;
 #endif
   /**
    * @brief   Current thread state.
