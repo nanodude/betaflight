@@ -44,6 +44,10 @@
 
 #define PIXELS_PER_BYTE (8 / VIDEO_BITS_PER_PIXEL)
 
+#if !defined(VIDEO_BITS_PER_PIXEL)
+#define VIDEO_BITS_PER_PIXEL 2
+#endif
+
 #if VIDEO_BITS_PER_PIXEL == 2
 // 2 bit mode: Leftmost pixel in byte is MSB
 // MSB  P[P0.1, P0.0 | P1.1, P1.0 | P2.1, P2.0 | P3.1, P3.0] LSB

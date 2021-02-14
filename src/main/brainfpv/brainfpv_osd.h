@@ -66,7 +66,7 @@ void osdElementDummy_BrainFPV(osdElementParms_t *element);
 void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element);
 void osdElementGpsHomeDirection_BrainFPV(osdElementParms_t *element);
 void osdElementCraftName_BrainFPV(osdElementParms_t *element);
-void osdElementCrosshairs_BrainFPV(osdElementParms_t *element);
+void osdBackgroundCrosshairs_BrainFPV(osdElementParms_t *element);
 void osdElementRssi_BrainFPV(osdElementParms_t *element);
 void osdElementLinkQuality_BrainFPV(osdElementParms_t *element);
 

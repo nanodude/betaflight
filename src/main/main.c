@@ -64,6 +64,7 @@ void FAST_CODE FAST_CODE_NOINLINE run(void)
 #include "hal.h"
 #include "nvic.h"
 
+binary_semaphore_t gyroSem;
 volatile bool idleCounterClear = 0;
 volatile uint32_t idleCounter = 0;
 
@@ -115,7 +116,6 @@ static THD_FUNCTION(OSDThread, arg)
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
 #include "brainfpv/spectrograph.h"
 extern binary_semaphore_t spectrographDataReadySemaphore;
-binary_semaphore_t gyroSem;
 
 static THD_WORKING_AREA(waSpecThread, 512);
 static THD_FUNCTION(SpecThread, arg)

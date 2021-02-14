@@ -1635,19 +1635,28 @@ static const uint8_t osdElementDisplayOrder[] = {
 
 // Define the mapping between the OSD element id and the function to draw it
 
+#if defined(USB_BRAINFPV_OSD)
+#define BRAINFPV_ELEM(E) (E_BrainFPV)
+#define BRAINFPV_SEL_ELEM(X, Y) (X)
+#else
+#define BRAINFPV_ELEM(E) (E)
+#define BRAINFPV_SEL_ELEM(X, Y) (Y)
+#endif
+
+
 const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
-    [OSD_RSSI_VALUE]              = osdElementRssi,
+    [OSD_RSSI_VALUE]              = BRAINFPV_ELEM(osdElementRssi),
     [OSD_MAIN_BATT_VOLTAGE]       = osdElementMainBatteryVoltage,
-    [OSD_CROSSHAIRS]              = osdElementCrosshairs,
+    [OSD_CROSSHAIRS]              = BRAINFPV_ELEM(osdBackgroundCrosshairs),
     [OSD_CAMERA_FRAME]            = NULL,  // only has background. Added first so it's the lowest "layer" and doesn't cover other elements
 #ifdef USE_ACC
-    [OSD_ARTIFICIAL_HORIZON]      = osdElementArtificialHorizon,
+    [OSD_ARTIFICIAL_HORIZON]      = BRAINFPV_ELEM(osdElementArtificialHorizon),
 #endif
-    [OSD_HORIZON_SIDEBARS]        =  NULL,  // only has background
+    [OSD_HORIZON_SIDEBARS]        = BRAINFPV_SEL_ELEM(osdElementDummy, osdBackgroundHorizonSidebars),
     [OSD_ITEM_TIMER_1]            = osdElementTimer,
     [OSD_ITEM_TIMER_2]            = osdElementTimer,
     [OSD_FLYMODE]                 = osdElementFlymode,
-    [OSD_CRAFT_NAME]              = NULL,  // only has background
+    [OSD_CRAFT_NAME]              = BRAINFPV_SEL_ELEM(osdElementCraftName_BrainFPV, osdBackgroundCraftName),
     [OSD_THROTTLE_POS]            = osdElementThrottlePosition,
 #ifdef USE_VTX_COMMON
     [OSD_VTX_CHANNEL]             = osdElementVtxChannel,
@@ -1678,7 +1687,8 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_MAIN_BATT_USAGE]         = osdElementMainBatteryUsage,
     [OSD_DISARMED]                = osdElementDisarmed,
 #ifdef USE_GPS
-    [OSD_HOME_DIR]                = osdElementGpsHomeDirection,
+
+    [OSD_HOME_DIR]                = BRAINFPV_ELEM(osdElementGpsHomeDirection),
     [OSD_HOME_DIST]               = osdElementGpsHomeDistance,
 #endif
     [OSD_NUMERICAL_HEADING]       = osdElementNumericalHeading,
@@ -1714,7 +1724,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_FLIP_ARROW]              = osdElementCrashFlipArrow,
 #endif
 #ifdef USE_RX_LINK_QUALITY_INFO
-    [OSD_LINK_QUALITY]            = osdElementLinkQuality,
+    [OSD_LINK_QUALITY]            = BRAINFPV_ELEM(osdElementLinkQuality),
 #endif
 #ifdef USE_GPS
     [OSD_FLIGHT_DIST]             = osdElementGpsFlightDistance,

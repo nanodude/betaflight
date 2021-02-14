@@ -1,10 +1,13 @@
+#include "platform.h"
+
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
+
 #include <stdint.h>
 #include "common/maths.h"
 
 #include "ch.h"
 #include "osd_utils.h"
 #include "arm_math.h"
-#include "platform.h"
 #include "drivers/light_led.h"
 
 #include "common/maths.h"
@@ -48,7 +51,6 @@
 
 #include "brainfpv/spectrograph.h"
 
-#if defined(USE_BRAINFPV_SPECTROGRAPH)
 
 #define SAMPLING_FREQ 3200
 #define FFT_BIN(freq) ((SPEC_FFT_LENGTH / 2 - 1) * freq) / (SAMPLING_FREQ / 2)

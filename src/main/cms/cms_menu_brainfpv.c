@@ -51,18 +51,23 @@
 
 #include "cli/settings.h"
 
+#if defined(USE_BRAINFPV_OSD)
 bfOsdConfig_t bfOsdConfigCms;
-brainFpvSystemConfig_t brainFpvSystemConfigCms;
 uint8_t logo_on_arming;
+#endif
+
+brainFpvSystemConfig_t brainFpvSystemConfigCms;
 
 static const void *menuBrainFPVOnEnter(displayPort_t *pDisp)
 {
     UNUSED(pDisp);
 
-    memcpy(&bfOsdConfigCms, bfOsdConfig(), sizeof(bfOsdConfig_t));
     memcpy(&brainFpvSystemConfigCms, brainFpvSystemConfig(), sizeof(brainFpvSystemConfig_t));
 
+#if defined(USE_BRAINFPV_OSD)
+    memcpy(&bfOsdConfigCms, bfOsdConfig(), sizeof(bfOsdConfig_t));
     logo_on_arming = osdConfig()->logo_on_arming;
+#endif
 
     return NULL;
 }
@@ -72,14 +77,17 @@ static const void *menuBrainFPVOnExit(displayPort_t *pDisp, const OSD_Entry *sel
     UNUSED(pDisp);
     UNUSED(self);
 
-    memcpy(bfOsdConfigMutable(), &bfOsdConfigCms, sizeof(bfOsdConfig_t));
     memcpy(brainFpvSystemConfigMutable(), &brainFpvSystemConfigCms, sizeof(brainFpvSystemConfig_t));
 
+#if defined(USE_BRAINFPV_OSD)
+    memcpy(bfOsdConfigMutable(), &bfOsdConfigCms, sizeof(bfOsdConfig_t));
     osdConfigMutable()->logo_on_arming = logo_on_arming;
+#endif
 
     return NULL;
 }
 
+#if defined(USE_BRAINFPV_OSD)
 OSD_UINT8_t entryAhiSteps =  {&bfOsdConfigCms.ahi_steps, 0, 9, 1};
 const char *STICKS_DISPLAY_NAMES[] = {"OFF", "MODE2", "MODE1"};
 OSD_TAB_t entrySticksDisplay = {&bfOsdConfigCms.sticks_display, 2, &STICKS_DISPLAY_NAMES[0]};
@@ -208,14 +216,19 @@ CMS_Menu cmsx_menuBrainFPVCrsfLink = {
 
 const char * LOGO_ON_ARM_OPT_NAMES[] = {"OFF", "ON", "FIRST"};
 OSD_TAB_t entryLogoOnArmingMode = {&logo_on_arming, 3, &LOGO_ON_ARM_OPT_NAMES[0]};
+
+#endif /* defined(USE_BRAINFPV_OSD) */
+
 OSD_UINT8_t entryLEDBrightness =  {&brainFpvSystemConfigCms.status_led_brightness, 0, 255, 1};
 
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
     {"--- BRAINFPV ---", OME_Label, NULL, NULL, 0},
+#if defined(USE_BRAINFPV_OSD)
     {"BRAIN OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
     {"HD FRAME", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVHdFrame, 0},
     {"CRSF LINK QUALITY", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVCrsfLink, 0},
+#endif
 
 #if defined(USE_BRAINFPV_RGB_STATUS_LED)
     {"LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&brainFpvSystemConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }, 0 },
@@ -229,8 +242,10 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
     {"SPECTROGRAPH", OME_Bool, NULL, &bfOsdConfigCms.spec_enabled, 0},
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
+#if defined(USE_BRAINFPV_OSD)
     {"SHOW LOGO ON ARM", OME_TAB, NULL, &entryLogoOnArmingMode, 0},
     {"SHOW PILOT LOGO", OME_Bool, NULL, &bfOsdConfigCms.show_pilot_logo, 0},
+#endif
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}
 };

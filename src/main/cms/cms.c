@@ -46,13 +46,16 @@
 #include "cms/cms_types.h"
 
 #if defined(BRAINFPV)
+#include "brainfpv/brainfpv_system.h"
+#include "cms/cms_menu_brainfpv.h"
+#endif
+
+#if defined(USE_BRAINFPV_OSD)
 #include "brainfpv/video.h"
 #include "brainfpv/osd_utils.h"
 #include "brainfpv/ir_transponder.h"
-#include "cms/cms_menu_brainfpv.h"
 extern bool brainfpv_hd_frame_menu;
-
-#include "brainfpv/brainfpv_system.h"
+extern displayPort_t max7456DisplayPort;
 #endif
 
 #include "common/maths.h"
@@ -117,7 +120,6 @@ bool cmsDisplayPortRegister(displayPort_t *pDisplay)
     return true;
 }
 
-extern displayPort_t max7456DisplayPort;
 
 static displayPort_t *cmsDisplayPortSelectCurrent(void)
 {
@@ -139,7 +141,9 @@ static displayPort_t *cmsDisplayPortSelectNext(void)
         return NULL;
     }
 
+#if defined(USE_BRAINFPV_OSD)
     return &max7456DisplayPort;
+#endif
 
     cmsCurrentDevice = (cmsCurrentDevice + 1) % cmsDeviceCount; // -1 Okay
 
@@ -1200,7 +1204,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
             // Shouldn't happen
             break;
     }
-#ifdef BRAINFPV
+#if defined(BRAINFPV)
 #if defined(USE_BRAINFPV_IR_TRANSPONDER)
     OSD_UINT16_t *ptr = p->data;
     if (ptr == &entryIRTrackmate){
@@ -1211,20 +1215,27 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, cms_key_e key)
             *ptr->val = ir_next_valid_trackmateid(*ptr->val + 1, -1);
         }
     }
-#endif
+#endif /* defined(USE_BRAINFPV_IR_TRANSPONDER) */
+#if defined(USE_BRAINFPV_OSD)
     if ((currentCtx.menu == &cmsx_menuBrainFPVOsd) || (currentCtx.menu == &cmsx_menuBrainFPV)) {
+#else
+    if (currentCtx.menu == &cmsx_menuBrainFPV) {
+#endif /* defined(USE_BRAINFPV_OSD) */
         if ((key == CMS_KEY_RIGHT) || (key == CMS_KEY_LEFT)) {
             brainfpv_settings_updated_from_cms = true;
             brainFPVSystemSetReq(BRAINFPV_REQ_UPDATE_HW_SETTINGS);
         }
     }
+#if defined(USE_BRAINFPV_OSD)
     if (currentCtx.menu == &cmsx_menuBrainFPVHdFrame) {
         brainfpv_hd_frame_menu = true;
     }
     else {
         brainfpv_hd_frame_menu = false;
     }
-#endif
+#endif /* defined(USE_BRAINFPV_OSD) */
+
+#endif /* defined(BRAINFPV) */
     return res;
 }
 

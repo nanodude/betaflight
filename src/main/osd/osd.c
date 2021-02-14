@@ -943,7 +943,9 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdStatsVisible = false;
             osdResetStats();
 
+#if defined(USE_BRAINFPV_OSD)
             osdArming = true;
+#endif
             resumeRefreshAt = osdShowArmed() + currentTimeUs;
         } else if (isSomeStatEnabled()
                    && !suppressStatsDisplay

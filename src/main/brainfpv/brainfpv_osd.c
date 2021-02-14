@@ -32,6 +32,9 @@
  * of this source file; otherwise redistribution is prohibited.
  */
 
+#include "platform.h"
+
+#if defined(USE_BRAINFPV_OSD)
 
 #include <string.h>
 #include <math.h>
@@ -103,8 +106,6 @@
 #include "rx/rx.h"
 #include "pg/rx.h"
 
-
-#if defined(USE_BRAINFPV_OSD) | 1
 
 PG_REGISTER_WITH_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig, PG_BRAINFPV_OSD_CONFIG, 0);
 
@@ -916,7 +917,7 @@ void osdElementCraftName_BrainFPV(osdElementParms_t *element)
 #define CENTER_BODY       3
 #define CENTER_WING       7
 #define CENTER_RUDDER     5
-void osdElementCrosshairs_BrainFPV(osdElementParms_t *element)
+void osdBackgroundCrosshairs_BrainFPV(osdElementParms_t *element)
 {
     // Crosshair position is also used for map and AHI center
     crosshair_x = MAX_X(element->elemPosX);

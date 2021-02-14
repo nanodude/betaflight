@@ -42,6 +42,8 @@
 
 #include "drivers/rcc.h"
 
+#if defined(INCLUDE_VIDEO_QUADSPI)
+
 #if defined(STM32F446xx)
 #include <stm32f4xx_qspi.h>
 #else
@@ -56,14 +58,12 @@ MDMA_HandleTypeDef hmdma;
 #endif
 #endif
 
-
 #ifdef VIDEO_DEBUG_PIN
 static IO_t debugPin;
 #endif
 static IO_t hsync_io;
 static IO_t vsync_io;
 
-#if defined(INCLUDE_VIDEO_QUADSPI)
 
 static void Error_Handler(void) { while (1) { } }
 

@@ -39,6 +39,7 @@
 #include <stdlib.h>
 
 #include "platform.h"
+#if defined(USE_BRAINFPV_OSD)
 
 #include "video.h"
 #include "fonts.h"
@@ -1124,3 +1125,5 @@ void osd_draw_vertical_scale(int v, int range, int halign, int x, int y, int hei
     draw_hline_outlined(boundtick_start, boundtick_end, y + (height / 2), 2, 2, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
     draw_hline_outlined(boundtick_start, boundtick_end, y - (height / 2), 2, 2, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
 }
+
+#endif
