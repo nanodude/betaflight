@@ -24,10 +24,11 @@
 
 //#define DEBUG_PRINTF
 
-#define TARGET_BOARD_IDENTIFIER "RDX2"
-#define USBD_PRODUCT_STRING "BrainFPV RADIX 2"
+#define TARGET_BOARD_IDENTIFIER "RDX2HD"
+#define USBD_PRODUCT_STRING "BrainFPV RADIX 2 HD"
 
 #define USE_BRAINFPV_BOOTLOADER
+#define BOOTLOADER_TARGET_MAGIC 0x785E9A14
 
 #define USE_CUSTOM_RESET
 #define CUSTOM_RESET_PIN PC13
@@ -40,50 +41,11 @@
 
 #define USE_TARGET_CONFIG
 
-#define USE_BRAINFPV_FPGA
-#define BRAINFPVFPGA_SPI_INSTANCE SPI3
-#define BRAINFPVFPGA_SPI_DIVISOR  8
-#define BRAINFPVFPGA_CS_PIN       PE1
-#define BRAINFPVFPGA_RESET_PIN    PC4
-#define BRAINFPVFPGA_CLOCK_PIN    PA8
-
-
 #define BRAINFPV
-#define USE_MAX7456
-#define USE_OSD
-#define USE_CMS
-#define OSD_CALLS_CMS
-#define USE_BRAINFPV_OSD
-#define VIDEO_BITS_PER_PIXEL 4
-#define INCLUDE_VIDEO_QUADSPI
-#define VIDEO_QSPI_CLOCK_PIN PB2
-#define VIDEO_QSPI_IO0_PIN   PD11
-#define VIDEO_QSPI_IO1_PIN   PC10
-#define VIDEO_QSPI_IO2_PIN   PE2
-#define VIDEO_QSPI_IO3_PIN   PA1
-#define VIDEO_VSYNC          PE3
-#define VIDEO_HSYNC          PD5
-//#define BRAINFPV_OSD_TEST
-//#define BRAINFPV_OSD_SHOW_DRAW_TIME
 
-
-#define BRAINFPV_OSD_USE_STM32CMP
-#define BRAINFPV_OSD_STM32CMP_DAC_INSTANCE DAC1
-#define BRAINFPV_OSD_STM32CMP_CMP_INSTANCE COMP2
-#define BRAINFPV_OSD_STM32CMP_CMP_INPUT_PIN PE9
-#define BRAINFPV_OSD_STM32CMP_CMP_OUTPUT_PIN PE8
-
-#define BRAINFPV_OSD_SYNC_TH_DEFAULT 150
-#define BRAINFPV_OSD_SYNC_TH_MIN 0
-#define BRAINFPV_OSD_SYNC_TH_MAX 255
-
-#define USE_BRAINFPV_SPECTROGRAPH
-
-#define USE_BRAINFPV_RGB_STATUS_LED
-
-#define LED0_PIN                PE6
+#define LED0_PIN                PA3
 #define LED0_INVERTED
-#define LED1_PIN                PE7
+#define LED1_PIN                PA0
 #define LED1_INVERTED
 
 #define USE_BEEPER
@@ -91,22 +53,18 @@
 #define BEEPER_INVERTED
 
 #define USE_PINIO
-#define PINIO1_PIN              PD15 // VTX
-#define PINIO2_PIN              PC15 // Video input
+#define PINIO1_PIN              PD15 // VREG HD
 #define USE_PINIOBOX
-
-#define USE_VTXFAULT_PIN
-#define VTXFAULT_PIN            PD10
 
 #define USE_UART
 
 #define USE_UART1
-#define UART1_RX_PIN            PB15
-#define UART1_TX_PIN            PB6
+#define UART1_RX_PIN            PA10
+#define UART1_TX_PIN            PB14
 
 #define USE_UART2
-#define UART2_RX_PIN            PA3
-#define UART2_TX_PIN            PA2
+#define UART2_RX_PIN            PD6
+#define UART2_TX_PIN            PD5
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -117,8 +75,8 @@
 #define UART4_TX_PIN            PD1
 
 #define USE_UART5
-#define UART5_RX_PIN            PB12
-#define UART5_TX_PIN            PB13
+#define UART5_RX_PIN            PD2
+#define UART5_TX_PIN            PB6
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
@@ -147,7 +105,6 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
-#define SPI3_NSS_PIN            PA15
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1
@@ -164,15 +121,15 @@
 #define USE_MAG_AK8975
 #define MAG_I2C_INSTANCE      I2C_DEVICE
 
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_FIRST_SECTOR     32
-#define M25P16_SECTORS_SPARE_END 3
-#define FLASH_CS_PIN           PE14
-#define FLASH_SPI_INSTANCE     SPI1
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#define CONFIG_IN_EXTERNAL_FLASH
-//#define CONFIG_IN_RAM
+//#define USE_FLASHFS
+//#define USE_FLASH_M25P16
+//#define M25P16_FIRST_SECTOR     32
+//#define M25P16_SECTORS_SPARE_END 3
+//#define FLASH_CS_PIN           PE14
+//#define FLASH_SPI_INSTANCE     SPI1
+//#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+//#define CONFIG_IN_EXTERNAL_FLASH
+#define CONFIG_IN_RAM
 
 #undef USE_GYRO_REGISTER_DUMP
 
@@ -198,7 +155,6 @@
 
 #define USE_BARO
 #define USE_BARO_BMP388
-
 
 #define USE_ADC
 #define USE_ADC_INTERNAL // ADC3
