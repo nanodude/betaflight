@@ -64,9 +64,9 @@ static IO_t debugPin;
 static IO_t hsync_io;
 static IO_t vsync_io;
 
-
+#if defined(STM32H750xx)
 static void Error_Handler(void) { while (1) { } }
-
+#endif
 
 #if !defined(VIDEO_QUADSPI_Y_OFFSET)
 #define VIDEO_QUADSPI_Y_OFFSET 0
