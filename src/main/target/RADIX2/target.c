@@ -32,18 +32,6 @@
 #include "brainfpv/brainfpv_system.h"
 
 
-#define RADIX2_TARGET_MAGIC 0x65DF92FE
-
-typedef struct __attribute__((packed)) {
-    uint32_t target_magic;
-    uint32_t isr_vector_base;
-} BrainFPVBlHeader_t;
-
-const BrainFPVBlHeader_t __attribute__((section (".bl_header_section"))) __attribute__((used)) BRAINFPV_BL_HEADER = {
-	.target_magic = RADIX2_TARGET_MAGIC,
-	.isr_vector_base = VECT_TAB_BASE,
-};
-
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM12, CH1, PB14,  TIM_USE_PPM,                 0,  0,  0 ), // PPM input
     DEF_TIM(TIM14, CH1, PA7,   TIM_USE_CAMERA_CONTROL,      0,  0,  0 ),
@@ -61,24 +49,6 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM15, CH1, PA2,  TIM_USE_NONE,                 0,  0,  0 ), // Also TX2. Can be used for servo
     DEF_TIM(TIM15, CH2, PA3,  TIM_USE_NONE,                 0,  0,  0 ), // Also RX2. Can be used for servo
 };
-
-#if defined(USE_CUSTOM_RESET)
-void CustomSystemReset(void)
-{
-	IO_t reset_pin = IOGetByTag(IO_TAG(CUSTOM_RESET_PIN));
-    IOInit(reset_pin, OWNER_PULLDOWN, 0);
-    IOConfigGPIO(reset_pin, IOCFG_OUT_OD);
-
-    __DSB();                                                          /* Ensure all outstanding memory accesses included
-                                                                         buffered write are completed before reset */
-
-    IOLo(reset_pin);
-    for(;;)                                                           /* wait until reset */
-    {
-      __NOP();
-    }
-}
-#endif
 
 bool brainfpv_settings_updated_from_cms = false;
 
