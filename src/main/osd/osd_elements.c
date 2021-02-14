@@ -1635,14 +1635,13 @@ static const uint8_t osdElementDisplayOrder[] = {
 
 // Define the mapping between the OSD element id and the function to draw it
 
-#if defined(USB_BRAINFPV_OSD)
-#define BRAINFPV_ELEM(E) (E_BrainFPV)
+#if defined(USE_BRAINFPV_OSD)
+#define BRAINFPV_ELEM(E) (E ## _BrainFPV)
 #define BRAINFPV_SEL_ELEM(X, Y) (X)
 #else
 #define BRAINFPV_ELEM(E) (E)
 #define BRAINFPV_SEL_ELEM(X, Y) (Y)
 #endif
-
 
 const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_RSSI_VALUE]              = BRAINFPV_ELEM(osdElementRssi),
@@ -1652,7 +1651,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
 #ifdef USE_ACC
     [OSD_ARTIFICIAL_HORIZON]      = BRAINFPV_ELEM(osdElementArtificialHorizon),
 #endif
-    [OSD_HORIZON_SIDEBARS]        = BRAINFPV_SEL_ELEM(osdElementDummy, osdBackgroundHorizonSidebars),
+    [OSD_HORIZON_SIDEBARS]        = BRAINFPV_SEL_ELEM(osdElementDummy_BrainFPV, osdBackgroundHorizonSidebars),
     [OSD_ITEM_TIMER_1]            = osdElementTimer,
     [OSD_ITEM_TIMER_2]            = osdElementTimer,
     [OSD_FLYMODE]                 = osdElementFlymode,
