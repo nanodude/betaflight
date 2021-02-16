@@ -100,7 +100,7 @@ typedef enum {
   FLASH_NO_ERROR = 0,           /* No error.                                */
   FLASH_BUSY_ERASING = 1,       /* Erase operation in progress.             */
   FLASH_ERROR_READ = 2,         /* ECC or other error during read operation.*/
-  FLASH_ERROR_PROGRAM = 3,      /* Program operation failed.                */
+  FLASH_ERROR_PROGRAM_XX = 3,   /* Program operation failed.                */
   FLASH_ERROR_ERASE = 4,        /* Erase operation failed.                  */
   FLASH_ERROR_VERIFY = 5,       /* Verify operation failed.                 */
   FLASH_ERROR_HW_FAILURE = 6,   /* Controller or communication error.       */
