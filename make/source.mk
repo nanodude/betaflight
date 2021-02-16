@@ -454,7 +454,7 @@ INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32H7xx
 endif
 
 include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/hal/osal/rt/osal.mk
+include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 
