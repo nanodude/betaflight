@@ -23,6 +23,7 @@
  */
 
 #include "hal.h"
+#include "platform.h"
 
 #if (OSAL_ST_MODE != OSAL_ST_MODE_NONE) || defined(__DOXYGEN__)
 
@@ -48,7 +49,7 @@
 #error "TIM2 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM2_HANDLER
+#define ST_HANDLER                          TIM2_IRQHandler
 #define ST_NUMBER                           STM32_TIM2_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM2(true)
@@ -74,7 +75,7 @@
 #error "TIM3 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM3_HANDLER
+#define ST_HANDLER                          TIM3_IRQHandler
 #define ST_NUMBER                           STM32_TIM3_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM3(true)
@@ -100,7 +101,7 @@
 #error "TIM4 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM4_HANDLER
+#define ST_HANDLER                          TIM4_IRQHandler
 #define ST_NUMBER                           STM32_TIM4_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM4(true)
@@ -124,7 +125,7 @@
 #error "TIM5 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM5_HANDLER
+#define ST_HANDLER                          TIM5_IRQHandler
 #define ST_NUMBER                           STM32_TIM5_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM5(true)
@@ -148,7 +149,7 @@
 #error "TIM9 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM9_HANDLER
+#define ST_HANDLER                          TIM9_IRQHandler
 #define ST_NUMBER                           STM32_TIM9_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK2
 #define ST_ENABLE_CLOCK()                   rccEnableTIM9(true)
@@ -172,7 +173,7 @@
 #error "TIM10 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM10_HANDLER
+#define ST_HANDLER                          TIM10_IRQHandler
 #define ST_NUMBER                           STM32_TIM10_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK2
 #define ST_ENABLE_CLOCK()                   rccEnableTIM10(true)
@@ -196,7 +197,7 @@
 #error "TIM11 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM11_HANDLER
+#define ST_HANDLER                          TIM11_IRQHandler
 #define ST_NUMBER                           STM32_TIM11_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK2
 #define ST_ENABLE_CLOCK()                   rccEnableTIM11(true)
@@ -220,7 +221,7 @@
 #error "TIM12 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM12_HANDLER
+#define ST_HANDLER                          TIM12_IRQHandler
 #define ST_NUMBER                           STM32_TIM12_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM12(true)
@@ -244,7 +245,7 @@
 #error "TIM13 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM13_HANDLER
+#define ST_HANDLER                          TIM13_IRQHandler
 #define ST_NUMBER                           STM32_TIM13_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM13(true)
@@ -268,7 +269,7 @@
 #error "TIM14 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM14_HANDLER
+#define ST_HANDLER                          TIM14_IRQHandler
 #define ST_NUMBER                           STM32_TIM14_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK1
 #define ST_ENABLE_CLOCK()                   rccEnableTIM14(true)
@@ -292,7 +293,7 @@
 #error "TIM21 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM21_HANDLER
+#define ST_HANDLER                          TIM21_IRQHandler
 #define ST_NUMBER                           STM32_TIM21_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK2
 #define ST_ENABLE_CLOCK()                   rccEnableTIM21(true)
@@ -308,7 +309,7 @@
 #error "TIM21 is not a 32bits timer"
 #endif
 
-#define ST_HANDLER                          STM32_TIM22_HANDLER
+#define ST_HANDLER                          TIM22_IRQHandler
 #define ST_NUMBER                           STM32_TIM22_NUMBER
 #define ST_CLOCK_SRC                        STM32_TIMCLK2
 #define ST_ENABLE_CLOCK()                   rccEnableTIM22(true)
@@ -368,13 +369,14 @@
 /* Driver interrupt handlers.                                                */
 /*===========================================================================*/
 
-#if !defined(STM32_SYSTICK_SUPPRESS_ISR)
+//#if !defined(STM32_SYSTICK_SUPPRESS_ISR)
+
 /**
  * @brief   Interrupt handler.
  *
  * @isr
  */
-OSAL_IRQ_HANDLER(ST_HANDLER) {
+void ST_HANDLER(void) {
 
   OSAL_IRQ_PROLOGUE();
 
@@ -382,7 +384,7 @@ OSAL_IRQ_HANDLER(ST_HANDLER) {
 
   OSAL_IRQ_EPILOGUE();
 }
-#endif
+//#endif
 
 /*===========================================================================*/
 /* Driver exported functions.                                                */
