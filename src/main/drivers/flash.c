@@ -48,13 +48,15 @@ static int flashPartitions = 0;
 #define FLASH_INSTRUCTION_RDID 0x9F
 
 #ifdef USE_QUADSPI
+
 static bool flashQuadSpiInit(const flashConfig_t *flashConfig)
 {
+    uint32_t chipID;
     QUADSPI_TypeDef *quadSpiInstance = quadSpiInstanceByDevice(QUADSPI_CFG_TO_DEV(flashConfig->quadSpiDevice));
     quadSpiSetDivisor(quadSpiInstance, QUADSPI_CLOCK_INITIALISATION);
 
-    uint8_t readIdResponse[4];
-    bool status = quadSpiReceive1LINE(quadSpiInstance, FLASH_INSTRUCTION_RDID, 8, readIdResponse, sizeof(readIdResponse));
+    uint8_t readIdResponse[5];
+    bool status = quadSpiReceive1LINE(quadSpiInstance, FLASH_INSTRUCTION_RDID, 0, readIdResponse, sizeof(readIdResponse));
     if (!status) {
         return false;
     }
@@ -62,10 +64,10 @@ static bool flashQuadSpiInit(const flashConfig_t *flashConfig)
     flashDevice.io.mode = FLASHIO_QUADSPI;
     flashDevice.io.handle.quadSpi = quadSpiInstance;
 
-    // Manufacturer, memory type, and capacity
-    uint32_t chipID = (readIdResponse[0] << 16) | (readIdResponse[1] << 8) | (readIdResponse[2]);
-
 #if defined(USE_FLASH_W25N01G) || defined(USE_FLASH_W25M02G)
+    // Get chip ID. Discard first byte (dummy cycles)
+    chipID = (readIdResponse[1] << 16) | (readIdResponse[2] << 8) | (readIdResponse[3]);
+
     quadSpiSetDivisor(quadSpiInstance, QUADSPI_CLOCK_ULTRAFAST);
 
 #if defined(USE_FLASH_W25N01G)
@@ -80,6 +82,17 @@ static bool flashQuadSpiInit(const flashConfig_t *flashConfig)
     }
 #endif
 
+#endif
+
+#if defined(USE_FLASH_M25P16)
+    // Get chip ID: No Dummy cycles
+    chipID = (readIdResponse[0] << 16) | (readIdResponse[1] << 8) | (readIdResponse[2]);
+
+    quadSpiSetDivisor(quadSpiInstance, QUADSPI_CLOCK_FAST);
+
+    if (m25p16_detect(&flashDevice, chipID)) {
+        return true;
+    }
 #endif
 
     return false;

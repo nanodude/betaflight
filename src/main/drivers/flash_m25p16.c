@@ -28,6 +28,7 @@
 #ifdef USE_FLASH_M25P16
 
 #include "drivers/bus_spi.h"
+#include "drivers/bus_quadspi.h"
 #include "drivers/flash.h"
 #include "drivers/flash_impl.h"
 #include "drivers/io.h"
@@ -112,7 +113,7 @@ static void m25p16_enable(busDevice_t *bus)
 }
 #endif
 
-static void m25p16_transfer(busDevice_t *bus, const uint8_t *txData, uint8_t *rxData, int len)
+static void m25p16_spi_transfer(busDevice_t *bus, const uint8_t *txData, uint8_t *rxData, int len)
 {
 #ifdef USE_SPI_TRANSACTION
     spiBusTransactionTransfer(bus, txData, rxData, len);
@@ -126,14 +127,22 @@ static void m25p16_transfer(busDevice_t *bus, const uint8_t *txData, uint8_t *rx
 /**
  * Send the given command byte to the device.
  */
-static void m25p16_performOneByteCommand(busDevice_t *bus, uint8_t command)
+static void m25p16_performOneByteCommand(flashDeviceIO_t *io, uint8_t command)
 {
+    if (io->mode == FLASHIO_SPI) {
+        busDevice_t *busdev = io->handle.busdev;
 #ifdef USE_SPI_TRANSACTION
-    m25p16_transfer(bus, &command, NULL, 1);
+        m25p16_transfer(bus, &command, NULL, 1);
 #else
-    m25p16_enable(bus);
-    spiTransferByte(bus->busdev_u.spi.instance, command);
-    m25p16_disable(bus);
+        m25p16_enable(busdev);
+        spiTransferByte(busdev->busdev_u.spi.instance, command);
+        m25p16_disable(busdev);
+#endif
+    }
+#ifdef USE_QUADSPI
+    else if (io->mode == FLASHIO_QUADSPI) {
+        quadSpiTransmit1LINE(io->handle.quadSpi, command, 0, NULL, 0);
+    }
 #endif
 }
 
@@ -143,26 +152,34 @@ static void m25p16_performOneByteCommand(busDevice_t *bus, uint8_t command)
  */
 static void m25p16_writeEnable(flashDevice_t *fdevice)
 {
-    m25p16_performOneByteCommand(fdevice->io.handle.busdev, M25P16_INSTRUCTION_WRITE_ENABLE);
+    m25p16_performOneByteCommand(&fdevice->io, M25P16_INSTRUCTION_WRITE_ENABLE);
 
     // Assume that we're about to do some writing, so the device is just about to become busy
     fdevice->couldBeBusy = true;
 }
 
-static uint8_t m25p16_readStatus(busDevice_t *bus)
+static uint8_t m25p16_readStatus(flashDeviceIO_t *io)
 {
-    const uint8_t command[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
-    uint8_t in[2];
+    uint8_t status;
+    if (io->mode == FLASHIO_SPI) {
+        const uint8_t command[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
+        uint8_t in[2];
 
-    m25p16_transfer(bus, command, in, sizeof(command));
-
-    return in[1];
+        m25p16_spi_transfer(io->handle.busdev, command, in, sizeof(command));
+        status =  in[1];
+    }
+#ifdef USE_QUADSPI
+    else if (io->mode == FLASHIO_QUADSPI) {
+        quadSpiReceive1LINE(io->handle.quadSpi, M25P16_INSTRUCTION_READ_STATUS_REG, 0, &status, 1);
+    }
+#endif
+    return status;
 }
 
 static bool m25p16_isReady(flashDevice_t *fdevice)
 {
     // If couldBeBusy is false, don't bother to poll the flash chip for its status
-    fdevice->couldBeBusy = fdevice->couldBeBusy && ((m25p16_readStatus(fdevice->io.handle.busdev) & M25P16_STATUS_FLAG_WRITE_IN_PROGRESS) != 0);
+    fdevice->couldBeBusy = fdevice->couldBeBusy && ((m25p16_readStatus(&fdevice->io) & M25P16_STATUS_FLAG_WRITE_IN_PROGRESS) != 0);
 
     return !fdevice->couldBeBusy;
 }
@@ -252,7 +269,7 @@ bool m25p16_detect(flashDevice_t *fdevice, uint32_t chipID)
 
     if (fdevice->geometry.totalSize > 16 * 1024 * 1024) {
         fdevice->isLargeFlash = true;
-        m25p16_performOneByteCommand(fdevice->io.handle.busdev, W25Q256_INSTRUCTION_ENTER_4BYTE_ADDRESS_MODE);
+        m25p16_performOneByteCommand(&fdevice->io, W25Q256_INSTRUCTION_ENTER_4BYTE_ADDRESS_MODE);
     }
 
     fdevice->couldBeBusy = true; // Just for luck we'll assume the chip could be busy even though it isn't specced to be
@@ -276,17 +293,23 @@ static void m25p16_setCommandAddress(uint8_t *buf, uint32_t address, bool useLon
 static void m25p16_eraseSector(flashDevice_t *fdevice, uint32_t address)
 {
     address = TRANSLATE_ADDR(fdevice, address);
-    uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
-    m25p16_setCommandAddress(&out[1], address, isLargeFlash);
-
-    m25p16_setCommandAddress(&out[1], address, fdevice->isLargeFlash);
 
     m25p16_waitForReady(fdevice);
-
     m25p16_writeEnable(fdevice);
 
-    m25p16_transfer(fdevice->io.handle.busdev, out, NULL, fdevice->isLargeFlash ? 5 : 4);
+    if (fdevice->io.mode == FLASHIO_SPI) {
+        uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
+        m25p16_setCommandAddress(&out[1], address, isLargeFlash);
 
+        m25p16_setCommandAddress(&out[1], address, fdevice->isLargeFlash);
+
+        m25p16_spi_transfer(fdevice->io.handle.busdev, out, NULL, fdevice->isLargeFlash ? 5 : 4);
+    }
+#ifdef USE_QUADSPI
+    else if (fdevice->io.mode == FLASHIO_QUADSPI) {
+        quadSpiInstructionWithAddress1LINE(fdevice->io.handle.quadSpi, M25P16_INSTRUCTION_SECTOR_ERASE, 0, address, fdevice->isLargeFlash ? 32 : 24);
+    }
+#endif
     m25p16_setTimeout(fdevice, SECTOR_ERASE_TIMEOUT_MILLIS);
 }
 
@@ -296,7 +319,7 @@ static void m25p16_eraseCompletely(flashDevice_t *fdevice)
 
     m25p16_writeEnable(fdevice);
 
-    m25p16_performOneByteCommand(fdevice->io.handle.busdev, M25P16_INSTRUCTION_BULK_ERASE);
+    m25p16_performOneByteCommand(&fdevice->io, M25P16_INSTRUCTION_BULK_ERASE);
 
     m25p16_setTimeout(fdevice, BULK_ERASE_TIMEOUT_MILLIS);
 }
@@ -310,29 +333,35 @@ static void m25p16_pageProgramBegin(flashDevice_t *fdevice, uint32_t address)
 
 static void m25p16_pageProgramContinue(flashDevice_t *fdevice, const uint8_t *data, int length)
 {
-    uint8_t command[5] = { M25P16_INSTRUCTION_PAGE_PROGRAM };
-
-    m25p16_setCommandAddress(&command[1], fdevice->currentWriteAddress, fdevice->isLargeFlash);
-
     m25p16_waitForReady(fdevice);
 
     m25p16_writeEnable(fdevice);
 
-#ifdef USE_SPI_TRANSACTION
-    spiBusTransactionBegin(fdevice->io.handle.busdev);
-#else
-    m25p16_enable(fdevice->io.handle.busdev);
-#endif
+    if (fdevice->io.mode == FLASHIO_SPI) {
+        uint8_t command[5] = { M25P16_INSTRUCTION_PAGE_PROGRAM };
 
-    spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, command, NULL, fdevice->isLargeFlash ? 5 : 4);
-    spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, data, NULL, length);
+        m25p16_setCommandAddress(&command[1], fdevice->currentWriteAddress, fdevice->isLargeFlash);
 
 #ifdef USE_SPI_TRANSACTION
-    spiBusTransactionEnd(fdevice->io.handle.busdev);
+        spiBusTransactionBegin(fdevice->io.handle.busdev);
 #else
-    m25p16_disable(fdevice->io.handle.busdev);
+        m25p16_enable(fdevice->io.handle.busdev);
 #endif
 
+        spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, command, NULL, fdevice->isLargeFlash ? 5 : 4);
+        spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, data, NULL, length);
+
+#ifdef USE_SPI_TRANSACTION
+        spiBusTransactionEnd(fdevice->io.handle.busdev);
+#else
+        m25p16_disable(fdevice->io.handle.busdev);
+#endif
+    }
+#ifdef USE_QUADSPI
+    else if (fdevice->io.mode == FLASHIO_QUADSPI) {
+        quadSpiTransmitWithAddress1LINE(fdevice->io.handle.quadSpi, M25P16_INSTRUCTION_PAGE_PROGRAM, 0, fdevice->currentWriteAddress, fdevice->isLargeFlash ? 32 : 24, data, length);
+    }
+#endif
     fdevice->currentWriteAddress += length;
 
     m25p16_setTimeout(fdevice, DEFAULT_TIMEOUT_MILLIS);
@@ -378,30 +407,37 @@ static int m25p16_readBytes(flashDevice_t *fdevice, uint32_t address, uint8_t *b
 {
     address = TRANSLATE_ADDR(fdevice, address);
 
-    uint8_t command[5] = { M25P16_INSTRUCTION_READ_BYTES };
-
-    m25p16_setCommandAddress(&command[1], address, fdevice->isLargeFlash);
-
     if (!m25p16_waitForReady(fdevice)) {
         return 0;
     }
 
-#ifdef USE_SPI_TRANSACTION
-    spiBusTransactionBegin(fdevice->io.handle.busdev);
-#else
-    m25p16_enable(fdevice->io.handle.busdev);
-#endif
+    if (fdevice->io.mode == FLASHIO_SPI) {
+        uint8_t command[5] = { M25P16_INSTRUCTION_READ_BYTES };
 
-    spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, command, NULL, fdevice->isLargeFlash ? 5 : 4);
-    spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, NULL, buffer, length);
+        m25p16_setCommandAddress(&command[1], address, fdevice->isLargeFlash);
 
 #ifdef USE_SPI_TRANSACTION
-    spiBusTransactionEnd(fdevice->io.handle.busdev);
+        spiBusTransactionBegin(fdevice->io.handle.busdev);
 #else
-    m25p16_disable(fdevice->io.handle.busdev);
+        m25p16_enable(fdevice->io.handle.busdev);
 #endif
 
-    m25p16_setTimeout(fdevice, DEFAULT_TIMEOUT_MILLIS);
+        spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, command, NULL, fdevice->isLargeFlash ? 5 : 4);
+        spiTransfer(fdevice->io.handle.busdev->busdev_u.spi.instance, NULL, buffer, length);
+
+#ifdef USE_SPI_TRANSACTION
+        spiBusTransactionEnd(fdevice->io.handle.busdev);
+#else
+        m25p16_disable(fdevice->io.handle.busdev);
+#endif
+
+        m25p16_setTimeout(fdevice, DEFAULT_TIMEOUT_MILLIS);
+    }
+#ifdef USE_QUADSPI
+    else if (fdevice->io.mode == FLASHIO_QUADSPI) {
+        quadSpiReceiveWithAddress1LINE(fdevice->io.handle.quadSpi, M25P16_INSTRUCTION_READ_BYTES, 0, address, fdevice->isLargeFlash ? 32 : 24, buffer, length);
+    }
+#endif
 
     return length;
 }
