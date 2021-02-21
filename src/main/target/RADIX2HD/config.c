@@ -33,7 +33,7 @@
 
 #include "pg/pinio.h"
 #include "pg/piniobox.h"
-
+#include "pg/sdcard.h"
 
 void targetConfiguration(void)
 {
@@ -43,8 +43,6 @@ void targetConfiguration(void)
     pinioConfigMutable()->config[0] = PINIO_CONFIG_MODE_OUT_PP | PINIO_CONFIG_OUT_INVERTED;
     pinioBoxConfigMutable()->permanentId[0] = 40;
 
-    // USER2: Camera switch
-    pinioConfigMutable()->config[1] = PINIO_CONFIG_MODE_OUT_PP;
-    pinioBoxConfigMutable()->permanentId[1] = 41;
+    //sdcardConfigMutable()->useDma = true;
 }
 #endif
