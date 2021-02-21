@@ -300,9 +300,15 @@ static bool sdcard_sendDataBlockFinish(void)
 #ifdef USE_HAL_DRIVER
     // Drain anything left in the Rx FIFO (we didn't read it during the write)
     //This is necessary here as when using msc there is timing issue
+#if defined(STM32F4) || defined(STM32G4) || defined(STM32F7)
     while (LL_SPI_IsActiveFlag_RXNE(sdcard.busdev.busdev_u.spi.instance)) {
         sdcard.busdev.busdev_u.spi.instance->DR;
     }
+#elif defined(STM32H7)
+    while (LL_SPI_IsActiveFlag_RXP(sdcard.busdev.busdev_u.spi.instance)) {
+        sdcard.busdev.busdev_u.spi.instance->RXDR;
+    }
+#endif
 #endif
 
     // Send a dummy CRC
@@ -342,11 +348,20 @@ static void sdcard_sendDataBlockBegin(const uint8_t *buffer, bool multiBlockWrit
 
         LL_DMA_StructInit(&init);
 
+#if defined(STM32H7) || defined(STM32G4)
+        init.PeriphRequest =  dmaGetChannel(sdcard.dmaChannel);;
+#else
         init.Channel = dmaGetChannel(sdcard.dmaChannel);
+#endif
+
         init.Mode = LL_DMA_MODE_NORMAL;
         init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
 
+#if defined(STM32F4) || defined(STM32G4) || defined(STM32F7)
         init.PeriphOrM2MSrcAddress = (uint32_t)&sdcard.busdev.busdev_u.spi.instance->DR;
+#elif defined(STM32H7)
+        init.PeriphOrM2MSrcAddress = (uint32_t)&sdcard.busdev.busdev_u.spi.instance->TXDR;
+#endif
         init.Priority = LL_DMA_PRIORITY_LOW;
         init.PeriphOrM2MSrcIncMode  = LL_DMA_PERIPH_NOINCREMENT;
         init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_BYTE;
@@ -356,6 +371,15 @@ static void sdcard_sendDataBlockBegin(const uint8_t *buffer, bool multiBlockWrit
         init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
 
         init.NbData = SDCARD_BLOCK_SIZE;
+
+#if defined(STM32H7)
+        /*
+         the SCB_CleanDCache_by_Addr() requires a 32-Byte aligned address
+         adjust the address and the D-Cache size to clean accordingly.
+         */
+        uint32_t alignedAddr = (uint32_t)buffer &  ~0x1F;
+        SCB_CleanDCache_by_Addr((uint32_t*)alignedAddr, SDCARD_BLOCK_SIZE + ((uint32_t)buffer - alignedAddr));
+#endif
 
         LL_DMA_DeInit(sdcard.dma->dma, sdcard.dma->stream);
         LL_DMA_Init(sdcard.dma->dma, sdcard.dma->stream, &init);
@@ -735,10 +759,15 @@ static bool sdcardSpi_poll(void)
                 DMA_CLEAR_FLAG(sdcard.dma, DMA_IT_TCIF);
                 DMA_CLEAR_FLAG(sdcard.dma, DMA_IT_HTIF);
                 // Drain anything left in the Rx FIFO (we didn't read it during the write)
+#if defined(STM32F4) || defined(STM32G4) || defined(STM32F7)
                 while (LL_SPI_IsActiveFlag_RXNE(sdcard.busdev.busdev_u.spi.instance)) {
                     sdcard.busdev.busdev_u.spi.instance->DR;
                 }
-
+#elif defined(STM32H7)
+                while (LL_SPI_IsActiveFlag_RXP(sdcard.busdev.busdev_u.spi.instance)) {
+                    sdcard.busdev.busdev_u.spi.instance->RXDR;
+                }
+#endif
                 // Wait for the final bit to be transmitted
                 while (spiBusIsBusBusy(&sdcard.busdev)) {
                 }
