@@ -149,12 +149,19 @@ bool ws2811LedStripHardwareInit(ioTag_t ioTag)
 
     TIM_OC_InitTypeDef TIM_OCInitStructure;
 
+
     /* PWM1 Mode configuration: Channel1 */
     TIM_OCInitStructure.OCMode = TIM_OCMODE_PWM1;
     TIM_OCInitStructure.OCIdleState = TIM_OCIDLESTATE_RESET;
-    TIM_OCInitStructure.OCPolarity = (timerHardware->output & TIMER_OUTPUT_INVERTED) ? TIM_OCPOLARITY_LOW : TIM_OCPOLARITY_HIGH;
     TIM_OCInitStructure.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-    TIM_OCInitStructure.OCNPolarity = (timerHardware->output & TIMER_OUTPUT_INVERTED) ? TIM_OCNPOLARITY_LOW : TIM_OCNPOLARITY_HIGH;
+#if defined(LIGHT_WS2811_INVERTED)
+    TIM_OCInitStructure.OCPolarity = TIM_OCPOLARITY_LOW;
+    TIM_OCInitStructure.OCNPolarity = TIM_OCNPOLARITY_LOW;
+#else
+    TIM_OCInitStructure.OCPolarity = TIM_OCPOLARITY_HIGH;
+    TIM_OCInitStructure.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+#endif
+
     TIM_OCInitStructure.Pulse = 0;
     TIM_OCInitStructure.OCFastMode = TIM_OCFAST_DISABLE;
     if (HAL_TIM_PWM_ConfigChannel(&TimHandle, &TIM_OCInitStructure, timerChannel) != HAL_OK) {
