@@ -142,8 +142,7 @@ void ws2811LedStripEnable(void)
         if (!ws2811LedStripHardwareInit(ledStripIoTag)) {
             return;
         }
-STATIC_UNIT_TESTED uint16_t dmaBufferOffset;
-static int16_t ledIndex;
+
         const hsvColor_t hsv_black = { 0, 0, 0 };
         setStripColor(&hsv_black);
         // RGB or GRB ordering doesn't matter for black
