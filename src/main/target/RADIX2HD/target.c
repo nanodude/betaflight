@@ -31,7 +31,7 @@
 #include "brainfpv/brainfpv_system.h"
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-    DEF_TIM(TIM17, CH1, PB9,   TIM_USE_LED,                 TIMER_OUTPUT_INVERTED,  0,  0 ), // LED Strip
+    DEF_TIM(TIM17, CH1, PB9,   TIM_USE_LED,                 TIMER_OUTPUT_INVERTED,  10,  0 ), // LED Strip
     DEF_TIM(TIM12, CH2, PB15,  TIM_USE_PPM,                 0,  0,  0 ), // PPM input
 
     DEF_TIM(TIM2,  CH1, PA15,  TIM_USE_MOTOR,               0,  0,  0 ), // M1
