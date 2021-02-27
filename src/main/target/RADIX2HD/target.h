@@ -68,6 +68,8 @@
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
+// Pin on HD connector
+//#define UART3_RX_PIN            PD9
 #define UART3_TX_PIN            PD8
 
 #define USE_UART4
