@@ -878,6 +878,17 @@ SLOW_CODE void init(void)
             if (!(initFlags & SD_INIT_ATTEMPTED)) {
                 initFlags |= SD_INIT_ATTEMPTED;
                 sdCardAndFSInit();
+
+                // Fully initialize FS here
+                afatfsFilesystemState_e afatfsState;
+                for (int i=0; i<500; i++) {
+                    afatfs_poll();
+                    afatfsState = afatfs_getFilesystemState();
+                    if ((afatfsState == AFATFS_FILESYSTEM_STATE_READY) || (afatfsState == AFATFS_FILESYSTEM_STATE_FATAL)) {
+                        break;
+                    }
+                    delay(1);
+                }
             }
         }
     }
