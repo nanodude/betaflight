@@ -22,8 +22,6 @@
 
 #include <stdbool.h>
 
-//#define DEBUG_PRINTF
-
 #define TARGET_BOARD_IDENTIFIER "RDX2HD"
 #define USBD_PRODUCT_STRING "BrainFPV RADIX 2 HD"
 
@@ -234,3 +232,13 @@ extern bool brainfpv_settings_updated_from_cms;
 
 void CustomSystemReset(void);
 void brainFPVUpdateSettings(void);
+
+//#define USE_BRAINFPV_DEBUG_PRINTF
+#if defined(USE_BRAINFPV_DEBUG_PRINTF)
+#define DEBUG_PRINTF_UARTDEV UARTDEV_2
+#define DEBUG_UART_RX_PIN    PD6
+#define DEBUG_UART_TX_PIN    PD5
+#define UART2_RX_DMA_OPT DMA_OPT_UNUSED
+#define UART2_TX_DMA_OPT DMA_OPT_UNUSED
+#endif
+
