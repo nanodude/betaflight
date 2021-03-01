@@ -161,8 +161,6 @@ int main()
 
   st_lld_init();
 
-  brainFPVSystemInit();
-
   chBSemObjectInit(&gyroSem, FALSE);
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)

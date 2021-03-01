@@ -174,6 +174,7 @@
 #include "hardware_revision.h"
 #endif
 
+#include "brainfpv/brainfpv_system.h"
 #ifdef USE_BRAINFPV_FPGA
 #include "fpga_drv.h"
 #endif
@@ -346,6 +347,10 @@ SLOW_CODE void init(void)
         SPI_AND_QSPI_INIT_ATTEMPTED      = (1 << 2),
     };
     uint8_t initFlags = 0;
+
+#if defined(BRAINFPV)
+    brainFPVSystemInit();
+#endif
 
 
 #ifdef CONFIG_IN_SDCARD
