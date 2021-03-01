@@ -27,11 +27,17 @@
 #include "brainfpv/brainfpv_system.h"
 
 #include "config/config.h"
+#include "common/printf_serial.h"
 #include "flight/mixer.h"
+#include "io/serial.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/light_led.h"
 #include "io/beeper.h"
+#include "drivers/serial_uart.h"
+#include "drivers/serial_uart_impl.h"
+
+#include "pg/serial_uart.h"
 
 #if defined(BRAINFPV)
 
@@ -43,7 +49,6 @@ PG_RESET_TEMPLATE(brainFpvSystemConfig_t, brainFpvSystemConfig,
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(brainFpvSystemConfig_t, brainFpvSystemConfig, PG_BRAINFPV_SYSTEM_CONFIG, 0);
-
 
 #if defined(USE_VTXFAULT_PIN)
 IO_t vtx_fault_pin;
@@ -80,6 +85,30 @@ void brainFPVSystemInit(void)
 #if defined(USE_VTXFAULT_PIN)
     vtxFaultInit();
 #endif /* defined(USE_VTXFAULT_PIN) */
+
+#if defined(USE_BRAINFPV_DEBUG_PRINTF)
+    // UART pins are not yet configured when this is called
+    serialPinConfig_t tmpSerialPinConfig;
+
+    for (uint8_t i=0; i<UARTDEV_COUNT; i++) {
+        tmpSerialPinConfig.ioTagRx[i] = uartHardware[i].rxPins[0].pin;
+        tmpSerialPinConfig.ioTagTx[i] = uartHardware[i].txPins[0].pin;
+    }
+
+    tmpSerialPinConfig.ioTagRx[DEBUG_PRINTF_UARTDEV] = DEFIO_TAG_E(DEBUG_UART_RX_PIN);
+    tmpSerialPinConfig.ioTagTx[DEBUG_PRINTF_UARTDEV] = DEFIO_TAG_E(DEBUG_UART_TX_PIN);
+
+    uartPinConfigure(&tmpSerialPinConfig);
+
+    serialUartConfigMutable(DEBUG_PRINTF_UARTDEV)->txDmaopt = DMA_OPT_UNUSED;
+    serialUartConfigMutable(DEBUG_PRINTF_UARTDEV)->rxDmaopt = DMA_OPT_UNUSED;
+
+    serialPort_t * port = uartOpen(DEBUG_PRINTF_UARTDEV, NULL, NULL, 1000000, MODE_RXTX, SERIAL_NOT_INVERTED);
+
+    printfSerialInit();
+    setPrintfSerialPort(port);
+    tfp_printf("DEBUG Print Init\n\r");
+#endif
 }
 
 #if defined(USE_BRAINFPV_BOOTLOADER)
