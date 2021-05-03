@@ -108,7 +108,7 @@ int menuChainBack;
 
 bool cmsDisplayPortRegister(displayPort_t *pDisplay)
 {
-    if (cmsDeviceCount >= CMS_MAX_DEVICE) {
+    if (!pDisplay || cmsDeviceCount >= CMS_MAX_DEVICE) {
         return false;
     }
 
