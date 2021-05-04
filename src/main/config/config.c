@@ -95,6 +95,10 @@ static bool rebootRequired = false;  // set if a config change requires a reboot
 
 pidProfile_t *currentPidProfile;
 
+#if defined(BRAINFPV)
+#include "brainfpv/brainfpv_system.h"
+#endif
+
 #ifdef USE_BRAINFPV_OSD
 #include "brainfpv/brainfpv_osd.h"
 #endif
@@ -818,9 +822,13 @@ void ensureEEPROMStructureIsValid(void)
 
 void saveConfigAndNotify(void)
 {
+#if defined(BRAINFPV)
+    brainFPVSystemSetReq(BRAINFPV_REQ_SAVE_SETTINGS);
+#else
     writeEEPROM();
     readEEPROM();
     beeperConfirmationBeeps(1);
+#endif
 }
 
 void setConfigDirty(void)

@@ -31,6 +31,7 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/light_led.h"
+#include "io/beeper.h"
 
 #if defined(BRAINFPV)
 
@@ -87,6 +88,14 @@ void brainFPVSystemSetReq(BrainFPVSystemReq_t req)
     brainfpv_req = req;
 }
 
+
+void saveConfigAndNotifyBrainFPV(void)
+{
+    writeEEPROM();
+    readEEPROM();
+    beeperConfirmationBeeps(1);
+}
+
 // Execute request (called from betaflight system task)
 void brainFPVSystemCheck(void)
 {
@@ -98,10 +107,10 @@ void brainFPVSystemCheck(void)
             brainFPVUpdateSettings();
             break;
         case BRAINFPV_REQ_SAVE_SETTINGS:
-            saveConfigAndNotify();
+            saveConfigAndNotifyBrainFPV();
             break;
         case BRAINFPV_REQ_SAVE_SETTINGS_REBOOT:
-            saveConfigAndNotify();
+            saveConfigAndNotifyBrainFPV();
 
             stopMotors();
             motorShutdown();
