@@ -98,6 +98,7 @@
 #ifdef USE_BRAINFPV_OSD
 #include "brainfpv/brainfpv_osd.h"
 extern bool osdArming;
+static bool useBrainFPVOSD = false;
 #endif
 
 typedef enum {
@@ -446,6 +447,12 @@ void osdInit(displayPort_t *osdDisplayPortToUse, osdDisplayPortDevice_e displayP
     if (!osdDisplayPortToUse) {
         return;
     }
+
+#ifdef USE_BRAINFPV_OSD
+    if (VideoIsInitialized()) {
+        useBrainFPVOSD = true;
+    }
+#endif
 
     osdDisplayPort = osdDisplayPortToUse;
 #ifdef USE_CMS
@@ -903,7 +910,12 @@ timeDelta_t osdShowArmed(void)
     if ((osdConfig()->logo_on_arming == OSD_LOGO_ARMING_ON) || ((osdConfig()->logo_on_arming == OSD_LOGO_ARMING_FIRST) && !ARMING_FLAG(WAS_EVER_ARMED))) {
 #if defined(USE_BRAINFPV_OSD)
 #define GY (GRAPHICS_BOTTOM / 2 - 30)
-        brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
+        if (useBrainFPVOSD) {
+            brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
+        }
+        else {
+            osdDrawLogo(3, 1);
+        }
 #else
         osdDrawLogo(3, 1);
 #endif
@@ -922,9 +934,7 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
     static bool osdStatsEnabled = false;
-#if !defined(USE_BRAINFPV_OSD)
     static timeUs_t osdStatsRefreshTimeUs;
-#endif
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -966,12 +976,25 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             } else if (!IS_RC_MODE_ACTIVE(BOXOSD)) {
                 if (!osdStatsVisible) {
                     osdStatsVisible = true;
-#if !defined(USE_BRAINFPV_OSD)
+#ifdef USE_BRAINFPV_OSD
+                    if (!useBrainFPVOSD) {
+                        osdStatsRefreshTimeUs = 0;
+                    }
+#else
                     osdStatsRefreshTimeUs = 0;
 #endif
+
                 }
 #ifdef USE_BRAINFPV_OSD
-                osdRefreshStats();
+                if (useBrainFPVOSD) {
+                    osdRefreshStats();
+                }
+                else {
+                    if (currentTimeUs >= osdStatsRefreshTimeUs) {
+                        osdStatsRefreshTimeUs = currentTimeUs + REFRESH_1S;
+                        osdRefreshStats();
+                    }
+                }
 #else
                 if (currentTimeUs >= osdStatsRefreshTimeUs) {
                     osdStatsRefreshTimeUs = currentTimeUs + REFRESH_1S;
@@ -999,7 +1022,9 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdStatsEnabled = false;
             stats.armed_time = 0;
 #ifdef USE_BRAINFPV_OSD
-            osdArming = false;
+            if (useBrainFPVOSD) {
+                osdArming = false;
+            }
 #endif
         }
     }
@@ -1061,17 +1086,13 @@ void osdUpdate(timeUs_t currentTimeUs)
 #endif
 
     // redraw values in buffer
-#ifdef USE_BRAINFPV_OSD
-#define DRAW_FREQ_DENOM   1
-#else
-#ifdef USE_MAX7456
 #define DRAW_FREQ_DENOM 5
-#else
-#define DRAW_FREQ_DENOM 10 // MWOSD @ 115200 baud (
-#endif
-#endif
 
+#ifdef USE_BRAINFPV_OSD
+    if (useBrainFPVOSD || (counter % DRAW_FREQ_DENOM == 0)) {
+#else
     if (counter % DRAW_FREQ_DENOM == 0) {
+#endif
         osdRefresh(currentTimeUs);
         showVisualBeeper = false;
     } else {

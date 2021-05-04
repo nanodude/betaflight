@@ -350,7 +350,11 @@ void tasksInit(void)
 #endif
 
 #ifdef USE_OSD
+#ifdef USE_BRAINFPV_OSD
+    setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && osdInitialized() && !VideoIsInitialized());
+#else
     setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && osdInitialized());
+#endif
 #endif
 
 #ifdef USE_BST
@@ -369,11 +373,19 @@ void tasksInit(void)
     setTaskEnabled(TASK_PINIOBOX, true);
 #endif
 
-#if defined(CMS) && !defined(BRAINFPV)
+#ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
+#ifdef USE_BRAINFPV_OSD
+    setTaskEnabled(TASK_CMS, !VideoIsInitialized());
+#else
     setTaskEnabled(TASK_CMS, true);
+#endif
+#else
+#ifdef USE_BRAINFPV_OSD
+    setTaskEnabled(TASK_CMS, (featureIsEnabled(FEATURE_OSD) || featureIsEnabled(FEATURE_DASHBOARD)) && !VideoIsInitialized());
 #else
     setTaskEnabled(TASK_CMS, featureIsEnabled(FEATURE_OSD) || featureIsEnabled(FEATURE_DASHBOARD));
+#endif
 #endif
 #endif
 
@@ -461,7 +473,7 @@ task_t tasks[TASK_COUNT] = {
     [TASK_DASHBOARD] = DEFINE_TASK("DASHBOARD", NULL, NULL, dashboardUpdate, TASK_PERIOD_HZ(10), TASK_PRIORITY_LOW),
 #endif
 
-#if defined(USE_OSD) && !defined(BRAINFPV)
+#if defined(USE_OSD)
     [TASK_OSD] = DEFINE_TASK("OSD", NULL, NULL, osdUpdate, TASK_PERIOD_HZ(60), TASK_PRIORITY_LOW),
 #endif
 

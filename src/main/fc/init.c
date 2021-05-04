@@ -1027,7 +1027,7 @@ SLOW_CODE void init(void)
     }
 #endif // USE_OSD
 
-#if defined(USE_CMS) && defined(USE_MSP_DISPLAYPORT) && !defined(USE_BRAINFPV_OSD)
+#if defined(USE_CMS) && defined(USE_MSP_DISPLAYPORT)
     // If BFOSD is not active, then register MSP_DISPLAYPORT as a CMS device.
     if (!osdDisplayPort) {
         cmsDisplayPortRegister(displayPortMspInit());

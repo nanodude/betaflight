@@ -127,6 +127,10 @@
 #if defined(USE_BRAINFPV_OSD)
 #include "brainfpv/brainfpv_osd.h"
 extern bool brainfpv_show_crsf_link_info;
+osdElementDrawFn osdElementDrawFunctionRAM[OSD_ITEM_COUNT];
+#define osdElementDrawFunctionUse osdElementDrawFunctionRAM
+#else
+#define osdElementDrawFunctionUse osdElementDrawFunction
 #endif // USE_BRAINFPV_OSD
 
 #define AH_SYMBOL_COUNT 9
@@ -574,7 +578,8 @@ static void osdElementAntiGravity(osdElementParms_t *element)
     }
 }
 
-#if defined(USE_ACC) && !defined(USE_BRAINFPV_OSD)
+#ifdef USE_ACC
+
 static void osdElementArtificialHorizon(osdElementParms_t *element)
 {
     // Get pitch and roll limits in tenths of degrees
@@ -706,7 +711,7 @@ static void osdElementCrashFlipArrow(osdElementParms_t *element)
 }
 #endif // USE_ACC
 
-static void osdBackgroundCrosshairs(osdElementParms_t *element)
+static void osdElementCrosshairs(osdElementParms_t *element)
 {
     element->buff[0] = SYM_AH_CENTER_LINE;
     element->buff[1] = SYM_AH_CENTER;
@@ -874,7 +879,6 @@ static void osdElementGpsFlightDistance(osdElementParms_t *element)
     }
 }
 
-#if !defined(USE_BRAINFPV_OSD)
 static void osdElementGpsHomeDirection(osdElementParms_t *element)
 {
     if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
@@ -892,7 +896,6 @@ static void osdElementGpsHomeDirection(osdElementParms_t *element)
 
     element->buff[1] = 0;
 }
-#endif
 
 static void osdElementGpsHomeDistance(osdElementParms_t *element)
 {
@@ -1633,18 +1636,18 @@ static const uint8_t osdElementDisplayOrder[] = {
 // Define the mapping between the OSD element id and the function to draw it
 
 const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
-    [OSD_RSSI_VALUE]              = osdElementRssi_BrainFPV,
+    [OSD_RSSI_VALUE]              = osdElementRssi,
     [OSD_MAIN_BATT_VOLTAGE]       = osdElementMainBatteryVoltage,
-    [OSD_CROSSHAIRS]              = osdElementCrosshairs_BrainFPV,
+    [OSD_CROSSHAIRS]              = osdElementCrosshairs,
     [OSD_CAMERA_FRAME]            = NULL,  // only has background. Added first so it's the lowest "layer" and doesn't cover other elements
 #ifdef USE_ACC
-    [OSD_ARTIFICIAL_HORIZON]      = osdElementArtificialHorizon_BrainFPV,
+    [OSD_ARTIFICIAL_HORIZON]      = osdElementArtificialHorizon,
 #endif
-    [OSD_HORIZON_SIDEBARS]        = osdElementDummy_BrainFPV,
+    [OSD_HORIZON_SIDEBARS]        =  NULL,  // only has background
     [OSD_ITEM_TIMER_1]            = osdElementTimer,
     [OSD_ITEM_TIMER_2]            = osdElementTimer,
     [OSD_FLYMODE]                 = osdElementFlymode,
-    [OSD_CRAFT_NAME]              = osdElementCraftName_BrainFPV,
+    [OSD_CRAFT_NAME]              = NULL,  // only has background
     [OSD_THROTTLE_POS]            = osdElementThrottlePosition,
 #ifdef USE_VTX_COMMON
     [OSD_VTX_CHANNEL]             = osdElementVtxChannel,
@@ -1675,7 +1678,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_MAIN_BATT_USAGE]         = osdElementMainBatteryUsage,
     [OSD_DISARMED]                = osdElementDisarmed,
 #ifdef USE_GPS
-    [OSD_HOME_DIR]                = osdElementGpsHomeDirection_BrainFPV,
+    [OSD_HOME_DIR]                = osdElementGpsHomeDirection,
     [OSD_HOME_DIST]               = osdElementGpsHomeDistance,
 #endif
     [OSD_NUMERICAL_HEADING]       = osdElementNumericalHeading,
@@ -1711,7 +1714,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_FLIP_ARROW]              = osdElementCrashFlipArrow,
 #endif
 #ifdef USE_RX_LINK_QUALITY_INFO
-    [OSD_LINK_QUALITY]            = osdElementLinkQuality_BrainFPV,
+    [OSD_LINK_QUALITY]            = osdElementLinkQuality,
 #endif
 #ifdef USE_GPS
     [OSD_FLIGHT_DIST]             = osdElementGpsFlightDistance,
@@ -1745,7 +1748,6 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
 
 const osdElementDrawFn osdElementBackgroundFunction[OSD_ITEM_COUNT] = {
     [OSD_CAMERA_FRAME]            = osdBackgroundCameraFrame,
-    [OSD_CROSSHAIRS]              = osdBackgroundCrosshairs,
     [OSD_HORIZON_SIDEBARS]        = osdBackgroundHorizonSidebars,
     [OSD_CRAFT_NAME]              = osdBackgroundCraftName,
 #ifdef USE_OSD_STICK_OVERLAY
@@ -1808,7 +1810,7 @@ void osdAddActiveElements(void)
 
 static void osdDrawSingleElement(displayPort_t *osdDisplayPort, uint8_t item)
 {
-    if (!osdElementDrawFunction[item]) {
+    if (!osdElementDrawFunctionUse[item]) {
         // Element has no drawing function
         return;
     }
@@ -1830,7 +1832,7 @@ static void osdDrawSingleElement(displayPort_t *osdDisplayPort, uint8_t item)
     element.attr = DISPLAYPORT_ATTR_NONE;
 
     // Call the element drawing function
-    osdElementDrawFunction[item](&element);
+    osdElementDrawFunctionUse[item](&element);
     if (element.drawElement) {
         osdDisplayWrite(&element, elemPosX, elemPosY, element.attr, buff);
     }
@@ -1903,6 +1905,20 @@ void osdElementsInit(bool backgroundLayerFlag)
 {
     backgroundLayerSupported = backgroundLayerFlag;
     activeOsdElementCount = 0;
+
+#if defined(USE_BRAINFPV_OSD)
+    // Copy elements to RAM and overwrite BrainFPV ones if OSD is active
+    memcpy(osdElementDrawFunctionRAM, osdElementDrawFunction, sizeof(osdElementDrawFunctionRAM));
+    if (VideoIsInitialized()) {
+        osdElementDrawFunctionRAM[OSD_RSSI_VALUE] = osdElementRssi_BrainFPV;
+        osdElementDrawFunctionRAM[OSD_CROSSHAIRS] = osdElementCrosshairs_BrainFPV;
+        osdElementDrawFunctionRAM[OSD_ARTIFICIAL_HORIZON] = osdElementArtificialHorizon_BrainFPV;
+        osdElementDrawFunctionRAM[OSD_CRAFT_NAME] = osdElementCraftName_BrainFPV;
+        osdElementDrawFunctionRAM[OSD_HOME_DIR] = osdElementCraftName_BrainFPV;
+        osdElementDrawFunctionRAM[OSD_LINK_QUALITY] = osdElementLinkQuality_BrainFPV;
+
+    }
+#endif
 }
 
 void osdResetAlarms(void)
