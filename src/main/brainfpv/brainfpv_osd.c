@@ -169,6 +169,10 @@ bool brainfpv_show_crsf_link_info;
 
 bool brainfpv_user_avatar_set = false;
 bool brainfpv_hd_frame_menu = false;
+
+static uint16_t crosshair_x;
+static uint16_t crosshair_y;
+
 extern bfOsdConfig_t bfOsdConfigCms;
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
@@ -538,6 +542,9 @@ void osdMain(void) {
     uint32_t key_time = 0;
     uint32_t currentTime;
 
+    crosshair_x = GRAPHICS_X_MIDDLE;
+    crosshair_y = GRAPHICS_Y_MIDDLE;
+
     while (1) {
         if (chBSemWaitTimeout(&onScreenDisplaySemaphore, TIME_MS2I(500)) == MSG_TIMEOUT) {
             // No trigger received within 500ms, re-enable the video
@@ -808,8 +815,8 @@ void draw_map_uav_center()
     // Get home direction relative to UAV
     int16_t home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
-    x = GRAPHICS_X_MIDDLE + roundf(dist_to_home_px * sinf(home_dir * (float)(M_PI / 180)));
-    y = GRAPHICS_Y_MIDDLE - roundf(dist_to_home_px * cosf(home_dir * (float)(M_PI / 180)));
+    x = crosshair_x + roundf(dist_to_home_px * sinf(home_dir * (float)(M_PI / 180)));
+    y = crosshair_y - roundf(dist_to_home_px * cosf(home_dir * (float)(M_PI / 180)));
 
     // draw H to indicate home
     draw_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
@@ -873,7 +880,7 @@ void osdElementDummy_BrainFPV(osdElementParms_t *element)
 void osdElementArtificialHorizon_BrainFPV(osdElementParms_t *element)
 {
     simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
-                              GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
+                              crosshair_x, crosshair_y,
                               GRAPHICS_BOTTOM * 0.8f, GRAPHICS_RIGHT * 0.8f, 30,
                               bfOsdConfig()->ahi_steps);
     element->drawElement = false;
@@ -911,12 +918,16 @@ void osdElementCraftName_BrainFPV(osdElementParms_t *element)
 #define CENTER_RUDDER     5
 void osdElementCrosshairs_BrainFPV(osdElementParms_t *element)
 {
-    draw_hline_outlined(GRAPHICS_X_MIDDLE - CENTER_WING - CENTER_BODY,
-                        GRAPHICS_X_MIDDLE - CENTER_BODY, GRAPHICS_Y_MIDDLE, 0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
-    draw_hline_outlined(GRAPHICS_X_MIDDLE + CENTER_BODY + 1,
-                        GRAPHICS_X_MIDDLE + 1 + CENTER_BODY + CENTER_WING, GRAPHICS_Y_MIDDLE, 0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
-    draw_vline_outlined(GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE - CENTER_RUDDER - CENTER_BODY,
-                        GRAPHICS_Y_MIDDLE - CENTER_BODY,  0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+    // Crosshair position is also used for map and AHI center
+    crosshair_x = MAX_X(element->elemPosX);
+    crosshair_y = MAX_Y(element->elemPosY);
+
+    draw_hline_outlined(crosshair_x - CENTER_WING - CENTER_BODY,
+                        crosshair_x - CENTER_BODY, crosshair_y, 0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+    draw_hline_outlined(crosshair_x + CENTER_BODY + 1,
+                        crosshair_x + 1 + CENTER_BODY + CENTER_WING, crosshair_y, 0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+    draw_vline_outlined(crosshair_x, crosshair_y - CENTER_RUDDER - CENTER_BODY,
+                        crosshair_y - CENTER_BODY,  0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
 
     element->drawElement = false;
 }
