@@ -286,7 +286,7 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_e mode, 
             IOConfigGPIOAF(txIO, IOCFG_AF_PP_UP, hardware->af);
         }
         else {
-            IOConfigGPIOAF(txIO, (options & SERIAL_BIDIR_PP) ? IOCFG_AF_PP : IOCFG_AF_OD, hardware->af);
+            IOConfigGPIOAF(txIO, ((options & SERIAL_BIDIR_PP) || (options & SERIAL_BIDIR_PP_PD)) ? IOCFG_AF_PP : IOCFG_AF_OD, hardware->af);
         }
 #ifdef BRAINRE1
         // hack: enable normal serial for UART6
