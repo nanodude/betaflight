@@ -57,6 +57,9 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM8,  CH3, PC8,   TIM_USE_MOTOR,               0,  6,  2 ), // M6
     DEF_TIM(TIM1,  CH3, PE13,  TIM_USE_MOTOR,               0,  5,  1 ), // M7
     DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_MOTOR,               0,  4,  1 ), // M8
+
+    DEF_TIM(TIM15, CH1, PA2,  TIM_USE_NONE,                 0,  0,  0 ), // Also TX2. Can be used for servo
+    DEF_TIM(TIM15, CH2, PA3,  TIM_USE_NONE,                 0,  0,  0 ), // Also RX2. Can be used for servo
 };
 
 #if defined(USE_CUSTOM_RESET)
