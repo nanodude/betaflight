@@ -1914,7 +1914,7 @@ void osdElementsInit(bool backgroundLayerFlag)
         osdElementDrawFunctionRAM[OSD_CROSSHAIRS] = osdElementCrosshairs_BrainFPV;
         osdElementDrawFunctionRAM[OSD_ARTIFICIAL_HORIZON] = osdElementArtificialHorizon_BrainFPV;
         osdElementDrawFunctionRAM[OSD_CRAFT_NAME] = osdElementCraftName_BrainFPV;
-        osdElementDrawFunctionRAM[OSD_HOME_DIR] = osdElementCraftName_BrainFPV;
+        osdElementDrawFunctionRAM[OSD_HOME_DIR] = osdElementGpsHomeDirection_BrainFPV;
         osdElementDrawFunctionRAM[OSD_LINK_QUALITY] = osdElementLinkQuality_BrainFPV;
 
     }
