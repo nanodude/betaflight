@@ -31,10 +31,10 @@
 MEMORY
 {
     ITCM_RAM (rwx)    : ORIGIN = 0x00000000, LENGTH = 64K
-    DTCM_RAM (rwx)    : ORIGIN = 0x20000000, LENGTH = 128K
+    DTCM_RAM_INIT (rwx) : ORIGIN = 0x20000000, LENGTH = 16K  /* DTCM RAM loaded by bootloader. 32K max */
+    DTCM_RAM (rwx)      : ORIGIN = 0x20004000, LENGTH = 112K /* Not loaded by bootloader */
 
-    CODE_RAM (rwx)    : ORIGIN = 0x24000000, LENGTH = 448K
-    RAM (rwx)         : ORIGIN = 0x24070000, LENGTH = 64K
+    CODE_RAM (rwx)    : ORIGIN = 0x24000000, LENGTH = 512K
 
     D2_RAM (rwx)      : ORIGIN = 0x30000000, LENGTH = 240K /* SRAM1 + SRAM2 */
     D2_DMA_RAM (rwx)  : ORIGIN = 0x3003C000, LENGTH = 16K  /* Needs to be at address that aligns to size for MPU to work */
@@ -159,7 +159,22 @@ SECTIONS
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
-  } >RAM
+  } >DTCM_RAM_INIT
+
+  /* Initialized FAST_RAM section for unsuspecting developers */
+  .fastram_data :
+  {
+    . = ALIGN(4);
+    _sfastram_data = .;        /* create a global symbol at data start */
+    *(.fastram_data)           /* .data sections */
+    *(.fastram_data*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _efastram_data = .;        /* define a global symbol at data end */
+  } >DTCM_RAM_INIT
+
+  /* used during startup to initialized fastram_data */
+  _sfastram_idata = LOADADDR(.fastram_data);
 
   /* Uninitialized data section */
   . = ALIGN(4);
@@ -175,7 +190,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >RAM
+  } >DTCM_RAM
 
   /* Uninitialized data section */
   . = ALIGN(4);
@@ -190,22 +205,7 @@ SECTIONS
     . = ALIGN(4);
     _esram2 = .;         /* define a global symbol at sram2 end */
     __sram2_end__ = _esram2;
-  } >RAM
-
-  /* used during startup to initialized fastram_data */
-  _sfastram_idata = LOADADDR(.fastram_data);
-
-  /* Initialized FAST_RAM section for unsuspecting developers */
-  .fastram_data :
-  {
-    . = ALIGN(4);
-    _sfastram_data = .;        /* create a global symbol at data start */
-    *(.fastram_data)           /* .data sections */
-    *(.fastram_data*)          /* .data* sections */
-
-    . = ALIGN(4);
-    _efastram_data = .;        /* define a global symbol at data end */
-  } >FASTRAM
+  } >DTCM_RAM
 
   . = ALIGN(4);
   .fastram_bss (NOLOAD) :
@@ -218,7 +218,7 @@ SECTIONS
     . = ALIGN(4);
     _efastram_bss = .;
     __fastram_bss_end__ = _efastram_bss;
-  } >FASTRAM
+  } >DTCM_RAM
   
   /* D2 RAM */  
   slow_const = LOADADDR(.slow_const); 
@@ -272,7 +272,7 @@ SECTIONS
     *(.persistent_data)
     . = ALIGN(4);
     __persistent_data_end__ = .;
-  } >RAM
+  } >D2_RAM
 
   /* Special section for process stack.*/
   .pstack :
