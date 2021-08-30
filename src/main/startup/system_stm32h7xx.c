@@ -66,6 +66,7 @@
 #include "platform.h"
 #include "string.h"
 #include "common/utils.h"
+#include "target.h"
 
 #include "build/debug.h"
 
@@ -629,7 +630,7 @@ void SystemInit (void)
     initialiseMemorySections();
 #endif
 
-#if !defined(USE_EXST)
+#if !defined(USE_EXST) && !defined(USE_BRAINFPV_BOOTLOADER)
     // only stand-alone and bootloader firmware needs to do this.
     // if it's done in the EXST firmware as well as the BOOTLOADER firmware you get a reset loop.
     systemCheckResetReason();
