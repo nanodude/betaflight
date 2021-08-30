@@ -40,10 +40,6 @@
 #include "timer.h"
 #include "timer_impl.h"
 
-#if defined(USE_CHIBIOS)
-#include "mcuconf.h"
-#endif
-
 #define TIM_N(n) (1 << (n))
 
 /*
