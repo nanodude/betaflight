@@ -27,6 +27,12 @@
 #ifndef HAL_ST_LLD_H
 #define HAL_ST_LLD_H
 
+#include "platform.h"
+#include "target.h"
+
+#include "stm32_tim.h"
+#include "stm32_registry.h"
+
 /*===========================================================================*/
 /* Driver constants.                                                         */
 /*===========================================================================*/
