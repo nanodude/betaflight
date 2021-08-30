@@ -61,8 +61,10 @@ void FAST_CODE FAST_CODE_NOINLINE run(void)
 
 #if defined(USE_CHIBIOS)
 #include "ch.h"
-#include "hal.h"
+#include "hal_st.h"
 #include "nvic.h"
+
+extern uint32_t __process_stack_end__;
 
 binary_semaphore_t gyroSem;
 volatile bool idleCounterClear = 0;
@@ -79,7 +81,7 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 2048);
+static THD_WORKING_AREA(waBetaFlightThread, 1024);
 static THD_FUNCTION(BetaFlightThread, arg)
 {
     (void)arg;
@@ -146,48 +148,51 @@ static THD_FUNCTION(DummyThread, arg)
 
 uint8_t safe_boot = 0;
 
+#define CONTROL_MODE_PRIVILEGED             0
+#define CONTROL_USE_PSP                     2
+#define CONTROL_FPCA                        4
+#define CRT0_CONTROL_INIT (CONTROL_USE_PSP | CONTROL_MODE_PRIVILEGED | CONTROL_FPCA)
 int main()
 {
-#if (STM32_NO_INIT == TRUE)
-  init();
-#endif
+    // init ChibiOS
+    __set_PSP((uint32_t)&__process_stack_end__);
+    asm("movs    r0, %[ctl]\n\t" // Switch to thread mode with PSP
+        "msr     CONTROL, r0\n\t"
+        "isb\n\t":: [ctl] "i" (CRT0_CONTROL_INIT) : "r0");
 
-  halInit();
-  chSysInit();
+    stInit();
+    chSysInit();
 
-#if (STM32_NO_INIT == FALSE)
-  init();
-#endif
-
-  st_lld_init();
-
-  chBSemObjectInit(&gyroSem, FALSE);
+    chBSemObjectInit(&gyroSem, FALSE);
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
-  chBSemObjectInit(&spectrographDataReadySemaphore, FALSE);
+    chBSemObjectInit(&spectrographDataReadySemaphore, FALSE);
 #endif
 
-  chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
+    // Betaflight init
+    init();
+
+    chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
 
 #if defined(USE_BRAINFPV_OSD)
-  if (VideoIsInitialized()) {
-      chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
-  }
+    if (VideoIsInitialized()) {
+        chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
+    }
 #endif /* USE_BRAINFPV_OSD */
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
-  if (bfOsdConfig()->spec_enabled) {
-    spectrographInit();
-    chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
-  }
+    if (bfOsdConfig()->spec_enabled) {
+        spectrographInit();
+        chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
+    }
 #endif /* USE_BRAINFPV_SPECTROGRAPH */
 
 #if defined(USE_DUMMY_TASK)
-  chThdCreateStatic(waDummyThread, sizeof(waDummyThread), NORMALPRIO, DummyThread, NULL);
+    chThdCreateStatic(waDummyThread, sizeof(waDummyThread), NORMALPRIO, DummyThread, NULL);
 #endif
 
-  // sleep forever
-  chThdSleep(TIME_INFINITE);
+    // sleep forever
+    chThdSleep(TIME_INFINITE);
 }
 
 #endif /* defined(USE_CHIBIOS) */

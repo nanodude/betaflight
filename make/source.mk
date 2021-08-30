@@ -439,50 +439,6 @@ ifneq ($(filter VCP,$(FEATURES)),)
 SRC += $(VCP_SRC)
 endif
 
-ifneq ($(filter CHIBIOS,$(FEATURES)),)
-CHIBIOS := $(ROOT)/lib/main/ChibiOS
-
-
-ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
-include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
-INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32F4xx
-endif
-
-ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
-include $(CHIBIOS)/os/hal/ports/STM32/STM32H7xx/platform.mk
-INCLUDE_DIRS += $(CHIBIOS)/os/common/startup/ARMCMx/devices/STM32H7xx
-endif
-
-include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
-include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
-
-DEVICE_FLAGS += -DUSE_CHIBIOS -DCORTEX_USE_FPU=TRUE -DCORTEX_SIMPLIFIED_PRIORITY=TRUE $(DDEFS)
-
-
-SRC += $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/crt1.c
-SRC += $(STARTUPSRC)
-SRC += $(PLATFORMSRC)
-SRC += $(HALSRC)
-SRC += $(PORTSRC)
-SRC += $(KERNSRC)
-SRC += $(STARTUPASM)
-SRC += $(PORTASM)
-SRC += $(OSALASM)
-
-
-INCLUDE_DIRS += $(CHIBIOS)/os/license/
-INCLUDE_DIRS += $(CHIBIOS)//os/oslib/include/
-INCLUDE_DIRS += $(CHIBIOS)/os/common/ext/ST/STM32F4xx/
-
-INCLUDE_DIRS += $(STARTUPINC)
-INCLUDE_DIRS += $(KERNINC)
-INCLUDE_DIRS += $(PORTINC)
-INCLUDE_DIRS += $(OSALINC)
-INCLUDE_DIRS += $(HALINC)
-INCLUDE_DIRS += $(PLATFORMINC)
-endif
 
 ifneq ($(filter BRAINFPV,$(FEATURES)),)
 SRC += brainfpv/brainfpv_system.c \
@@ -500,9 +456,57 @@ ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
 SRC +=  $(ROOT)/lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c \
         $(ROOT)/lib/main/STM32H7/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_comp.c
 endif
-endif
-SRC += $(TARGET_SRC)
 
+INCLUDE_DIRS += $(ROOT)/src/main/brainfpv
+
+endif
+
+ifneq ($(filter CHIBIOS,$(FEATURES)),)
+CHIBIOS_DIR := $(ROOT)/lib/main/ChibiOS
+
+CHIBIOS_RT_DIR := $(CHIBIOS_DIR)/os/rt
+CHIBIOS_HAL_INC_DIR := $(CHIBIOS_DIR)/os/hal/include
+CHIBIOS_OSAL_DIR := $(CHIBIOS_DIR)/os/hal/osal/rt-nil
+CHIBIOS_PORT_DIR := $(CHIBIOS_DIR)/os/common/ports/ARMCMx
+CHIBIOS_HAL_LLD_DIR := $(CHIBIOS_DIR)/os/hal/ports/STM32/LLD
+CHIBIOS_HAL_PORT_DIR := $(CHIBIOS_DIR)/os/hal/ports/common/ARMCMx
+
+INCLUDE_DIRS += $(CHIBIOS_OSAL_DIR)
+INCLUDE_DIRS += $(CHIBIOS_RT_DIR)/include
+INCLUDE_DIRS += $(CHIBIOS_PORT_DIR)
+INCLUDE_DIRS += $(CHIBIOS_HAL_INC_DIR)
+INCLUDE_DIRS += $(CHIBIOS_HAL_PORT_DIR)
+INCLUDE_DIRS += $(CHIBIOS_PORT_DIR)/compilers/GCC
+INCLUDE_DIRS += $(CHIBIOS_DIR)/os/license
+INCLUDE_DIRS += $(CHIBIOS_DIR)/os/oslib/include
+INCLUDE_DIRS += $(CHIBIOS_HAL_LLD_DIR)/TIMv1
+
+SRC += $(wildcard $(CHIBIOS_RT_DIR)/src/*.c)
+SRC += $(wildcard $(CHIBIOS_OSAL_DIR)/*.c)
+SRC += $(CHIBIOS_PORT_DIR)/chcore.c
+SRC += $(CHIBIOS_PORT_DIR)/chcore_v7m.c
+SRC += $(CHIBIOS_PORT_DIR)/compilers/GCC/chcoreasm_v7m.S
+SRC += $(CHIBIOS_HAL_LLD_DIR)/TIMv1/hal_st_lld.c
+SRC += $(CHIBIOS_DIR)/os/hal/src/hal_st.c
+SRC += $(CHIBIOS_HAL_PORT_DIR)/nvic.c
+
+DEVICE_FLAGS += -DUSE_CHIBIOS -DCORTEX_USE_FPU=TRUE -DCORTEX_SIMPLIFIED_PRIORITY=TRUE $(DDEFS)
+
+ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
+DEVICE_FLAGS += -DSTM32F4XX
+INCLUDE_DIRS += $(CHIBIOS_DIR)/os/common/startup/ARMCMx/devices/STM32F4xx
+INCLUDE_DIRS += $(CHIBIOS_DIR)/os/hal/ports/STM32/STM32F4xx
+endif
+
+ifeq ($(TARGET),$(filter $(TARGET),$(H750xB_TARGETS)))
+DEVICE_FLAGS += -DSTM32H7XX
+INCLUDE_DIRS += $(CHIBIOS_DIR)/os/common/startup/ARMCMx/devices/STM32H7xx
+INCLUDE_DIRS += $(CHIBIOS_DIR)/os/hal/ports/STM32/STM32H7xx
+endif
+
+endif
+
+SRC += $(TARGET_SRC)
 
 ifneq ($(filter SPECTROGRAPH,$(FEATURES)),)
 SRC += brainfpv/spectrograph.c

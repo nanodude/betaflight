@@ -25,6 +25,11 @@
 #define TARGET_BOARD_IDENTIFIER "RDX2HD"
 #define USBD_PRODUCT_STRING "BrainFPV RADIX 2 HD"
 
+// For ChibiOS
+// Priority needs to be lower than any of the BF interrupts that don't use CH_IRQ_EPILOGUE
+#define STM32_ST_IRQ_PRIORITY               8
+#define STM32_ST_USE_TIMER                  13
+
 #define USE_BRAINFPV_BOOTLOADER
 #define BOOTLOADER_TARGET_MAGIC 0x785E9A14
 

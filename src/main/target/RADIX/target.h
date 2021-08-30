@@ -25,6 +25,11 @@
 
 #define USBD_PRODUCT_STRING     "BrainFPV RADIX"
 
+// For ChibiOS
+// Priority needs to be lower than any of the BF interrupts that don't use CH_IRQ_EPILOGUE
+#define STM32_ST_IRQ_PRIORITY               8
+#define STM32_ST_USE_TIMER                  4
+
 #define USE_TARGET_CONFIG
 
 
