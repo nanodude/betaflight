@@ -836,11 +836,13 @@ _TIM_IRQ_HANDLER(TIM8_CC_IRQHandler, 8);
 _TIM_IRQ_HANDLER(TIM8_UP_IRQHandler, 8);
 #  endif
 
+# if STM32_ST_USE_TIMER != 13
 #  if USED_TIMERS & TIM_N(13)
 _TIM_IRQ_HANDLER2(TIM8_UP_TIM13_IRQHandler, 8, 13);  // both timers are in use
 #  else
 _TIM_IRQ_HANDLER(TIM8_UP_TIM13_IRQHandler, 8);     // timer13 is not used
 #  endif
+#endif
 #endif
 
 #if USED_TIMERS & TIM_N(9)
