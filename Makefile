@@ -431,8 +431,8 @@ ifneq ($(filter BRAINFPV_BL,$(FEATURES)),)
 $(TARGET_BRAIN_BIN): $(TARGET_HEX) $(TARGET_ELF)
 	$(V1) $(eval BLHEADER_ADDR = 0x$(shell $(OBJDUMP) -x $(TARGET_ELF) | grep BRAINFPV_BL_HEADER | cut -d' ' -f1))
 	@echo "Packing for BrainFPV bootloader. Header address: $(BLHEADER_ADDR)" "$(STDOUT)"
-	$(V1) python3 brainfpv_fw_packer/brainfpv_fw_packer.py --in $(TARGET_HEX) --out $(TARGET_BRAIN_BIN) \
-	    --dev $(TARGET) -t 1 -b $(BLHEADER_ADDR) -z \
+	$(V1) python3 brainfpv_fw_packer/brainfpv_fw_packer/brainfpv_fw_packer.py --in $(TARGET_HEX) --out $(TARGET_BRAIN_BIN) \
+	    --dev $(TARGET) -b $(BLHEADER_ADDR) -z \
 	    --name $(FORKNAME) --version $(FC_VER)_$(REVISION) --sha1 $(GIT_SHA1)
 else
 $(TARGET_BRAIN_BIN): $(TARGET_HEX)
