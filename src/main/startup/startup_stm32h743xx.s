@@ -49,10 +49,11 @@
 .global  g_pfnVectors
 .global  Default_Handler
 
-/* start address for the initialization values of the .data section. 
+.section  .text.Reset_Handler
+/* start address for the initialization values of the .data section.
 defined in linker script */
 .word  _sidata
-/* start address for the .data section. defined in linker script */  
+/* start address for the .data section. defined in linker script */
 .word  _sdata
 /* end address for the .data section. defined in linker script */
 .word  _edata
@@ -71,7 +72,6 @@ defined in linker script */
  * @retval : None
 */
 
-    .section  .text.Reset_Handler
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:  
@@ -139,7 +139,7 @@ LoopFillZerofastram_bss:
 /*  bl __libc_init_array */
 /* Call the application's entry point.*/
   bl  main
-  bx  lr    
+  bx  lr
 .size  Reset_Handler, .-Reset_Handler
 
 /**
@@ -161,7 +161,7 @@ Infinite_Loop:
 * 0x0000.0000.
 * 
 *******************************************************************************/
-   .section  .isr_vector,"a",%progbits
+  .section  .isr_vector,"a",%progbits
   .type  g_pfnVectors, %object
   .size  g_pfnVectors, .-g_pfnVectors
    
