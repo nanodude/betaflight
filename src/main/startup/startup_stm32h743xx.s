@@ -40,28 +40,10 @@
   *
   ******************************************************************************
   */
-#if defined(USE_CHIBIOS)
-
-#define CONTROL_MODE_PRIVILEGED             0
-#define CONTROL_MODE_UNPRIVILEGED           1
-#define CONTROL_USE_MSP                     0
-#define CONTROL_USE_PSP                     2
-#define CONTROL_FPCA                        4
-
-#define FPCCR_ASPEN                         (1 << 31)
-#define FPCCR_LSPEN                         (1 << 30)
-#define SCB_CPACR                           0xE000ED88
-#define SCB_FPCCR                           0xE000EF34
-#define SCB_FPDSCR                          0xE000EF3C
-#define CRT0_CPACR_INIT                     0x00F00000
-
-#define CRT0_CONTROL_INIT                   (CONTROL_USE_PSP | CONTROL_MODE_PRIVILEGED)
-#define CRT0_FPCCR_INIT                     (FPCCR_ASPEN | FPCCR_LSPEN)
-#endif
-
+    
   .syntax unified
   .cpu cortex-m7
-  .fpu fpv4-sp-d16
+  .fpu softvfp
   .thumb
 
 .global  g_pfnVectors
@@ -94,45 +76,6 @@ defined in linker script */
   .type  Reset_Handler, %function
 Reset_Handler:  
   ldr   sp, =_estack      /* set stack pointer */
-
-#if defined(USE_CHIBIOS)
-    ldr     r0, =__process_stack_end__
-    msr     PSP, r0
-
-	  /* FPU FPCCR initialization.*/
-	movw    r0, #CRT0_FPCCR_INIT & 0xFFFF
-	movt    r0, #CRT0_FPCCR_INIT >> 16
-	movw    r1, #SCB_FPCCR & 0xFFFF
-	movt    r1, #SCB_FPCCR >> 16
-	str     r0, [r1]
-	dsb
-	isb
-
-	/* CPACR initialization.*/
-	movw    r0, #CRT0_CPACR_INIT & 0xFFFF
-	movt    r0, #CRT0_CPACR_INIT >> 16
-	movw    r1, #SCB_CPACR & 0xFFFF
-	movt    r1, #SCB_CPACR >> 16
-	str     r0, [r1]
-	dsb
-	isb
-
-	/* FPU FPSCR initially cleared.*/
-	mov     r0, #0
-	vmsr    FPSCR, r0
-
-	/* FPU FPDSCR initially cleared.*/
-	movw    r1, #SCB_FPDSCR & 0xFFFF
-	movt    r1, #SCB_FPDSCR >> 16
-	str     r0, [r1]
-
-	/* Enforcing FPCA bit in the CONTROL register.*/
-	movs    r0, #CRT0_CONTROL_INIT | CONTROL_FPCA
-
-	/* CONTROL register initialization as configured.*/
-    msr     CONTROL, r0
-    isb
-#endif
 
   bl persistentObjectInit
 
@@ -188,19 +131,6 @@ LoopFillZerofastram_bss:
   ldr  r3, = _efastram_bss
   cmp  r2, r3
   bcc  FillZerofastram_bss
-
-  ldr  r2, =_sdmaram
-  b  LoopFillZerodmaram
-
-/* Zero fill the dmaram segment. */
-FillZerodmaram:
-  movs  r3, #0
-  str  r3, [r2], #4
-
-LoopFillZerodmaram:
-  ldr  r3, = _edmaram
-  cmp  r2, r3
-  bcc  FillZerodmaram
 /*-----*/
 
 /* Call the clock system intitialization function.*/
