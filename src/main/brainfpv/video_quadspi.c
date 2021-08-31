@@ -283,6 +283,14 @@ FAST_CODE void Hsync_ISR(extiCallbackRec_t *cb)
         hmdma.Instance->CBNDTR = (uint32_t)video_type_cfg_act->dma_buffer_length;
         QUADSPI->DLR = (uint32_t)video_type_cfg_act->dma_buffer_length - 1;
 
+#if !defined(DEBUG)
+        // Write-back cache
+        uint32_t start_addr = (uint32_t)&disp_buffer[buffer_offset];
+        uint32_t end_addr = start_addr + (uint32_t)video_type_cfg_act->dma_buffer_length;
+        start_addr &= ~0x1F; // 32-byte alignment
+        SCB_CleanDCache_by_Addr((uint32_t *)start_addr, end_addr - start_addr + 1);
+#endif
+
         // Enable DMA
         __HAL_MDMA_ENABLE(&hmdma);
 
