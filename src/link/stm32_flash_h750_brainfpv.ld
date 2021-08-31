@@ -76,7 +76,8 @@ SECTIONS
   {
     . = ALIGN(512);
     PROVIDE (isr_vector_table_base = .);
-    KEEP(*(.isr_vector)) /* Startup code */
+    KEEP(*(.isr_vector)) /* Vector table */
+    KEEP(*(.text.Reset_Handler)) /* Startup code */
     . = ALIGN(4);
   } >CODE_RAM
   
@@ -146,35 +147,35 @@ SECTIONS
     PROVIDE_HIDDEN (__pg_resetdata_end = .);
   } >CODE_RAM
 
-  /* used by the startup to initialize data */
-  _sidata = LOADADDR(.data);
 
   /* Initialized data sections goes into RAM, load LMA copy after code */
   .data :
   {
     . = ALIGN(4);
     _sdata = .;        /* create a global symbol at data start */
+    _edata = .;        /* global symbol is normally at the end. We set it to _sdata, so startup code doesn't copy anything */
+    _sidata = .;       /* used by startup code. normally points to data in flash */
     *(.data)           /* .data sections */
     *(.data*)          /* .data* sections */
 
     . = ALIGN(4);
-    _edata = .;        /* define a global symbol at data end */
-  } >DTCM_RAM_INIT
-
-  /* Initialized FAST_RAM section for unsuspecting developers */
-  .fastram_data :
-  {
-    . = ALIGN(4);
-    _sfastram_data = .;        /* create a global symbol at data start */
-    *(.fastram_data)           /* .data sections */
-    *(.fastram_data*)          /* .data* sections */
-
-    . = ALIGN(4);
-    _efastram_data = .;        /* define a global symbol at data end */
   } >DTCM_RAM_INIT
 
   /* used during startup to initialized fastram_data */
   _sfastram_idata = LOADADDR(.fastram_data);
+  
+  /* Initialized FAST_RAM section for unsuspecting developers */
+  .fastram_data :
+  {
+    . = ALIGN(4);
+    _sfastram_data = .;               /* create a global symbol at data start */
+    _efastram_data = .;  /* global symbol is normally at the end. We set it to _sdata, so startup code doesn't copy anything */
+    _sfastram_idata = .; /* used by startup code. normally points to data in flash */
+    *(.fastram_data)           /* .data sections */
+    *(.fastram_data*)          /* .data* sections */
+
+    . = ALIGN(4);
+  } >DTCM_RAM_INIT
 
   /* Uninitialized data section */
   . = ALIGN(4);
@@ -190,21 +191,6 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >DTCM_RAM
-
-  /* Uninitialized data section */
-  . = ALIGN(4);
-  .sram2 (NOLOAD) :
-  {
-    /* This is used by the startup in order to initialize the .sram2 secion */
-    _ssram2 = .;         /* define a global symbol at sram2 start */
-    __sram2_start__ = _ssram2;
-    *(.sram2)
-    *(SORT_BY_ALIGNMENT(.sram2*))
-
-    . = ALIGN(4);
-    _esram2 = .;         /* define a global symbol at sram2 end */
-    __sram2_end__ = _esram2;
   } >DTCM_RAM
 
   . = ALIGN(4);
@@ -253,6 +239,21 @@ SECTIONS
     *(.video_ram)
     *(.video_ram.*)
   } > D2_RAM
+  
+  /* Uninitialized data section */
+  . = ALIGN(4);
+  .sram2 (NOLOAD) :
+  {
+    /* This is used by the startup in order to initialize the .sram2 secion */
+    _ssram2 = .;         /* define a global symbol at sram2 start */
+    __sram2_start__ = _ssram2;
+    *(.sram2)
+    *(SORT_BY_ALIGNMENT(.sram2*))
+
+    . = ALIGN(4);
+    _esram2 = .;         /* define a global symbol at sram2 end */
+    __sram2_end__ = _esram2;
+  } >D2_RAM
   
   .DMA_RAM (NOLOAD) :
   {
