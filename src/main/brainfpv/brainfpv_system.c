@@ -39,6 +39,9 @@
 
 #include "pg/serial_uart.h"
 
+#include "ch.h"
+
+
 #if defined(BRAINFPV)
 
 static BrainFPVSystemReq_t brainfpv_req = BRAINFPV_REQ_NONE;
@@ -79,6 +82,36 @@ static void vtxFaultCheck(void)
     }
 }
 #endif /* defined(USE_VTXFAULT_PIN) */
+
+
+// CPU utilization measurement
+uint16_t brainFPVSystemGetCPULoad(void)
+{
+    static uint32_t t_last_measurement = 0;
+    static uint64_t idle_cycles_last = 0;
+    uint16_t load = 0;
+
+    uint32_t t_now = millis();
+    uint32_t dt;
+    uint64_t tmp;
+    thread_t * idle_tp = chRegFindThreadByName("idle");
+
+    if (idle_tp) {
+        // idle cycles / s
+        dt = (t_now - t_last_measurement);
+        if (dt > 0) {
+            tmp = 1000 * (idle_tp->stats.cumulative - idle_cycles_last) / dt;
+
+            // load %
+            load = 100 - (100 * tmp) / SystemCoreClock;
+        }
+
+        t_last_measurement = t_now;
+        idle_cycles_last = idle_tp->stats.cumulative;
+    }
+
+    return load;
+}
 
 void brainFPVSystemInit(void)
 {
