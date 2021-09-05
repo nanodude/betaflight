@@ -63,6 +63,9 @@ void MemManage_Handler(void)
 #endif
 
 #ifdef DEBUG_HARDFAULTS
+
+void hard_fault_handler_c(unsigned long *hardfault_args) __attribute__((used));
+
 //from: https://mcuoneclipse.com/2012/11/24/debugging-hard-faults-on-arm-cortex-m/
 /**
  * hard_fault_handler_c:
@@ -89,6 +92,8 @@ void hard_fault_handler_c(unsigned long *hardfault_args)
   volatile unsigned long _AFSR ;
   volatile unsigned long _BFAR ;
   volatile unsigned long _MMAR ;
+  volatile unsigned long _ICSR ;
+
 
   stacked_r0 = ((unsigned long)hardfault_args[0]) ;
   stacked_r1 = ((unsigned long)hardfault_args[1]) ;
@@ -118,6 +123,9 @@ void hard_fault_handler_c(unsigned long *hardfault_args)
   _MMAR = (*((volatile unsigned long *)(0xE000ED34))) ;
   // Bus Fault Address Register
   _BFAR = (*((volatile unsigned long *)(0xE000ED38))) ;
+
+  // Interrupt Control and State Register
+  _ICSR = (*((volatile unsigned long *)(0xE000ED04))) ;
 
   __asm("BKPT #0\n") ; // Break into the debugger
 }
