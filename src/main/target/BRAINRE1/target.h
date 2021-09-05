@@ -29,6 +29,7 @@
 #define STM32_ST_USE_TIMER                  3
 
 #define USE_TARGET_CONFIG
+#undef USE_CUSTOM_DEFAULTS_ADDRESS
 
 #undef USE_HUFFMAN
 #undef USE_PINIO
