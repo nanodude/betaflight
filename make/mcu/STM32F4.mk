@@ -158,23 +158,18 @@ else ifeq ($(TARGET),$(filter $(TARGET),$(F405_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F40_41xxx -DSTM32F405xx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
 STARTUP_SRC     = startup_stm32f40xx.s
+else ifeq ($(TARGET),$(filter $(TARGET),$(BRAINFPV_F446_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F446xx
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_brainfpv.ld
+STARTUP_SRC     = startup_stm32f446xx_brainfpv.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F446xx
-ifneq ($(filter CHIBIOS,$(FEATURES)),)
-ifneq ($(filter DRONINBL,$(FEATURES)),)
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_chibios_drbl.ld
-STARTUP_SRC     = startup_chibios_stm32F4xx.s
-else
-LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446_chibios.ld
-STARTUP_SRC     = startup_chibios_stm32F4xx.s
-endif
-else
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446.ld
-STARTUP_SRC     = startup_chibios_stm32F4xx.s
-endif
+STARTUP_SRC     = startup_stm32f446xx.s
 else
 $(error Unknown MCU for F4 target)
 endif
+
 DEVICE_FLAGS    += -DHSE_VALUE=$(HSE_VALUE)
 
 MCU_COMMON_SRC = \
