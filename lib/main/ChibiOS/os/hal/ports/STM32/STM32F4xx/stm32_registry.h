@@ -30,7 +30,9 @@
 #define STM32F4XX
 
 #elif defined(STM32F446xx)
+#if !defined(STM32F4XX)
 #define STM32F4XX
+#endif
 
 #elif defined(STM32F439xx) || defined(STM32F429xx)
 #define STM32F429_439xx
