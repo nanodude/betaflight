@@ -186,6 +186,7 @@ ifeq ($(TARGET),$(filter $(TARGET),$(BRAINFPV_H750_TARGETS)))
 FIRMWARE_SIZE      := 448
 MCU_FLASH_SIZE     := FIRMWARE_SIZE
 DEFAULT_LD_SCRIPT   = $(LINKER_DIR)/stm32_flash_h750_brainfpv.ld
+STARTUP_SRC         = startup_stm32h750xx_brainfpv.s
 endif
 
 ifeq ($(EXST),yes)
