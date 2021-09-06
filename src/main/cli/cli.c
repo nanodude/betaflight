@@ -4809,11 +4809,13 @@ static void cliStatus(const char *cmdName, char *cmdline)
 #if defined(USE_CHIBIOS)
 #include "ch.h"
 
-uint32_t ChibiGetTaskStackUsage(thread_t *threadp)
+static void ChibiGetTaskStackUsage(thread_t *threadp, uint32_t * stackSize, uint32_t * bytesRemaining)
 {
 #if CH_DBG_FILL_THREADS
     uint8_t * stack_base = (uint8_t *)threadp->wabase;
     uint8_t * stack_end = (uint8_t *)threadp->waend;
+
+    *stackSize = stack_end - stack_base - PORT_WA_SIZE(0) - sizeof(thread_t) - 4;
 
     uint8_t *stack = stack_base;
 
@@ -4824,12 +4826,56 @@ uint32_t ChibiGetTaskStackUsage(thread_t *threadp)
     	stack++;
     }
 
-
-    return (uint32_t)(stack - stack_base);
-#else
-    return 0;
+    *bytesRemaining = (uint32_t)(stack - stack_base);
 #endif /* CH_DBG_FILL_THREADS */
 }
+
+#define STACK_FILL_CHAR 0xa5
+#define STACK_FILL_CHAR_PROCESS CH_DBG_STACK_FILL_VALUE
+
+extern char _estack; // end of stack, declared in .LD file
+extern char _Min_Stack_Size; // declared in .LD file
+
+extern uint32_t __process_stack_end__;
+extern uint32_t __process_stack_base__;
+
+// Main stack size and remaining bytes
+static void getMainStackUsage(uint32_t * stackSize, uint32_t * bytesRemaining)
+{
+    const char * pStack = &_estack - (uint32_t)&_Min_Stack_Size;
+    uint32_t nRemaining;
+
+    *stackSize = (uint32_t)&_Min_Stack_Size;
+
+    for (nRemaining = 0; nRemaining < *stackSize; nRemaining++) {
+        if (*pStack != STACK_FILL_CHAR) {
+            break;
+        }
+        pStack++;
+    }
+
+    *bytesRemaining = nRemaining;
+}
+
+// Process stack size and remaining bytes
+static void getProcessStackUsage(uint32_t * stackSize, uint32_t * bytesRemaining)
+{
+    const char * pStack = (char *)&__process_stack_base__;
+    uint32_t nRemaining;
+
+    *stackSize = (uint32_t)&__process_stack_end__ - (uint32_t)&__process_stack_base__ - 4;
+
+    for (nRemaining = 0; nRemaining < *stackSize; nRemaining++) {
+        if (*pStack != STACK_FILL_CHAR_PROCESS) {
+            break;
+        }
+        pStack++;
+    }
+
+    *bytesRemaining = nRemaining;
+}
+
+
 #endif /* defined(USE_CHIBIOS) */
 
 static void cliTasks(const char *cmdName, char *cmdline)
@@ -4877,11 +4923,24 @@ static void cliTasks(const char *cmdName, char *cmdline)
         schedulerResetCheckFunctionMaxExecutionTime();
     }
 #if defined(USE_CHIBIOS)
-    cliPrintLinef("BrainFPV tasks remaining stacks:");
+    uint32_t remBytes;
+    uint32_t stackSize;
+
+    getMainStackUsage(&stackSize, &remBytes);
+    cliPrintLinef("Main stack size: %d. Remaining: %d", stackSize, remBytes);
+
+    getProcessStackUsage(&stackSize, &remBytes);
+    cliPrintLinef("Process stack size: %d. Remaining: %d", stackSize, remBytes);
+
+    cliPrintLinef("BrainFPV tasks:");
     thread_t *threadp = chRegFirstThread();
     while (threadp != NULL) {
-        uint32_t rem = ChibiGetTaskStackUsage(threadp);
-        cliPrintLinef("%s: %d Bytes free", chRegGetThreadNameX(threadp), rem);
+        if ((strcmp(chRegGetThreadNameX(threadp), "main") == 0) || (strcmp(chRegGetThreadNameX(threadp), "idle") == 0)) {
+            threadp = chRegNextThread(threadp);
+            continue;
+        }
+        ChibiGetTaskStackUsage(threadp, &stackSize, &remBytes);
+        cliPrintLinef("    %s: stack size: %d B. Remaining: %d B", chRegGetThreadNameX(threadp), stackSize, remBytes);
         threadp = chRegNextThread(threadp);
     }
 #endif /* defined(USE_CHIBIOS) */

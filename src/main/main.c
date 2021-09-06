@@ -60,11 +60,13 @@ void FAST_CODE FAST_CODE_NOINLINE run(void)
 #endif
 
 #if defined(USE_CHIBIOS)
+#include <string.h>
 #include "ch.h"
 #include "hal_st.h"
 #include "nvic.h"
 
 extern uint32_t __process_stack_end__;
+extern uint32_t __process_stack_base__;
 
 binary_semaphore_t gyroSem;
 volatile bool idleCounterClear = 0;
@@ -154,6 +156,9 @@ uint8_t safe_boot = 0;
 #define CRT0_CONTROL_INIT (CONTROL_USE_PSP | CONTROL_MODE_PRIVILEGED | CONTROL_FPCA)
 int main()
 {
+    // Fill process stack
+    memset((void*)&__process_stack_base__, CH_DBG_STACK_FILL_VALUE, &__process_stack_end__ - &__process_stack_base__ - 4);
+
     // init ChibiOS
     __set_PSP((uint32_t)&__process_stack_end__);
     asm("movs    r0, %[ctl]\n\t" // Switch to thread mode with PSP
