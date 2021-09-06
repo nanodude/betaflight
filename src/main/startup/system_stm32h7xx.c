@@ -432,7 +432,7 @@ void SystemClock_Config(void)
 
     HAL_EnableCompensationCell();
 
-    HandleStuckSysTick();
+    //HandleStuckSysTick();
 
     HAL_Delay(10);
 
