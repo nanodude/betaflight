@@ -64,9 +64,9 @@ _estack = ORIGIN(STACKRAM) + LENGTH(STACKRAM) - 8; /* Reserve 2 x 4bytes for inf
 
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0;      /* required amount of heap  */
-_Min_Stack_Size = 0xF00; /* required amount of stack */
+_Min_Stack_Size = 0x400; /* required amount of stack */
 
-__process_stack_size__  = 0x4000;
+__process_stack_size__  = 0x800;
 
 /* Define output sections */
 SECTIONS
@@ -278,6 +278,7 @@ SECTIONS
   /* Special section for process stack.*/
   .pstack :
   {
+    . = ALIGN(4);
 	__process_stack_base__ = .;
     __main_thread_stack_base__ = .;
     . += __process_stack_size__;

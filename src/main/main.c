@@ -83,15 +83,6 @@ void appIdleHook(void)
     }
 }
 
-static THD_WORKING_AREA(waBetaFlightThread, 1024);
-static THD_FUNCTION(BetaFlightThread, arg)
-{
-    (void)arg;
-    chRegSetThreadName("Betaflight");
-    while(1) {
-        main_step();
-    }
-}
 
 #if defined(USE_BRAINFPV_OSD)
 #include "brainfpv/brainfpv_osd.h"
@@ -134,7 +125,6 @@ static THD_FUNCTION(SpecThread, arg)
 }
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 
-
 //#define USE_DUMMY_TASK
 #if defined(USE_DUMMY_TASK)
 static THD_WORKING_AREA(waDummyThread, 512);
@@ -147,6 +137,45 @@ static THD_FUNCTION(DummyThread, arg)
     }
 }
 #endif
+
+static THD_WORKING_AREA(waBetaFlightThread, 2 * 1024);
+static THD_FUNCTION(BetaFlightThread, arg)
+{
+    (void)arg;
+    chRegSetThreadName("Betaflight");
+
+    chBSemObjectInit(&gyroSem, FALSE);
+
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
+    chBSemObjectInit(&spectrographDataReadySemaphore, FALSE);
+#endif
+
+    // Betaflight init
+    init();
+
+    // Start other threads
+#if defined(USE_BRAINFPV_OSD)
+    if (VideoIsInitialized()) {
+        chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
+    }
+#endif /* USE_BRAINFPV_OSD */
+
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
+    if (bfOsdConfig()->spec_enabled) {
+        spectrographInit();
+        chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
+    }
+#endif /* USE_BRAINFPV_SPECTROGRAPH */
+
+#if defined(USE_DUMMY_TASK)
+    chThdCreateStatic(waDummyThread, sizeof(waDummyThread), NORMALPRIO, DummyThread, NULL);
+#endif
+
+    // Run BF scheduler forever
+    while(1) {
+        scheduler();
+    }
+}
 
 uint8_t safe_boot = 0;
 
@@ -168,33 +197,8 @@ int main()
     stInit();
     chSysInit();
 
-    chBSemObjectInit(&gyroSem, FALSE);
-
-#if defined(USE_BRAINFPV_SPECTROGRAPH)
-    chBSemObjectInit(&spectrographDataReadySemaphore, FALSE);
-#endif
-
-    // Betaflight init
-    init();
-
+    // Start Betaflight thread
     chThdCreateStatic(waBetaFlightThread, sizeof(waBetaFlightThread), HIGHPRIO, BetaFlightThread, NULL);
-
-#if defined(USE_BRAINFPV_OSD)
-    if (VideoIsInitialized()) {
-        chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
-    }
-#endif /* USE_BRAINFPV_OSD */
-
-#if defined(USE_BRAINFPV_SPECTROGRAPH)
-    if (bfOsdConfig()->spec_enabled) {
-        spectrographInit();
-        chThdCreateStatic(waSpecThread, sizeof(waSpecThread), LOWPRIO, SpecThread, NULL);
-    }
-#endif /* USE_BRAINFPV_SPECTROGRAPH */
-
-#if defined(USE_DUMMY_TASK)
-    chThdCreateStatic(waDummyThread, sizeof(waDummyThread), NORMALPRIO, DummyThread, NULL);
-#endif
 
     // sleep forever
     chThdSleep(TIME_INFINITE);

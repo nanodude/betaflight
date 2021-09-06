@@ -49,7 +49,7 @@ __config_end = ORIGIN(FLASH_CONFIG) + LENGTH(FLASH_CONFIG);
 _Min_Heap_Size = 0;      /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
-__process_stack_size__  = 0xF00;
+__process_stack_size__  = 0x400;
 
 /* Define output sections */
 SECTIONS
@@ -228,6 +228,7 @@ SECTIONS
   /* Special section for process stack.*/
   .pstack :
   {
+    . = ALIGN(4);
 	__process_stack_base__ = .;
     __main_thread_stack_base__ = .;
     . += __process_stack_size__;
