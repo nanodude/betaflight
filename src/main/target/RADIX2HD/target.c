@@ -30,6 +30,10 @@
 #include "brainfpv/brainfpv_osd.h"
 #include "brainfpv/brainfpv_system.h"
 
+#if defined(USE_BRAINFPV_RGB_LED_TIMER)
+#include "brainfpv_rgb_led_timer.h"
+#endif
+
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM17, CH1, PB9,   TIM_USE_LED,                 TIMER_OUTPUT_INVERTED,  10,  0 ), // LED Strip
     DEF_TIM(TIM12, CH2, PB15,  TIM_USE_PPM,                 0,  0,  0 ), // PPM input
@@ -45,11 +49,31 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_MOTOR,               0,  7,  1 ), // M8
 };
 
+#if defined(USE_BRAINFPV_RGB_LED_TIMER)
+const timerHardware_t timerHardwareRgbLed[3] = {
+    DEF_TIM(TIM5, CH1, PA0, TIM_USE_NONE, TIMER_OUTPUT_INVERTED,  0,  0 ), // R
+    DEF_TIM(TIM5, CH3, PA2, TIM_USE_NONE, TIMER_OUTPUT_INVERTED,  0,  0 ), // G
+    DEF_TIM(TIM5, CH4, PA3, TIM_USE_NONE, TIMER_OUTPUT_INVERTED,  0,  0 ), // B
+};
+#endif
+
 bool brainfpv_settings_updated_from_cms = false;
 
 extern bfOsdConfig_t bfOsdConfigCms;
 extern brainFpvSystemConfig_t brainFpvSystemConfigCms;
 
-void brainFPVUpdateSettings(void) {
+void brainFPVUpdateSettings(void)
+{
+    const brainFpvSystemConfig_t * brainFpvSystemConfigUse;
 
+    if (brainfpv_settings_updated_from_cms) {
+        brainFpvSystemConfigUse = &brainFpvSystemConfigCms;
+    }
+    else {
+        brainFpvSystemConfigUse = brainFpvSystemConfig();
+    }
+
+#if defined(USE_BRAINFPV_RGB_LED_TIMER)
+    brainFPVRgbLedSetLedColor(0, brainFpvSystemConfigUse->status_led_color, brainFpvSystemConfigUse->status_led_brightness);
+#endif
 }

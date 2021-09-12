@@ -46,6 +46,8 @@
 
 #define BRAINFPV
 
+#define USE_BRAINFPV_RGB_STATUS_LED
+#define USE_BRAINFPV_RGB_LED_TIMER
 #define LED0_PIN                PA3
 #define LED0_INVERTED
 #define LED1_PIN                PA0

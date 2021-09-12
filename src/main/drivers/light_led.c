@@ -31,6 +31,10 @@
 #include "fpga_drv.h"
 #endif
 
+#if defined(USE_BRAINFPV_RGB_LED_TIMER)
+#include "brainfpv_rgb_led_timer.h"
+#endif
+
 PG_REGISTER_WITH_RESET_FN(statusLedConfig_t, statusLedConfig, PG_STATUS_LED_CONFIG, 0);
 
 static IO_t leds[STATUS_LED_NUMBER];
@@ -69,6 +73,12 @@ void pgResetFn_statusLedConfig(statusLedConfig_t *statusLedConfig)
 
 void ledInit(const statusLedConfig_t *statusLedConfig)
 {
+#if defined(USE_BRAINFPV_RGB_LED_TIMER)
+    (void)statusLedConfig;
+    (void)ledInversion;
+    (void)leds;
+    brainFpvRgbLedTimerInit();
+#else
     ledInversion = statusLedConfig->inversion;
     for (int i = 0; i < STATUS_LED_NUMBER; i++) {
         if (statusLedConfig->ioTags[i]) {
@@ -79,6 +89,7 @@ void ledInit(const statusLedConfig_t *statusLedConfig)
             leds[i] = IO_NONE;
         }
     }
+#endif
 
     LED0_OFF;
     LED1_OFF;
@@ -87,7 +98,9 @@ void ledInit(const statusLedConfig_t *statusLedConfig)
 
 void ledToggle(int led)
 {
-#if defined(USE_BRAINFPV_FPGA) && defined(RADIX)
+#if defined(USE_BRAINFPV_RGB_LED_TIMER)
+    brainFPVRgbLedToggle(led);
+#elif defined(USE_BRAINFPV_FPGA) && defined(RADIX)
     if (led == 0)
         IOToggle(leds[led]);
     if (led == 1)
@@ -99,7 +112,9 @@ void ledToggle(int led)
 
 void ledSet(int led, bool on)
 {
-#if defined(USE_BRAINFPV_FPGA) && defined(RADIX)
+#if defined(USE_BRAINFPV_RGB_LED_TIMER)
+    brainFPVRgbLedSet(led, on);
+#elif defined(USE_BRAINFPV_FPGA) && defined(RADIX)
     if (led == 0) {
         const bool inverted = (1 << (led)) & ledInversion;
         IOWrite(leds[led], on ? inverted : !inverted);

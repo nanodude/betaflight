@@ -475,6 +475,11 @@ SLOW_CODE void init(void)
     targetPreInit();
 #endif
 
+#ifdef USE_BRAINFPV_RGB_LED_TIMER
+    brainFPVUpdateSettings();
+#endif
+
+
 #if !defined(USE_FAKE_LED)
     ledInit(statusLedConfig());
 #endif
