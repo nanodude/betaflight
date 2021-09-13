@@ -49,15 +49,8 @@
 #include "ch.h"
 #include "brainfpv/brainfpv_system.h"
 
-uint32_t last_check = 0;
 extern binary_semaphore_t gyroSem;
-extern bool idleCounterClear;
-extern uint32_t idleCounter;
 extern bool gyro_sample_processed;
-
-#if defined(USE_MULT_CPU_IDLE_COUNTS)
-extern uint32_t cpu_idle_counts_no_load;
-#endif /* defined(USE_MULT_CPU_IDLE_COUNTS) */
 #endif
 
 // DEBUG_SCHEDULER, timings for:

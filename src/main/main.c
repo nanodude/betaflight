@@ -69,18 +69,10 @@ extern uint32_t __process_stack_end__;
 extern uint32_t __process_stack_base__;
 
 binary_semaphore_t gyroSem;
-volatile bool idleCounterClear = 0;
-volatile uint32_t idleCounter = 0;
 
 void appIdleHook(void)
 {
     // Called when the scheduler has no tasks to run
-    if (idleCounterClear) {
-        idleCounter = 0;
-        idleCounterClear = 0;
-    } else {
-        ++idleCounter;
-    }
 }
 
 
