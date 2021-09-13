@@ -187,6 +187,7 @@
 
 #define USE_BARO
 #define USE_BARO_BMP388
+#define USE_BARO_DPS310
 
 #define USE_ADC
 #define USE_ADC_INTERNAL // ADC3
