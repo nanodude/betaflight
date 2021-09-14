@@ -35,6 +35,11 @@
 #include "pg/piniobox.h"
 #include "pg/sdcard.h"
 
+static targetSerialPortFunction_t targetSerialPortFunction[] = {
+    { SERIAL_PORT_USART1, FUNCTION_MSP }, // Used for HD system
+};
+
+
 void targetConfiguration(void)
 {
     osdConfigMutable()->core_temp_alarm = 85;
@@ -43,6 +48,7 @@ void targetConfiguration(void)
     pinioConfigMutable()->config[0] = PINIO_CONFIG_MODE_OUT_PP | PINIO_CONFIG_OUT_INVERTED;
     pinioBoxConfigMutable()->permanentId[0] = 40;
 
+    targetSerialPortFunctionConfig(targetSerialPortFunction, ARRAYLEN(targetSerialPortFunction));
     //sdcardConfigMutable()->useDma = true;
 }
 #endif
