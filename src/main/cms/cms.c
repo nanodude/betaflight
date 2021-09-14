@@ -141,10 +141,6 @@ static displayPort_t *cmsDisplayPortSelectNext(void)
         return NULL;
     }
 
-#if defined(USE_BRAINFPV_OSD)
-    return &max7456DisplayPort;
-#endif
-
     cmsCurrentDevice = (cmsCurrentDevice + 1) % cmsDeviceCount; // -1 Okay
 
     return cmsDisplayPorts[cmsCurrentDevice];
