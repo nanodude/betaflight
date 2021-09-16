@@ -305,7 +305,7 @@ static bool sdcard_sendDataBlockFinish(void)
         sdcard.busdev.busdev_u.spi.instance->DR;
     }
 #elif defined(STM32H7)
-    while (sdcard.busdev.busdev_u.spi.instance->SR & (SPI_FLAG_RXWNE | SPI_FLAG_FRLVL)) {
+    while (LL_SPI_IsActiveFlag_RXP(sdcard.busdev.busdev_u.spi.instance)) {
         sdcard.busdev.busdev_u.spi.instance->RXDR;
     }
 #endif
@@ -764,7 +764,7 @@ static bool sdcardSpi_poll(void)
                     sdcard.busdev.busdev_u.spi.instance->DR;
                 }
 #elif defined(STM32H7)
-                while (sdcard.busdev.busdev_u.spi.instance->SR & (SPI_FLAG_RXWNE | SPI_FLAG_FRLVL)) {
+                while (LL_SPI_IsActiveFlag_RXP(sdcard.busdev.busdev_u.spi.instance)) {
                     sdcard.busdev.busdev_u.spi.instance->RXDR;
                 }
 #endif
