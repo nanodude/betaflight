@@ -49,7 +49,14 @@ static bool ledOn[NUM_LEDS] = { 0 };
 
 void brainFpvRgbLedTimerInit(void)
 {
-    for (int i; i < 3; i++) {
+
+#if BRAINFPV_RGB_LED_TIMER_NO == 5
+    __HAL_RCC_TIM5_CLK_ENABLE();
+#else
+#error not supported
+#endif
+
+    for (int i=0; i < 3; i++) {
         const timerHardware_t * timerHardware = &timerHardwareRgbLed[i];
 
         rgbLedChannels[i].io = IOGetByTag(timerHardware->tag);
@@ -59,6 +66,11 @@ void brainFpvRgbLedTimerInit(void)
 
         pwmOutConfig(&rgbLedChannels[i].channel, timerHardware, (RGB_LED_PWM_PERIOD * RGB_LED_PWM_FREQ_KHZ * 1000), RGB_LED_PWM_PERIOD, 0, 0);
     }
+
+    // Start timer
+    TIM_HandleTypeDef htim;
+    htim.Instance = timerHardwareRgbLed[0].tim;
+    HAL_TIM_Base_Start(&htim);
 }
 
 void brainFPVRgbLedSetLedColor(int led, colorId_e color, uint8_t brightness)
@@ -79,6 +91,10 @@ void brainFPVRgbLedSetLedColor(int led, colorId_e color, uint8_t brightness)
 
 static void rgbSet(uint8_t r, uint8_t g, uint8_t b)
 {
+//    if (rgbLedChannels[0].channel.ccr == NULL) {
+//        return;
+//    }
+
     *rgbLedChannels[0].channel.ccr = r;
     *rgbLedChannels[1].channel.ccr = g;
     *rgbLedChannels[2].channel.ccr = b;

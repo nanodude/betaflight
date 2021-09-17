@@ -44,6 +44,7 @@
 
 #define USE_BRAINFPV_RGB_STATUS_LED
 #define USE_BRAINFPV_RGB_LED_TIMER
+#define BRAINFPV_RGB_LED_TIMER_NO 5
 #define LED0_PIN                PA3
 #define LED0_INVERTED
 #define LED1_PIN                PA0
@@ -227,7 +228,7 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 10
 
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(12) | TIM_N(17) )
+#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(12) | TIM_N(17) | TIM_N(5) )
 
 #undef USE_DSHOT_BITBANG
 #undef USE_BRUSHED_ESC_AUTODETECT
