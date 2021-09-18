@@ -107,7 +107,7 @@ OSD_UINT16_t entryMapMaxDist =  {&bfOsdConfigCms.map_max_dist_m, 10, 32767, 10};
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
-    {"-- BRAIN OSD --------", OME_Label, NULL, NULL, 0},
+    {"--- BRAIN OSD ---", OME_Label, NULL, NULL, 0},
     {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
     {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale, 0},
     {"SPEED SCALE", OME_Bool, NULL, &bfOsdConfigCms.speed_scale, 0},
