@@ -690,7 +690,29 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
         if (IS_PRINTLABEL(runtimeEntryFlags[i])) {
             uint8_t coloff = leftMenuColumn;
             coloff += (p->type == OME_Label) ? 0 : 1;
+#if defined(BRAINFPV_OSD_CMS_CURSOR_HIGHLIGHT)
+            if ((pDisplay == &max7456DisplayPort) && (i == pDisplay->cursorRow)) {
+                set_text_color(OSD_COLOR_BLACK, OSD_COLOR_WHITE);
+            }
+#endif
+
+#if defined(BRAINFPV_OSD_CMS_FANCY_TITLE_FONT)
+            if ((pDisplay == &max7456DisplayPort) && (i == 0)) {
+                brainFpvOsdSetTempFont(BRAINFPV_OSD_CMS_FANCY_TITLE_FONT);
+            }
+#endif
             room -= displayWrite(pDisplay, coloff, top + i * linesPerMenuItem, DISPLAYPORT_ATTR_NONE, p->text);
+#if defined(BRAINFPV_OSD_CMS_CURSOR_HIGHLIGHT)
+            if ((pDisplay == &max7456DisplayPort) && (i == pDisplay->cursorRow)) {
+                set_text_color(OSD_COLOR_WHITE, OSD_COLOR_BLACK);
+            }
+#endif
+
+#if defined(BRAINFPV_OSD_CMS_FANCY_TITLE_FONT)
+            if ((pDisplay == &max7456DisplayPort) && (i == 0)) {
+                brainFpvOsdResetTempFont();
+            }
+#endif
             CLR_PRINTLABEL(runtimeEntryFlags[i]);
             if (room < 30) {
                 return;
