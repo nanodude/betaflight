@@ -374,7 +374,7 @@ void pgResetFn_osdElementConfig(osdElementConfig_t *osdElementConfig)
 #ifdef USE_BRAINFPV_OSD
     osdElementConfig->item_pos[OSD_RSSI_VALUE]         = OSD_POS(8, 1)   | profileFlags;
     osdElementConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(12, 1)  | profileFlags;
-    osdElementConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(13, 6)   | profileFlags;
+    osdElementConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(14, 6)   | profileFlags;
     osdElementConfig->item_pos[OSD_ITEM_TIMER_1]       = OSD_POS(22, 1)  | profileFlags;
     osdElementConfig->item_pos[OSD_ITEM_TIMER_2]       = OSD_POS(1, 1)   | profileFlags;
     osdElementConfig->item_pos[OSD_FLYMODE]            = OSD_POS(1, 2)   | profileFlags;
