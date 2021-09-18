@@ -41,6 +41,7 @@ typedef struct bfOsdConfig_s {
     uint8_t crsf_link_stats_snr;
     int8_t crsf_link_stats_snr_threshold;
     uint8_t spec_enabled;
+    int8_t x_scale_diff;
 } bfOsdConfig_t;
 
 typedef enum {
@@ -76,4 +77,5 @@ void osdElementLinkQuality_BrainFPV(osdElementParms_t *element);
 void brainFpvOsdSetSyncThreshold(uint8_t threshold);
 #endif
 
+uint8_t brainFpvOsdGetXScale(void);
 #endif /* BRAINFPV_OSD */

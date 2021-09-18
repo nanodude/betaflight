@@ -1610,7 +1610,7 @@ SLOW_CONST const clivalue_t valueTable[] = {
 #endif
     { "brainfpv_osd_invert",        VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_OSD_CONFIG, offsetof(bfOsdConfig_t, invert) },
     { "brainfpv_osd_x_offset",      VAR_INT8   | MASTER_VALUE, .config.minmax = { -8, 7 }, PG_BRAINFPV_OSD_CONFIG, offsetof(bfOsdConfig_t, x_offset) },
-    { "brainfpv_osd_x_scale",       VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 15 }, PG_BRAINFPV_OSD_CONFIG, offsetof(bfOsdConfig_t, x_scale) },
+    { "brainfpv_osd_x_scale_diff",  VAR_INT8   | MASTER_VALUE, .config.minmax = { -3, 3 }, PG_BRAINFPV_OSD_CONFIG, offsetof(bfOsdConfig_t, x_scale_diff) },
     { "brainfpv_osd_sbs3d",         VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 1 }, PG_BRAINFPV_OSD_CONFIG, offsetof(bfOsdConfig_t, sbs_3d_enabled) },
     { "brainfpv_osd_sbs3d_roff",    VAR_UINT8  | MASTER_VALUE, .config.minmax = { 10, 40 }, PG_BRAINFPV_OSD_CONFIG, offsetof(bfOsdConfig_t, sbs_3d_right_eye_offset) },
     { "brainfpv_osd_font",          VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 2 }, PG_BRAINFPV_OSD_CONFIG, offsetof(bfOsdConfig_t, font) },

@@ -71,7 +71,7 @@ void brainFPVUpdateSettings(void) {
     brainFpvOsdSetSyncThreshold(bfOsdConfigUse->sync_threshold);
 
     BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
-    BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
+    BRAINFPVFPGA_SetXScale(brainFpvOsdGetXScale());
     BRAINFPVFPGA_SetStatusLEDColor(brainFpvSystemConfigUse->status_led_color, brainFpvSystemConfigUse->status_led_brightness);
 
     brainfpv_settings_updated_from_cms = false;

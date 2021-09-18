@@ -150,6 +150,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .crsf_link_stats_rssi = CRSF_LQ_LOW,
   .crsf_link_stats_snr = CRSF_SNR_LOW,
   .crsf_link_stats_snr_threshold = -2,
+  .x_scale_diff = 0,
 );
 
 const char * const gitTag = __GIT_TAG__;
@@ -186,7 +187,10 @@ void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 void draw_map_uav_center();
 void draw_hd_frame(const bfOsdConfig_t * config);
 void osdShowArmed(void);
+
+#if defined(BRAINFPV_OSD_CMS_BG_BOX)
 static void draw_cms_background_box(void);
+#endif
 
 enum BrainFPVOSDMode {
     MODE_BETAFLIGHT,
@@ -569,6 +573,9 @@ void osdMain(void) {
         osd_draw_test_pattern();
         //continue;
 #endif /* defined(BRAINFPV_OSD_TEST) */
+
+        //draw_vline(0, 0, GRAPHICS_BOTTOM, OSD_COLOR_WHITE);
+        //draw_vline(GRAPHICS_RIGHT, 0, GRAPHICS_BOTTOM, OSD_COLOR_WHITE);
 
         /* Hide OSD when OSDSW mode is active */
         if (IS_RC_MODE_ACTIVE(BOXOSD))
@@ -1052,6 +1059,21 @@ void brainFpvOsdResetTempFont(void)
     use_temp_font = false;
 }
 
+uint8_t brainFpvOsdGetXScale(void)
+{
+    uint8_t x_scale;
+
+    if (Video_GetType() == VIDEO_TYPE_PAL) {
+        x_scale = VIDEO_X_SCALE_PAL;
+    }
+    else {
+        x_scale = VIDEO_X_SCALE_NTSC;
+    }
+
+    x_scale = (int8_t)x_scale + bfOsdConfig()->x_scale_diff;
+
+    return x_scale;
+}
 
 #endif /* USE_BRAINFPV_OSD */
 

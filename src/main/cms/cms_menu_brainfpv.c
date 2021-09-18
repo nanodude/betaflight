@@ -101,7 +101,7 @@ OSD_UINT8_t entryBlackLevel =  {&bfOsdConfigCms.black_level, BRAINFPV_OSD_BLACK_
 
 OSD_UINT8_t entrySyncTh =  {&bfOsdConfigCms.sync_threshold, BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX, 1};
 OSD_INT8_t entryXoff =  {&bfOsdConfigCms.x_offset, -8, 7, 1};
-OSD_UINT8_t entryXScale =  {&bfOsdConfigCms.x_scale, 0, 15, 1};
+OSD_INT8_t entryXScale =  {&bfOsdConfigCms.x_scale_diff, -3, 3, 1};
 OSD_UINT8_t entry3DShift =  {&bfOsdConfigCms.sbs_3d_right_eye_offset, 10, 40, 1};
 OSD_UINT16_t entryMapMaxDist =  {&bfOsdConfigCms.map_max_dist_m, 10, 32767, 10};
 
@@ -122,7 +122,7 @@ OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
     {"INVERT", OME_Bool, NULL, &bfOsdConfigCms.invert, 0},
     {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh, 0},
     {"OSD X OFF", OME_INT8, NULL, &entryXoff, 0},
-    {"OSD X SC", OME_UINT8, NULL, &entryXScale, 0},
+    {"OSD X SC", OME_INT8, NULL, &entryXScale, 0},
     {"3D MODE", OME_Bool, NULL, &bfOsdConfigCms.sbs_3d_enabled, 0},
     {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift, 0},
 

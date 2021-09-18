@@ -85,6 +85,9 @@ extern const struct video_type_boundary *video_type_boundary_act;
 #define VIDEO_TYPE_PAL       2
 #define VIDEO_TYPE_PAL_ROWS  300
 
+#define VIDEO_X_SCALE_PAL 6
+#define VIDEO_X_SCALE_NTSC 7
+
 // draw area buffer values, for memory allocation, access and calculations we suppose the larger values for PAL, this also works for NTSC
 #define GRAPHICS_WIDTH_REAL  376                            // max columns
 #define GRAPHICS_HEIGHT_REAL 266                            // max lines

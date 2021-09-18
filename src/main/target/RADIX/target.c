@@ -134,7 +134,7 @@ void brainFPVUpdateSettings(void) {
 
     BRAINFPVFPGA_SetSyncThreshold(bfOsdConfigUse->sync_threshold);
     BRAINFPVFPGA_SetXOffset(bfOsdConfigUse->x_offset);
-    BRAINFPVFPGA_SetXScale(bfOsdConfigUse->x_scale);
+    BRAINFPVFPGA_SetXScale(brainFpvOsdGetXScale());
     BRAINFPVFPGA_Set3DConfig(bfOsdConfigUse->sbs_3d_enabled, bfOsdConfigUse->sbs_3d_right_eye_offset);
 
     if (bfOsdConfigUse->ir_system == 1) {
