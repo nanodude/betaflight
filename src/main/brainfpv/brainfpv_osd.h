@@ -56,6 +56,8 @@ void brainFpvOsdInit(void);
 void osdMain(void);
 void resetBfOsdConfig(bfOsdConfig_t *bfOsdConfig);
 
+void brainFpvOsdSetTempFont(uint8_t font);
+void brainFpvOsdResetTempFont(void);
 
 //void brainFpvOsdArtificialHorizon(void);
 void brainFpvOsdCenterMark(void);

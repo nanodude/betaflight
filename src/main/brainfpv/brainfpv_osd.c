@@ -176,6 +176,9 @@ static uint16_t crosshair_y;
 
 extern bfOsdConfig_t bfOsdConfigCms;
 
+static bool use_temp_font = false;
+static uint8_t temp_font = 0;
+
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch,
         uint8_t n_pitch_steps);
@@ -183,7 +186,7 @@ void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 void draw_map_uav_center();
 void draw_hd_frame(const bfOsdConfig_t * config);
 void osdShowArmed(void);
-
+static void draw_cms_background_box(void);
 
 enum BrainFPVOSDMode {
     MODE_BETAFLIGHT,
@@ -197,10 +200,16 @@ enum BrainFPVOSDMode {
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
-
 static uint8_t bf_font(void)
 {
-    uint8_t font = bfOsdConfig()->font;
+    uint8_t font;
+
+    if (use_temp_font) {
+        font = temp_font;
+    }
+    else {
+        font = bfOsdConfig()->font;
+    }
 
     if (font >= NUM_FONTS) {
         font = NUM_FONTS - 1;
@@ -405,7 +414,6 @@ void brainFpvOsdInit(void)
 
 #if VIDEO_BITS_PER_PIXEL == 4
     set_text_color(OSD_COLOR_WHITE, OSD_COLOR_BLACK);
-    fill_2bit_mask_table();
 #endif
 
     for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
@@ -592,6 +600,11 @@ void osdMain(void) {
             switch (mode) {
                 case MODE_BETAFLIGHT:
                     if ((draw_cnt % 20 == 0) || cmsInMenu) {
+#if defined(BRAINFPV_OSD_CMS_BG_BOX)
+                        if (cmsInMenu) {
+                            draw_cms_background_box();
+                        }
+#endif
                         cmsUpdate(currentTime);
                     }
                     if (!cmsInMenu){
@@ -1016,6 +1029,27 @@ void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold)
         tfp_sprintf(tmp_str, "SN %ddB", crsf_link_info.snr);
         draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
     }
+}
+
+#if defined(BRAINFPV_OSD_CMS_BG_BOX)
+#define CMS_BOX_MARGIN 10
+static void draw_cms_background_box(void)
+{
+    uint16_t width = GRAPHICS_RIGHT - GRAPHICS_LEFT - 2 * CMS_BOX_MARGIN;
+    uint16_t height = GRAPHICS_BOTTOM - GRAPHICS_TOP - 2 * CMS_BOX_MARGIN;
+    draw_filled_rectangle(GRAPHICS_LEFT + CMS_BOX_MARGIN, GRAPHICS_TOP + CMS_BOX_MARGIN, width, height, OSD_COLOR_STB);
+}
+#endif
+
+void brainFpvOsdSetTempFont(uint8_t font)
+{
+    use_temp_font = true;
+    temp_font = font;
+}
+
+void brainFpvOsdResetTempFont(void)
+{
+    use_temp_font = false;
 }
 
 
