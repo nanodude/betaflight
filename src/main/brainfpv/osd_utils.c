@@ -63,7 +63,7 @@ void clearGraphics()
 static FAST_RAM_ZERO_INIT uint16_t TWOBIT_TO_4BIT_VALUE[256];
 static FAST_RAM_ZERO_INIT uint16_t TWOBIT_TO_4BIT_MASK[256];
 
-void fill_2bit_mask_table(void)
+static void fill_2bit_mask_table(void)
 {
     uint8_t value;
     uint16_t mask_4bit;
@@ -105,6 +105,7 @@ FAST_CODE_NOINLINE void set_text_color(OSDOSD_COLOR_t main_color, OSDOSD_COLOR_t
         }
         TWOBIT_TO_4BIT_VALUE[value_2bit] = value_4bit;
     }
+    fill_2bit_mask_table();
 }
 
 FAST_CODE_NOINLINE static void draw_2bit_pixels_aligned(uint32_t addr, uint8_t value)

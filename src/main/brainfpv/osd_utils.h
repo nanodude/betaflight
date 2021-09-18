@@ -206,7 +206,6 @@ typedef enum {
 
 #if VIDEO_BITS_PER_PIXEL == 4
 void set_text_color(OSDOSD_COLOR_t main_color, OSDOSD_COLOR_t outline_color);
-void fill_2bit_mask_table(void);
 #endif
 
 void clearGraphics();
