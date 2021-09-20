@@ -47,6 +47,8 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM8,  CH3, PC8,   TIM_USE_MOTOR,               0,  5,  2 ), // M6
     DEF_TIM(TIM1,  CH3, PE13,  TIM_USE_MOTOR,               0,  6,  1 ), // M7
     DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_MOTOR,               0,  7,  1 ), // M8
+
+    DEF_TIM(TIM16, CH1N, PB6,  TIM_USE_NONE,                0,  0,  0 ), // Also TX5. Can be used for servo
 };
 
 #if defined(USE_BRAINFPV_RGB_LED_TIMER)
