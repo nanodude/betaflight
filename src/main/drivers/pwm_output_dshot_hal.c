@@ -32,25 +32,18 @@
 
 #include "drivers/dma.h"
 #include "drivers/dma_reqmap.h"
-#include "drivers/motor.h"
 #include "drivers/dshot.h"
 #include "drivers/dshot_dpwm.h"
 #include "drivers/dshot_command.h"
 #include "drivers/io.h"
 #include "drivers/nvic.h"
+#include "drivers/motor.h"
+#include "drivers/pwm_output.h"
+#include "drivers/pwm_output_dshot_shared.h"
 #include "drivers/rcc.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/system.h"
-
-#include "pwm_output.h"
-
-// TODO remove once debugging no longer needed
-#ifdef USE_DSHOT_TELEMETRY
-#include <string.h>
-#endif
-
-#include "pwm_output_dshot_shared.h"
 
 #ifdef USE_DSHOT_TELEMETRY
 
@@ -210,7 +203,7 @@ FAST_CODE static void motor_DMA_IRQHandler(dmaChannelDescriptor_t* descriptor)
 
 }
 
-bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, motorPwmProtocolTypes_e pwmProtocolType, uint8_t output)
+bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint8_t reorderedMotorIndex, motorPwmProtocolTypes_e pwmProtocolType, uint8_t output)
 {
 #ifdef USE_DSHOT_TELEMETRY
 #define OCINIT motor->ocInitStruct
@@ -245,6 +238,25 @@ bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t m
 
     if (dmaRef == NULL) {
         return false;
+    }
+
+    dmaIdentifier_e dmaIdentifier = dmaGetIdentifier(dmaRef);
+
+    bool dmaIsConfigured = false;
+#ifdef USE_DSHOT_DMAR
+    if (useBurstDshot) {
+        const resourceOwner_t *owner = dmaGetOwner(dmaIdentifier);
+        if (owner->owner == OWNER_TIMUP && owner->resourceIndex == timerGetTIMNumber(timerHardware->tim)) {
+            dmaIsConfigured = true;
+        } else if (!dmaAllocate(dmaIdentifier, OWNER_TIMUP, timerGetTIMNumber(timerHardware->tim))) {
+            return false;
+        }
+    } else
+#endif
+    {
+        if (!dmaAllocate(dmaIdentifier, OWNER_MOTOR, RESOURCE_INDEX(reorderedMotorIndex))) {
+            return false;
+        }
     }
 
     motorDmaOutput_t * const motor = &dmaMotors[motorIndex];
@@ -337,14 +349,16 @@ bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t m
         motor->timer->timerDmaSources &= ~motor->timerDmaSource;
     }
 
-    xLL_EX_DMA_DisableResource(dmaRef);
-    xLL_EX_DMA_DeInit(dmaRef);
-    LL_DMA_StructInit(&DMAINIT);
+    if (!dmaIsConfigured) {
+        xLL_EX_DMA_DisableResource(dmaRef);
+        xLL_EX_DMA_DeInit(dmaRef);
 
+        dmaEnable(dmaIdentifier);
+    }
+
+    LL_DMA_StructInit(&DMAINIT);
 #ifdef USE_DSHOT_DMAR
     if (useBurstDshot) {
-        dmaInit(timerHardware->dmaTimUPIrqHandler, OWNER_TIMUP, timerGetTIMNumber(timerHardware->tim));
-
         motor->timer->dmaBurstBuffer = &dshotBurstDmaBuffer[timerIndex][0];
 
 #if defined(STM32H7) || defined(STM32G4)
@@ -360,8 +374,6 @@ bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t m
     } else
 #endif
     {
-        dmaInit(dmaGetIdentifier(dmaRef), OWNER_MOTOR, RESOURCE_INDEX(motorIndex));
-
         motor->dmaBuffer = &dshotDmaBuffer[motorIndex][0];
 
 #if defined(STM32H7) || defined(STM32G4)
@@ -390,8 +402,11 @@ bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t m
     DMAINIT.Mode = LL_DMA_MODE_NORMAL;
     DMAINIT.Priority = LL_DMA_PRIORITY_HIGH;
 
-    xLL_EX_DMA_Init(dmaRef, &DMAINIT);
-    xLL_EX_DMA_EnableIT_TC(dmaRef);
+    if (!dmaIsConfigured) {
+        xLL_EX_DMA_Init(dmaRef, &DMAINIT);
+        xLL_EX_DMA_EnableIT_TC(dmaRef);
+    }
+
     motor->dmaRef = dmaRef;
 
 #ifdef USE_DSHOT_TELEMETRY
@@ -402,13 +417,16 @@ bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t m
 #else
     pwmDshotSetDirectionOutput(motor, &OCINIT, &DMAINIT);
 #endif
+
 #ifdef USE_DSHOT_DMAR
     if (useBurstDshot) {
-        dmaSetHandler(timerHardware->dmaTimUPIrqHandler, motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, motor->index);
+        if (!dmaIsConfigured) {
+            dmaSetHandler(dmaIdentifier, motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, motor->index);
+        }
     } else
 #endif
     {
-        dmaSetHandler(dmaGetIdentifier(dmaRef), motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, motor->index);
+        dmaSetHandler(dmaIdentifier, motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, motor->index);
     }
 
     LL_TIM_OC_Init(timer, channel, &OCINIT);

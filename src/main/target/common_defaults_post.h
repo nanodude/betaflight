@@ -29,14 +29,6 @@
 #define MAX7456_CLOCK_CONFIG_DEFAULT    MAX7456_CLOCK_CONFIG_OC
 #endif
 
-#ifndef MAX7456_SPI_CLK
-#define MAX7456_SPI_CLK                 (SPI_CLOCK_STANDARD)
-#endif
-
-#ifndef MAX7456_RESTORE_CLK
-#define MAX7456_RESTORE_CLK             (SPI_CLOCK_FAST)
-#endif
-
 #ifndef MAX7456_SPI_CS_PIN
 #define MAX7456_SPI_CS_PIN              NONE
 #endif
@@ -177,17 +169,17 @@
 
 #endif // I2C_FULL_RECONFIGURABILITY
 
-#ifndef I2C1_OVERCLOCK
-#define I2C1_OVERCLOCK false
+#ifndef I2C1_CLOCKSPEED
+#define I2C1_CLOCKSPEED 800
 #endif
-#ifndef I2C2_OVERCLOCK
-#define I2C2_OVERCLOCK false
+#ifndef I2C2_CLOCKSPEED
+#define I2C2_CLOCKSPEED 800
 #endif
-#ifndef I2C3_OVERCLOCK
-#define I2C3_OVERCLOCK false
+#ifndef I2C3_CLOCKSPEED
+#define I2C3_CLOCKSPEED 800
 #endif
-#ifndef I2C4_OVERCLOCK
-#define I2C4_OVERCLOCK false
+#ifndef I2C4_CLOCKSPEED
+#define I2C4_CLOCKSPEED 800
 #endif
 
 // Default values for internal pullup
@@ -232,6 +224,17 @@
 #define SPI4_MOSI_PIN   NONE
 #endif
 
+#ifdef USE_SPI_DEVICE_5
+#define SPI5_SCK_PIN    NONE
+#define SPI5_MISO_PIN   NONE
+#define SPI5_MOSI_PIN   NONE
+#endif
+
+#ifdef USE_SPI_DEVICE_6
+#define SPI6_SCK_PIN    NONE
+#define SPI6_MISO_PIN   NONE
+#define SPI6_MOSI_PIN   NONE
+#endif
 #else
 
 // Pin defaults for backward compatibility
@@ -564,6 +567,22 @@
 #define SPI4_RX_DMA_OPT (DMA_OPT_UNUSED)
 #endif
 #endif
+#ifdef USE_SPI_DEVICE_5
+#ifndef SPI5_TX_DMA_OPT
+#define SPI5_TX_DMA_OPT (DMA_OPT_UNUSED)
+#endif
+#ifndef SPI5_RX_DMA_OPT
+#define SPI5_RX_DMA_OPT (DMA_OPT_UNUSED)
+#endif
+#endif
+#ifdef USE_SPI_DEVICE_6
+#ifndef SPI6_TX_DMA_OPT
+#define SPI6_TX_DMA_OPT (DMA_OPT_UNUSED)
+#endif
+#ifndef SPI6_RX_DMA_OPT
+#define SPI6_RX_DMA_OPT (DMA_OPT_UNUSED)
+#endif
+#endif
 #endif
 
 #ifdef USE_UART1
@@ -644,6 +663,15 @@
 #endif
 #ifndef UART9_RX_DMA_OPT
 #define UART9_RX_DMA_OPT (DMA_OPT_UNUSED)
+#endif
+#endif
+
+#ifdef USE_UART10
+#ifndef UART10_TX_DMA_OPT
+#define UART10_TX_DMA_OPT (DMA_OPT_UNUSED)
+#endif
+#ifndef UART10_RX_DMA_OPT
+#define UART10_RX_DMA_OPT (DMA_OPT_UNUSED)
 #endif
 #endif
 

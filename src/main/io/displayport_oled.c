@@ -48,7 +48,7 @@ static int oledClearScreen(displayPort_t *displayPort)
     return 0;
 }
 
-static int oledDrawScreen(displayPort_t *displayPort)
+static bool oledDrawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     return 0;
@@ -95,7 +95,7 @@ static int oledHeartbeat(displayPort_t *displayPort)
     return 0;
 }
 
-static void oledResync(displayPort_t *displayPort)
+static void oledRedraw(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
 }
@@ -116,7 +116,7 @@ static const displayPortVTable_t oledVTable = {
     .writeChar = oledWriteChar,
     .isTransferInProgress = oledIsTransferInProgress,
     .heartbeat = oledHeartbeat,
-    .resync = oledResync,
+    .redraw = oledRedraw,
     .isSynced = oledIsSynced,
     .txBytesFree = oledTxBytesFree,
     .layerSupported = NULL,
@@ -127,7 +127,7 @@ static const displayPortVTable_t oledVTable = {
 displayPort_t *displayPortOledInit(void *device)
 {
     oledDisplayPort.device = device;
-    displayInit(&oledDisplayPort, &oledVTable);
+    displayInit(&oledDisplayPort, &oledVTable, DISPLAYPORT_DEVICE_TYPE_OLED);
     oledDisplayPort.rows = SCREEN_CHARACTER_ROW_COUNT;
     oledDisplayPort.cols = SCREEN_CHARACTER_COLUMN_COUNT;
     return &oledDisplayPort;

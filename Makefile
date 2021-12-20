@@ -34,9 +34,9 @@ RAM_BASED ?= no
 CUSTOM_DEFAULTS_EXTENDED ?= no
 
 # Debugger optons:
-#   empty           - ordinary build with all optimizations enabled
-#   RELWITHDEBINFO  - ordinary build with debug symbols and all optimizations enabled
-#   GDB             - debug build with minimum number of optimizations
+#   empty - ordinary build with all optimizations enabled
+#   INFO - ordinary build with debug symbols and all optimizations enabled
+#   GDB - debug build with minimum number of optimizations
 DEBUG     ?=
 
 # Insert the debugging hardfault debugger
@@ -83,10 +83,7 @@ include $(ROOT)/make/system-id.mk
 include $(ROOT)/make/checks.mk
 
 # configure some directories that are relative to wherever ROOT_DIR is located
-ifndef TOOLS_DIR
-TOOLS_DIR := $(ROOT)/tools
-endif
-BUILD_DIR := $(ROOT)/build
+TOOLS_DIR ?= $(ROOT)/tools
 DL_DIR    := $(ROOT)/downloads
 
 export RM := rm
@@ -108,7 +105,12 @@ FEATURE_CUT_LEVEL_SUPPLIED := $(FEATURE_CUT_LEVEL)
 FEATURE_CUT_LEVEL =
 
 # The list of targets to build for 'pre-push'
-PRE_PUSH_TARGET_LIST ?= STM32F405 STM32F411 STM32F7X2 STM32F745 NUCLEOH743 SITL STM32F4DISCOVERY_DEBUG test-representative
+ifeq ($(OSFAMILY), macosx)
+# SITL is not buildable on MacOS
+PRE_PUSH_TARGET_LIST ?= $(UNIFIED_TARGETS) STM32F4DISCOVERY_DEBUG test-representative
+else
+PRE_PUSH_TARGET_LIST ?= $(UNIFIED_TARGETS) SITL STM32F4DISCOVERY_DEBUG test-representative
+endif
 
 include $(ROOT)/make/targets.mk
 
@@ -155,7 +157,7 @@ else
 ifeq ($(DEBUG),INFO)
 DEBUG_FLAGS            = -ggdb3
 endif
-OPTIMISATION_BASE     := -flto -fuse-linker-plugin -ffast-math
+OPTIMISATION_BASE     := -flto -fuse-linker-plugin -ffast-math -fmerge-all-constants
 OPTIMISE_DEFAULT      := -O2
 OPTIMISE_SPEED        := -Ofast
 OPTIMISE_SIZE         := -Os
@@ -381,7 +383,7 @@ $(TARGET_HEX): $(TARGET_ELF)
 
 $(TARGET_DFU): $(TARGET_HEX)
 	@echo "Creating DFU $(TARGET_DFU)" "$(STDOUT)"
-	$(V1) $(DFUSE-PACK) -i $< $@
+	$(V1) $(PYTHON) $(DFUSE-PACK) -i $< $@
 
 else
 CLEAN_ARTIFACTS += $(TARGET_UNPATCHED_BIN) $(TARGET_EXST_HASH_SECTION_FILE) $(TARGET_EXST_ELF)
@@ -633,9 +635,6 @@ $(DL_DIR):
 $(TOOLS_DIR):
 	mkdir -p $@
 
-$(BUILD_DIR):
-	mkdir -p $@
-
 ## version           : print firmware version
 version:
 	@echo $(FC_VER)
@@ -661,8 +660,7 @@ targets:
 	@echo "Unified targets:     $(UNIFIED_TARGETS)"
 	@echo "Legacy targets:      $(LEGACY_TARGETS)"
 	@echo "Unsupported targets: $(UNSUPPORTED_TARGETS)"
-	@echo "Target:              $(TARGET)"
-	@echo "Base target:         $(BASE_TARGET)"
+	@echo "Default target:      $(TARGET)"
 	@echo "targets-group-1:     $(GROUP_1_TARGETS)"
 	@echo "targets-group-2:     $(GROUP_2_TARGETS)"
 	@echo "targets-group-rest:  $(GROUP_OTHER_TARGETS)"

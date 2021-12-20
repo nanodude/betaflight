@@ -42,17 +42,6 @@
 
 #include "pg/adc.h"
 
-// XXX Instance and DMA stream defs will be gone in unified target
-
-#ifndef ADC1_INSTANCE
-#define ADC1_INSTANCE NULL
-#endif
-#ifndef ADC2_INSTANCE
-#define ADC2_INSTANCE NULL
-#endif
-#ifndef ADC3_INSTANCE
-#define ADC3_INSTANCE NULL
-#endif
 #ifndef ADC1_DMA_STREAM
 #define ADC1_DMA_STREAM NULL
 #endif
@@ -65,25 +54,26 @@
 
 const adcDevice_t adcHardware[ADCDEV_COUNT] = {
     {
-        .ADCx = ADC1_INSTANCE,
+        .ADCx = ADC1,
         .rccADC = RCC_AHB1(ADC12),
 #if !defined(USE_DMA_SPEC)
         .dmaResource = (dmaResource_t *)ADC1_DMA_STREAM,
         .channel = DMA_REQUEST_ADC1,
 #endif
     },
-    { .ADCx = ADC2_INSTANCE,
+    { .ADCx = ADC2,
         .rccADC = RCC_AHB1(ADC12),
 #if !defined(USE_DMA_SPEC)
         .dmaResource = (dmaResource_t *)ADC2_DMA_STREAM,
         .channel = DMA_REQUEST_ADC2,
 #endif
     },
-#if defined(ADC3)
+
+#if !(defined(STM32H7A3xx) || defined(STM32H7A3xxQ))
     // ADC3 is not available on all H7 MCUs, e.g. H7A3
     // On H743 and H750, ADC3 can be serviced by BDMA also, but we settle for DMA1 or 2 (for now).
     {
-        .ADCx = ADC3_INSTANCE,
+        .ADCx = ADC3,
         .rccADC = RCC_AHB4(ADC3),
 #if !defined(USE_DMA_SPEC)
         .dmaResource = (dmaResource_t *)ADC3_DMA_STREAM,
@@ -95,6 +85,14 @@ const adcDevice_t adcHardware[ADCDEV_COUNT] = {
 
 adcDevice_t adcDevice[ADCDEV_COUNT];
 
+#if defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H723xx) || defined(STM32H725xx)
+#define ADC_DEVICE_FOR_INTERNAL ADC_DEVICES_3
+#elif defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
+#define ADC_DEVICE_FOR_INTERNAL ADC_DEVICES_2
+#else
+#error Unknown MCU
+#endif
+
 /* note these could be packed up for saving space */
 const adcTagMap_t adcTagMap[] = {
 #ifdef USE_ADC_INTERNAL
@@ -102,9 +100,16 @@ const adcTagMap_t adcTagMap[] = {
     // Keep these at the beginning for easy indexing by ADC_TAG_MAP_{VREFINT,TEMPSENSOR}
 #define ADC_TAG_MAP_VREFINT    0
 #define ADC_TAG_MAP_TEMPSENSOR 1
-    { DEFIO_TAG_E__NONE, ADC_DEVICES_3,   ADC_CHANNEL_VREFINT,    18 },
-    { DEFIO_TAG_E__NONE, ADC_DEVICES_3,   ADC_CHANNEL_TEMPSENSOR, 19 },
+
+#if defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
+    { DEFIO_TAG_E__NONE, ADC_DEVICE_FOR_INTERNAL,   ADC_CHANNEL_VREFINT,    18 },
+    { DEFIO_TAG_E__NONE, ADC_DEVICE_FOR_INTERNAL,   ADC_CHANNEL_TEMPSENSOR, 17 },
+#elif defined(STM32H723xx) || defined(STM32H725xx)
+    { DEFIO_TAG_E__NONE, ADC_DEVICE_FOR_INTERNAL,   ADC_CHANNEL_VREFINT,    18 },
+    { DEFIO_TAG_E__NONE, ADC_DEVICE_FOR_INTERNAL,   ADC_CHANNEL_TEMPSENSOR, 19 },
 #endif
+#endif
+
 #if defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
     // See DS13195 Rev 6 Page 51/52
     { DEFIO_TAG_E__PC0,  ADC_DEVICES_12,  ADC_CHANNEL_10, 10 },
@@ -197,7 +202,19 @@ void adcInitDevice(adcDevice_t *adcdev, int channelCount)
     hadc->Init.NbrOfDiscConversion      = 1;                             // Don't care
     hadc->Init.ExternalTrigConv         = ADC_SOFTWARE_START;
     hadc->Init.ExternalTrigConvEdge     = ADC_EXTERNALTRIGCONVEDGE_NONE; // Don't care
-    hadc->Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
+
+    // Enable circular DMA.
+    // ADC3 of H72X and H73X has a special way of doing this.
+#if defined(STM32H723xx) || defined(STM32H725xx)
+    if (adcdev->ADCx == ADC3) {
+        hadc->Init.DMAContinuousRequests = ENABLE;
+    } else
+#else
+    {
+        hadc->Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
+    }
+#endif
+
     hadc->Init.Overrun                  = ADC_OVR_DATA_OVERWRITTEN;
     hadc->Init.OversamplingMode         = DISABLE;
 
@@ -224,11 +241,21 @@ int adcFindTagMapEntry(ioTag_t tag)
     return -1;
 }
 
+// H743, H750 and H7A3 seems to use 16-bit precision value,
+// while H723 and H725 seems to use 12-bit precision value.
+#if defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
+#define VREFINT_CAL_SHIFT 4
+#elif defined(STM32H723xx) || defined(STM32H725xx)
+#define VREFINT_CAL_SHIFT 0
+#else
+#error Unknown MCU
+#endif
+
 void adcInitCalibrationValues(void)
 {
-    adcVREFINTCAL = *(uint16_t *)VREFINT_CAL_ADDR >> 4;
-    adcTSCAL1 = *TEMPSENSOR_CAL1_ADDR >> 4;
-    adcTSCAL2 = *TEMPSENSOR_CAL2_ADDR >> 4;
+    adcVREFINTCAL = *VREFINT_CAL_ADDR >> VREFINT_CAL_SHIFT;
+    adcTSCAL1 = *TEMPSENSOR_CAL1_ADDR >> VREFINT_CAL_SHIFT;
+    adcTSCAL2 = *TEMPSENSOR_CAL2_ADDR >> VREFINT_CAL_SHIFT;
     adcTSSlopeK = (TEMPSENSOR_CAL2_TEMP - TEMPSENSOR_CAL1_TEMP) * 1000 / (adcTSCAL2 - adcTSCAL1);
 }
 
@@ -269,10 +296,10 @@ void adcInit(const adcConfig_t *config)
 
         if (i == ADC_TEMPSENSOR) {
             map = ADC_TAG_MAP_TEMPSENSOR;
-            dev = ADCDEV_3;
+            dev = ffs(adcTagMap[map].devices) - 1;
         } else if (i == ADC_VREFINT) {
             map = ADC_TAG_MAP_VREFINT;
-            dev = ADCDEV_3;
+            dev = ffs(adcTagMap[map].devices) - 1;
         } else {
             if (!adcOperatingConfig[i].tag) {
                 continue;
@@ -348,7 +375,7 @@ void adcInit(const adcConfig_t *config)
     for (int dev = 0; dev < ADCDEV_COUNT; dev++) {
         adcDevice_t *adc = &adcDevice[dev];
 
-        if (!(adc->ADCx && adc->channelBits)) {
+        if (!adc->channelBits) {
             continue;
         }
 
@@ -400,19 +427,23 @@ void adcInit(const adcConfig_t *config)
 
         // Configure DMA for this ADC peripheral
 
-        dmaIdentifier_e dmaIdentifier;
 #ifdef USE_DMA_SPEC
         const dmaChannelSpec_t *dmaSpec = dmaGetChannelSpecByPeripheral(DMA_PERIPH_ADC, dev, config->dmaopt[dev]);
+        dmaIdentifier_e dmaIdentifier = dmaGetIdentifier(dmaSpec->ref);
 
-        if (!dmaSpec) {
+        if (!dmaSpec || !dmaAllocate(dmaIdentifier, OWNER_ADC, RESOURCE_INDEX(dev))) {
             return;
         }
 
         adc->DmaHandle.Instance                 = dmaSpec->ref;
         adc->DmaHandle.Init.Request             = dmaSpec->channel;
-        dmaIdentifier = dmaGetIdentifier(dmaSpec->ref);
 #else
-        dmaIdentifier = dmaGetIdentifier(adc->dmaResource);
+        dmaIdentifier_e dmaIdentifier = dmaGetIdentifier(adc->dmaResource);
+
+        if (!dmaAllocate(dmaIdentifier, OWNER_ADC, RESOURCE_INDEX(dev))) {
+            return;
+        }
+
         adc->DmaHandle.Instance                 = (DMA_ARCH_TYPE *)adc->dmaResource;
         adc->DmaHandle.Init.Request             = adc->channel;
 #endif
@@ -426,9 +457,9 @@ void adcInit(const adcConfig_t *config)
 
         // Deinitialize  & Initialize the DMA for new transfer
 
-        // dmaInit must be called before calling HAL_DMA_Init,
+        // dmaEnable must be called before calling HAL_DMA_Init,
         // to enable clock for associated DMA if not already done so.
-        dmaInit(dmaIdentifier, OWNER_ADC, RESOURCE_INDEX(dev));
+        dmaEnable(dmaIdentifier);
 
         HAL_DMA_DeInit(&adc->DmaHandle);
         HAL_DMA_Init(&adc->DmaHandle);
@@ -459,7 +490,7 @@ void adcInit(const adcConfig_t *config)
 
         adcDevice_t *adc = &adcDevice[dev];
 
-        if (!(adc->ADCx && adc->channelBits)) {
+        if (!adc->channelBits) {
             continue;
         }
 

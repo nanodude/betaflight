@@ -205,11 +205,7 @@ void adcInitDevice(adcDevice_t *adcdev, int channelCount)
 
     hadc->Instance = adcdev->ADCx;
 
-    if (HAL_ADC_DeInit(hadc) != HAL_OK)
-    {
-      // ADC de-initialization Error
-      handleError();
-    }
+    // DeInit is done in adcInit().
 
     hadc->Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV4;
     hadc->Init.Resolution = ADC_RESOLUTION_12B;
@@ -228,19 +224,6 @@ void adcInitDevice(adcDevice_t *adcdev, int channelCount)
     hadc->Init.OversamplingMode = DISABLE;
 
     if (HAL_ADC_Init(hadc) != HAL_OK) {
-        handleError();
-    }
-
-    // Configure the ADC multi-mode
-    ADC_MultiModeTypeDef multimode = { 0 };
-    multimode.Mode = ADC_MODE_INDEPENDENT;
-    if (HAL_ADCEx_MultiModeConfigChannel(hadc, &multimode) != HAL_OK) {
-        handleError();
-    }
-
-    ADC_AnalogWDGConfTypeDef AnalogWDGConfig = { 0 };
-    AnalogWDGConfig.Channel = ADC_CHANNEL_1;
-    if (HAL_ADC_AnalogWDGConfig(hadc, &AnalogWDGConfig) != HAL_OK) {
         handleError();
     }
 
@@ -358,6 +341,24 @@ void adcInit(const adcConfig_t *config)
         }
     }
 
+    // DeInit ADCx with inputs
+    // We have to batch call DeInit() for all devices as DeInit() initializes ADCx_COMMON register.
+
+    for (int dev = 0; dev < ADCDEV_COUNT; dev++) {
+        adcDevice_t *adc = &adcDevice[dev];
+
+        if (!(adc->ADCx && adc->channelBits)) {
+            continue;
+        }
+
+        adc->ADCHandle.Instance = adc->ADCx;
+
+        if (HAL_ADC_DeInit(&adc->ADCHandle) != HAL_OK) { 
+            // ADC de-initialization Error
+            handleError();
+        }
+    }
+
     // Configure ADCx with inputs
 
     int dmaBufferIndex = 0;
@@ -407,17 +408,16 @@ void adcInit(const adcConfig_t *config)
 
         // Configure DMA for this ADC peripheral
 
-        dmaIdentifier_e dmaIdentifier;
 #ifdef USE_DMA_SPEC
         const dmaChannelSpec_t *dmaSpec = dmaGetChannelSpecByPeripheral(DMA_PERIPH_ADC, dev, config->dmaopt[dev]);
 
-        if (!dmaSpec) {
+        dmaIdentifier_e dmaIdentifier = dmaGetIdentifier(dmaSpec->ref);
+        if (!dmaSpec || !dmaAllocate(dmaIdentifier, OWNER_ADC, RESOURCE_INDEX(dev))) {
             return;
         }
 
         adc->DmaHandle.Instance                 = (DMA_ARCH_TYPE *)dmaSpec->ref;
         adc->DmaHandle.Init.Request             = dmaSpec->channel;
-        dmaIdentifier = dmaGetIdentifier(dmaSpec->ref);
 #else
         dmaIdentifier = dmaGetIdentifier(adc->dmaResource);
         adc->DmaHandle.Instance                 = (DMA_ARCH_TYPE *)adc->dmaResource;
@@ -433,9 +433,9 @@ void adcInit(const adcConfig_t *config)
 
         // Deinitialize  & Initialize the DMA for new transfer
 
-        // dmaInit must be called before calling HAL_DMA_Init,
+        // dmaEnable must be called before calling HAL_DMA_Init,
         // to enable clock for associated DMA if not already done so.
-        dmaInit(dmaIdentifier, OWNER_ADC, RESOURCE_INDEX(dev));
+        dmaEnable(dmaIdentifier);
 
         HAL_DMA_DeInit(&adc->DmaHandle);
         HAL_DMA_Init(&adc->DmaHandle);

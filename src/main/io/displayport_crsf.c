@@ -31,14 +31,10 @@
 #include "common/printf.h"
 #include "common/time.h"
 
-#include "config/feature.h"
-
 #include "drivers/display.h"
 #include "drivers/time.h"
 
-#include "io/displayport_crsf.h"
-
-#include "rx/rx.h"
+#include "displayport_crsf.h"
 
 #define CRSF_DISPLAY_PORT_OPEN_DELAY_MS     400
 #define CRSF_DISPLAY_PORT_CLEAR_DELAY_MS    45
@@ -57,7 +53,7 @@ static int crsfClearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     memset(crsfScreen.buffer, ' ', sizeof(crsfScreen.buffer));
-    memset(crsfScreen.pendingTransport, 0, sizeof(crsfScreen.pendingTransport));
+    crsfScreen.updated = false;
     crsfScreen.reset = true;
     delayTransportUntilMs = millis() + CRSF_DISPLAY_PORT_CLEAR_DELAY_MS;
     return 0;
@@ -69,7 +65,7 @@ static int crsfRelease(displayPort_t *displayPort)
     return crsfClearScreen(displayPort);
 }
 
-static int crsfDrawScreen(displayPort_t *displayPort)
+static bool crsfDrawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     return 0;
@@ -90,8 +86,8 @@ static int crsfWriteString(displayPort_t *displayPort, uint8_t col, uint8_t row,
     }
     const size_t truncLen = MIN((int)strlen(s), crsfScreen.cols-col);  // truncate at colCount
     char *rowStart = &crsfScreen.buffer[row * crsfScreen.cols + col];
-    crsfScreen.pendingTransport[row] = memcmp(rowStart, s, truncLen);
-    if (crsfScreen.pendingTransport[row]) {
+    crsfScreen.updated |= memcmp(rowStart, s, truncLen);
+    if (crsfScreen.updated) {
         memcpy(rowStart, s, truncLen);
     }
     return 0;
@@ -122,7 +118,7 @@ static int crsfHeartbeat(displayPort_t *displayPort)
     return 0;
 }
 
-static void crsfResync(displayPort_t *displayPort)
+static void crsfRedraw(displayPort_t *displayPort)
 {
     displayPort->rows = crsfScreen.rows;
     displayPort->cols = crsfScreen.cols;
@@ -144,7 +140,7 @@ static const displayPortVTable_t crsfDisplayPortVTable = {
     .writeChar = crsfWriteChar,
     .isTransferInProgress = crsfIsTransferInProgress,
     .heartbeat = crsfHeartbeat,
-    .resync = crsfResync,
+    .redraw = crsfRedraw,
     .isSynced = crsfIsSynced,
     .txBytesFree = crsfTxBytesFree,
     .layerSupported = NULL,
@@ -181,7 +177,7 @@ void crsfDisplayPortSetDimensions(uint8_t rows, uint8_t cols)
 {
     crsfScreen.rows = MIN(rows, CRSF_DISPLAY_PORT_ROWS_MAX);
     crsfScreen.cols = MIN(cols, CRSF_DISPLAY_PORT_COLS_MAX);
-    crsfResync(&crsfDisplayPort);
+    crsfRedraw(&crsfDisplayPort);
 }
 
 void crsfDisplayPortRefresh(void)
@@ -190,37 +186,29 @@ void crsfDisplayPortRefresh(void)
         crsfDisplayPortMenuOpen();
         return;
     }
-    memset(crsfScreen.pendingTransport, 1, crsfScreen.rows);
+    crsfScreen.updated = true;
     crsfScreen.reset = true;
     delayTransportUntilMs = millis() + CRSF_DISPLAY_PORT_CLEAR_DELAY_MS;
 }
 
-int crsfDisplayPortNextRow(void)
+bool crsfDisplayPortIsReady(void)
 {
     const timeMs_t currentTimeMs = millis();
-    if (currentTimeMs < delayTransportUntilMs) {
-        return -1;
-    }
-    for(unsigned int i=0; i<CRSF_DISPLAY_PORT_ROWS_MAX; i++) {
-        if (crsfScreen.pendingTransport[i]) {
-            return i;
-        }
-    }
-    return -1;
+    const bool delayExpired = (currentTimeMs > delayTransportUntilMs);
+    const bool cmsReady = (cmsInMenu && (pCurrentDisplay == &crsfDisplayPort));
+    return (bool)(delayExpired && cmsReady);
 }
 
-displayPort_t *displayPortCrsfInit()
+static displayPort_t *displayPortCrsfInit()
 {
-    if (featureIsEnabled(FEATURE_TELEMETRY)
-        && featureIsEnabled(FEATURE_RX_SERIAL)
-        && (rxConfig()->serialrx_provider == SERIALRX_CRSF)) {
+    crsfDisplayPortSetDimensions(CRSF_DISPLAY_PORT_ROWS_MAX, CRSF_DISPLAY_PORT_COLS_MAX);
+    displayInit(&crsfDisplayPort, &crsfDisplayPortVTable, DISPLAYPORT_DEVICE_TYPE_CRSF);
 
-        crsfDisplayPortSetDimensions(CRSF_DISPLAY_PORT_ROWS_MAX, CRSF_DISPLAY_PORT_COLS_MAX);
-        displayInit(&crsfDisplayPort, &crsfDisplayPortVTable);
-        return &crsfDisplayPort;
-    } else {
-        return NULL;
-    }
+    return &crsfDisplayPort;
 }
 
+void crsfDisplayportRegister(void)
+{
+    cmsDisplayPortRegister(displayPortCrsfInit());
+}
 #endif

@@ -67,7 +67,7 @@ static protocolDataReceivedFnPtr protocolDataReceived;
 static protocolProcessFrameFnPtr protocolProcessFrame;
 static protocolSetRcDataFromPayloadFnPtr protocolSetRcDataFromPayload;
 
-STATIC_UNIT_TESTED uint16_t rxSpiReadRawRC(const rxRuntimeState_t *rxRuntimeState, uint8_t channel)
+STATIC_UNIT_TESTED float rxSpiReadRawRC(const rxRuntimeState_t *rxRuntimeState, uint8_t channel)
 {
     STATIC_ASSERT(NRF24L01_MAX_PAYLOAD_SIZE <= RX_SPI_MAX_PAYLOAD_SIZE, NRF24L01_MAX_PAYLOAD_SIZE_larger_than_RX_SPI_MAX_PAYLOAD_SIZE);
 
@@ -136,6 +136,8 @@ STATIC_UNIT_TESTED bool rxSpiSetProtocol(rx_spi_protocol_e protocol)
 #if defined(USE_RX_FRSKY_SPI_X)
     case RX_SPI_FRSKY_X:
     case RX_SPI_FRSKY_X_LBT:
+    case RX_SPI_FRSKY_X_V2:
+    case RX_SPI_FRSKY_X_LBT_V2:
         protocolInit = frSkySpiInit;
         protocolDataReceived = frSkySpiDataReceived;
         protocolSetRcDataFromPayload = frSkySpiSetRcData;

@@ -233,7 +233,7 @@ static void motor_DMA_IRQHandler(dmaChannelDescriptor_t* descriptor)
     }
 }
 
-bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, motorPwmProtocolTypes_e pwmProtocolType, uint8_t output)
+bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint8_t reorderedMotorIndex, motorPwmProtocolTypes_e pwmProtocolType, uint8_t output)
 {
     dmaResource_t *dmaRef = NULL;
     uint32_t dmaChannel;
@@ -269,6 +269,25 @@ bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t m
         return false;
     }
 
+    dmaIdentifier_e dmaIdentifier = dmaGetIdentifier(dmaRef);
+
+    bool dmaIsConfigured = false;
+#ifdef USE_DSHOT_DMAR
+    if (useBurstDshot) {
+        const resourceOwner_t *owner = dmaGetOwner(dmaIdentifier);
+        if (owner->owner == OWNER_TIMUP && owner->resourceIndex == timerGetTIMNumber(timerHardware->tim)) {
+            dmaIsConfigured = true;
+        } else if (!dmaAllocate(dmaIdentifier, OWNER_TIMUP, timerGetTIMNumber(timerHardware->tim))) {
+            return false;
+        }
+    } else
+#endif
+    {
+        if (!dmaAllocate(dmaIdentifier, OWNER_MOTOR, RESOURCE_INDEX(reorderedMotorIndex))) {
+            return false;
+        }
+    }
+
     motorDmaOutput_t * const motor = &dmaMotors[motorIndex];
     motor->timerHardware = timerHardware;
 
@@ -285,7 +304,7 @@ bool pwmDshotMotorHardwareConfig(const timerHardware_t *timerHardware, uint8_t m
     const uint8_t timerIndex = getTimerIndex(timer);
     const bool configureTimer = (timerIndex == dmaMotorTimerCount - 1);
 
-    IOInit(motorIO, OWNER_MOTOR, RESOURCE_INDEX(motorIndex));
+    IOInit(motorIO, OWNER_MOTOR, RESOURCE_INDEX(reorderedMotorIndex));
     IOConfigGPIOAF(motorIO, motor->iocfg, timerHardware->alternateFunction);
 
     // Configure time base
@@ -364,17 +383,16 @@ P    -    High -     High -
         motor->timerDmaIndex = timerDmaIndex(timerHardware->channel);
     }
 
-    dmaIdentifier_e identifier = dmaGetIdentifier(dmaRef);
-
+    if (!dmaIsConfigured) {
+        dmaEnable(dmaIdentifier);
 #ifdef USE_DSHOT_DMAR
-    if (useBurstDshot) {
-        dmaInit(identifier, OWNER_TIMUP, timerGetTIMNumber(timerHardware->tim));
-        dmaSetHandler(identifier, motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, timerIndex);
-    } else
+        if (useBurstDshot) {
+            dmaSetHandler(dmaIdentifier, motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, timerIndex);
+        } else
 #endif
-    {
-        dmaInit(identifier, OWNER_MOTOR, RESOURCE_INDEX(motorIndex));
-        dmaSetHandler(identifier, motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, motorIndex);
+        {
+            dmaSetHandler(dmaIdentifier, motor_DMA_IRQHandler, NVIC_PRIO_DSHOT_DMA, motorIndex);
+        }
     }
 
 #ifdef USE_DSHOT_DMAR
@@ -404,9 +422,12 @@ P    -    High -     High -
         /* Link hdma_tim to hdma[TIM_DMA_ID_UPDATE] (update) */
         __HAL_LINKDMA(&motor->timer->timHandle, hdma[TIM_DMA_ID_UPDATE], motor->timer->hdma_tim);
 
-        /* Initialize TIMx DMA handle */
-        result = HAL_DMA_Init(motor->timer->timHandle.hdma[TIM_DMA_ID_UPDATE]);
-
+        if (!dmaIsConfigured) {
+            /* Initialize TIMx DMA handle */
+            result = HAL_DMA_Init(motor->timer->timHandle.hdma[TIM_DMA_ID_UPDATE]);
+        } else {
+            result = HAL_OK;
+        }
     } else
 #endif
     {

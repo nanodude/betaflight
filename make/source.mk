@@ -27,6 +27,7 @@ COMMON_SRC = \
             drivers/buttons.c \
             drivers/display.c \
             drivers/display_canvas.c \
+            drivers/dma_common.c \
             drivers/dma_reqmap.c \
             drivers/exti.c \
             drivers/io.c \
@@ -91,12 +92,14 @@ COMMON_SRC = \
             flight/position.c \
             flight/failsafe.c \
             flight/gps_rescue.c \
-            flight/gyroanalyse.c \
+            flight/dyn_notch_filter.c \
             flight/imu.c \
-            flight/interpolated_setpoint.c \
+            flight/feedforward.c \
             flight/mixer.c \
+            flight/mixer_init.c \
             flight/mixer_tricopter.c \
             flight/pid.c \
+            flight/pid_init.c \
             flight/rpm_filter.c \
             flight/servos.c \
             flight/servos_tricopter.c \
@@ -113,6 +116,7 @@ COMMON_SRC = \
             rx/rx_spi.c \
             rx/rx_spi_common.c \
             rx/crsf.c \
+            rx/ghst.c \
             rx/sbus.c \
             rx/sbus_channels.c \
             rx/spektrum.c \
@@ -123,7 +127,9 @@ COMMON_SRC = \
             rx/sumh.c \
             rx/xbus.c \
             rx/fport.c \
+            rx/msp_override.c \
             sensors/acceleration.c \
+            sensors/acceleration_init.c \
             sensors/boardalignment.c \
             sensors/compass.c \
             sensors/gyro.c \
@@ -148,6 +154,7 @@ COMMON_SRC = \
             cms/cms_menu_vtx_rtc6705.c \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
+            cms/cms_menu_persistent_stats.c \
             drivers/display_ug2864hsweg01.c \
             drivers/light_ws2811strip.c \
             drivers/rangefinder/rangefinder_hcsr04.c \
@@ -171,10 +178,12 @@ COMMON_SRC = \
             io/pidaudio.c \
             osd/osd.c \
             osd/osd_elements.c \
+            osd/osd_warnings.c \
             sensors/barometer.c \
             sensors/rangefinder.c \
             telemetry/telemetry.c \
             telemetry/crsf.c \
+            telemetry/ghst.c \
             telemetry/srxl.c \
             telemetry/frsky_hub.c \
             telemetry/hott.c \
@@ -218,11 +227,13 @@ SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
             common/encoding.c \
             common/filter.c \
             common/maths.c \
+            common/sdft.c \
             common/typeconversion.c \
             drivers/accgyro/accgyro_mpu.c \
             drivers/accgyro/accgyro_mpu3050.c \
             drivers/accgyro/accgyro_spi_bmi160.c \
             drivers/accgyro/accgyro_spi_bmi270.c \
+            drivers/accgyro/accgyro_spi_lsm6dso.c \
             drivers/accgyro_legacy/accgyro_adxl345.c \
             drivers/accgyro_legacy/accgyro_bma280.c \
             drivers/accgyro_legacy/accgyro_l3g4200d.c \
@@ -247,7 +258,7 @@ SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
             fc/rc.c \
             fc/rc_controls.c \
             fc/runtime_config.c \
-            flight/gyroanalyse.c \
+            flight/dyn_notch_filter.c \
             flight/imu.c \
             flight/mixer.c \
             flight/pid.c \
@@ -272,6 +283,7 @@ SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
             $(DEVICE_STDPERIPH_SRC) \
 
 SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
+            $(shell find $(SRC_DIR) -name '*_init.c') \
             bus_bst_stm32f30x.c \
             cli/cli.c \
             cli/settings.c \
@@ -283,6 +295,7 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             drivers/barometer/barometer_lps.c \
             drivers/barometer/barometer_qmp6988.c \
             drivers/bus_i2c_config.c \
+            drivers/bus_i2c_timing.c \
             drivers/bus_spi_config.c \
             drivers/bus_spi_pinconfig.c \
             drivers/compass/compass_ak8963.c \
@@ -299,7 +312,6 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             drivers/serial_escserial.c \
             drivers/serial_pinconfig.c \
             drivers/serial_tcp.c \
-            drivers/serial_uart_init.c \
             drivers/serial_uart_pinconfig.c \
             drivers/serial_usb_vcp.c \
             drivers/transponder_ir_io_hal.c \
@@ -312,6 +324,7 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             config/config_eeprom.c \
             config/feature.c \
             config/config_streamer.c \
+            config/simplified_tuning.c \
             i2c_bst.c \
             io/dashboard.c \
             io/serial.c \
@@ -337,6 +350,7 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             cms/cms_menu_vtx_rtc6705.c \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
+            cms/cms_menu_persistent_stats.c \
             io/vtx.c \
             io/vtx_rtc6705.c \
             io/vtx_smartaudio.c \
@@ -345,8 +359,8 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             io/spektrum_vtx_control.c \
             osd/osd.c \
             osd/osd_elements.c \
-            rx/rx_bind.c \
-            sensors/gyro_init.c
+            osd/osd_warnings.c \
+            rx/rx_bind.c
 
 # Gyro driver files that only contain initialization and configuration code - not runtime code
 SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
@@ -355,7 +369,8 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             drivers/accgyro/accgyro_spi_mpu6000.c \
             drivers/accgyro/accgyro_spi_mpu6500.c \
             drivers/accgyro/accgyro_spi_mpu9250.c \
-            drivers/accgyro/accgyro_spi_icm20689.c
+            drivers/accgyro/accgyro_spi_icm20689.c \
+            drivers/accgyro/accgyro_spi_lsm6dso_init.c
 
 
 # F4 and F7 optimizations
@@ -385,16 +400,6 @@ ifneq ($(DSP_LIB),)
 
 INCLUDE_DIRS += $(DSP_LIB)/Include
 
-SRC += $(DSP_LIB)/Source/BasicMathFunctions/arm_mult_f32.c
-SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_f32.c
-SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
-SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
-SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
-SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
-
-SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
-SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
-
 SRC += $(wildcard $(DSP_LIB)/Source/*/*.S)
 
 DEVICE_FLAGS += -DFFT_SIZE_32
@@ -405,6 +410,7 @@ SRC += \
             drivers/flash.c \
             drivers/flash_m25p16.c \
             drivers/flash_w25n01g.c \
+            drivers/flash_w25q128fv.c \
             drivers/flash_w25m.c \
             io/flashfs.c \
             $(MSC_SRC)
@@ -521,3 +527,12 @@ endif
 
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
+
+# Search path and source files for the Open Location Code library
+OLC_DIR = $(ROOT)/lib/main/google/olc
+
+ifneq ($(OLC_DIR),)
+INCLUDE_DIRS += $(OLC_DIR)
+SRC += $(OLC_DIR)/olc.c
+SIZE_OPTIMISED_SRC += $(OLC_DIR)/olc.c
+endif

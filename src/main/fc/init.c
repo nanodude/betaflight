@@ -29,6 +29,7 @@
 
 #include "build/build_config.h"
 #include "build/debug.h"
+#include "build/debug_pin.h"
 
 #include "cms/cms.h"
 #include "cms/cms_types.h"
@@ -38,6 +39,7 @@
 #include "common/maths.h"
 #include "common/printf_serial.h"
 
+#include "config/config.h"
 #include "config/config_eeprom.h"
 #include "config/feature.h"
 
@@ -83,7 +85,6 @@
 #include "drivers/vtx_table.h"
 
 #include "fc/board_info.h"
-#include "config/config.h"
 #include "fc/dispatch.h"
 #include "fc/init.h"
 #include "fc/rc_controls.h"
@@ -95,22 +96,19 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/rpm_filter.h"
+#include "flight/pid_init.h"
 #include "flight/servos.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
 #include "io/dashboard.h"
-#include "io/displayport_crsf.h"
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_max7456.h"
 #include "io/displayport_msp.h"
-#include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
-#include "io/motors.h"
 #include "io/pidaudio.h"
 #include "io/piniobox.h"
 #include "io/rcdevice_cam.h"
@@ -188,29 +186,12 @@ extern uint8_t safe_boot;
 void targetPreInit(void);
 #endif
 
-#ifdef SOFTSERIAL_LOOPBACK
-serialPort_t *loopbackPort;
-#endif
-
 uint8_t systemState = SYSTEM_STATE_INITIALISING;
-
-void processLoopback(void)
-{
-#ifdef SOFTSERIAL_LOOPBACK
-    if (loopbackPort) {
-        uint8_t bytesWaiting;
-        while ((bytesWaiting = serialRxBytesWaiting(loopbackPort))) {
-            uint8_t b = serialRead(loopbackPort);
-            serialWrite(loopbackPort, b);
-        };
-    }
-#endif
-}
 
 #ifdef BUS_SWITCH_PIN
 void busSwitchInit(void)
 {
-static IO_t busSwitchResetPin        = IO_NONE;
+    IO_t busSwitchResetPin = IO_NONE;
 
     busSwitchResetPin = IOGetByTag(IO_TAG(BUS_SWITCH_PIN));
     IOInit(busSwitchResetPin, OWNER_SYSTEM, 0);
@@ -221,40 +202,6 @@ static IO_t busSwitchResetPin        = IO_NONE;
 }
 #endif
 
-bool requiresSpiLeadingEdge(SPIDevice device)
-{
-#if defined(CONFIG_IN_SDCARD) || defined(CONFIG_IN_EXTERNAL_FLASH)
-#if !defined(SDCARD_SPI_INSTANCE) && !defined(RX_SPI_INSTANCE)
-    UNUSED(device);
-#endif
-#if defined(SDCARD_SPI_INSTANCE)
-    if (device == spiDeviceByInstance(SDCARD_SPI_INSTANCE)) {
-        return true;
-    }
-#endif
-#if defined(RX_SPI_INSTANCE)
-    if (device == spiDeviceByInstance(RX_SPI_INSTANCE)) {
-        return true;
-    }
-#endif
-#else
-#if !defined(USE_SDCARD) && !defined(USE_RX_SPI)
-    UNUSED(device);
-#endif
-#if defined(USE_SDCARD)
-    if (device == SPI_CFG_TO_DEV(sdcardConfig()->device)) {
-        return true;
-    }
-#endif
-#if defined(USE_RX_SPI)
-    if (device == SPI_CFG_TO_DEV(rxSpiConfig()->spibus)) {
-        return true;
-    }
-#endif
-#endif // CONFIG_IN_SDCARD || CONFIG_IN_EXTERNAL_FLASH
-
-    return false;
-}
 
 static void configureSPIAndQuadSPI(void)
 {
@@ -268,22 +215,22 @@ static void configureSPIAndQuadSPI(void)
     spiPreinit();
 
 #ifdef USE_SPI_DEVICE_1
-    spiInit(SPIDEV_1, requiresSpiLeadingEdge(SPIDEV_1));
+    spiInit(SPIDEV_1);
 #endif
 #ifdef USE_SPI_DEVICE_2
-    spiInit(SPIDEV_2, requiresSpiLeadingEdge(SPIDEV_2));
+    spiInit(SPIDEV_2);
 #endif
 #ifdef USE_SPI_DEVICE_3
-    spiInit(SPIDEV_3, requiresSpiLeadingEdge(SPIDEV_3));
+    spiInit(SPIDEV_3);
 #endif
 #ifdef USE_SPI_DEVICE_4
-    spiInit(SPIDEV_4, requiresSpiLeadingEdge(SPIDEV_4));
+    spiInit(SPIDEV_4);
 #endif
 #ifdef USE_SPI_DEVICE_5
-    spiInit(SPIDEV_5, requiresSpiLeadingEdge(SPIDEV_5));
+    spiInit(SPIDEV_5);
 #endif
 #ifdef USE_SPI_DEVICE_6
-    spiInit(SPIDEV_6, requiresSpiLeadingEdge(SPIDEV_6));
+    spiInit(SPIDEV_6);
 #endif
 #endif // USE_SPI
 
@@ -331,6 +278,11 @@ SLOW_CODE void init(void)
     detectHardwareRevision();
 #endif
 
+#if defined(USE_TARGET_CONFIG)
+    // Call once before the config is loaded for any target specific configuration required to support loading the config
+    targetConfiguration();
+#endif
+
 #ifdef USE_BRUSHED_ESC_AUTODETECT
     // Opportunistically use the first motor pin of the default configuration for detection.
     // We are doing this as with some boards, timing seems to be important, and the later detection will fail.
@@ -351,7 +303,6 @@ SLOW_CODE void init(void)
 #if defined(BRAINFPV)
     brainFPVSystemInit();
 #endif
-
 
 #ifdef CONFIG_IN_SDCARD
 
@@ -380,10 +331,6 @@ SLOW_CODE void init(void)
 
     pgResetAll();
 
-#if defined(STM32H7) && defined(USE_SDCARD_SDIO) // H7 only for now, likely should be applied to F4/F7 too
-    sdioPinConfigure();
-    SDIO_GPIO_Init();
-#endif
 #ifdef USE_SDCARD_SPI
     configureSPIAndQuadSPI();
     initFlags |= SPI_AND_QSPI_INIT_ATTEMPTED;
@@ -391,6 +338,10 @@ SLOW_CODE void init(void)
 
     sdCardAndFSInit();
     initFlags |= SD_INIT_ATTEMPTED;
+
+    if (!sdcard_isInserted()) {
+        failureMode(FAILURE_SDCARD_REQUIRED);
+    }
 
     while (afatfs_getFilesystemState() != AFATFS_FILESYSTEM_STATE_READY) {
         afatfs_poll();
@@ -459,6 +410,10 @@ SLOW_CODE void init(void)
     }
 
     systemState |= SYSTEM_STATE_CONFIG_LOADED;
+
+#ifdef USE_DEBUG_PIN
+    dbgPinInit();
+#endif
 
 #ifdef USE_BRUSHED_ESC_AUTODETECT
     // Now detect again with the actually configured pin for motor 1, if it is not the default pin.
@@ -549,8 +504,9 @@ SLOW_CODE void init(void)
     }
 #endif
 
-#ifdef STM32F4
-    // Only F4 has non-8MHz boards
+#if defined(STM32F4) || defined(STM32G4)
+    // F4 has non-8MHz boards
+    // G4 for Betaflight allow 24 or 27MHz oscillator
     systemClockSetHSEValue(systemConfig()->hseMhz * 1000000U);
 #endif
 
@@ -600,7 +556,6 @@ SLOW_CODE void init(void)
 #endif
 
     mixerInit(mixerConfig()->mixerMode);
-    mixerConfigureOutput();
 
     uint16_t idlePulse = motorConfig()->mincommand;
     if (featureIsEnabled(FEATURE_3D)) {
@@ -651,12 +606,28 @@ SLOW_CODE void init(void)
         initFlags |= SPI_AND_QSPI_INIT_ATTEMPTED;
     }
 
+#if defined(USE_SDCARD_SDIO) && !defined(CONFIG_IN_SDCARD) && defined(STM32H7)
+    sdioPinConfigure();
+    SDIO_GPIO_Init();
+#endif
+
 #ifdef USE_USB_MSC
 /* MSC mode will start after init, but will not allow scheduler to run,
  *  so there is no bottleneck in reading and writing data */
     mscInit();
-    if (mscCheckBoot() || mscCheckButton()) {
+    if (mscCheckBootAndReset() || mscCheckButton()) {
         ledInit(statusLedConfig());
+
+#ifdef USE_SDCARD
+        if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD) {
+            if (sdcardConfig()->mode) {
+                if (!(initFlags & SD_INIT_ATTEMPTED)) {
+                    sdCardAndFSInit();
+                    initFlags |= SD_INIT_ATTEMPTED;
+                }
+            }
+        }
+#endif
 
 #if defined(USE_FLASHFS)
         // If the blackbox device is onboard flash, then initialize and scan
@@ -665,6 +636,10 @@ SLOW_CODE void init(void)
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
             emfat_init_files();
         }
+#endif
+        // There's no more initialisation to be done, so enable DMA where possible for SPI
+#ifdef USE_SPI
+        spiInitBusDMA();
 #endif
         if (mscStart() == 0) {
              mscWaitForButton();
@@ -711,34 +686,12 @@ SLOW_CODE void init(void)
     updateHardwareRevision();
 #endif
 
-#if defined(STM32H7) && defined(USE_SDCARD_SDIO) // H7 only for now, likely should be applied to F4/F7 too
-    if (!(initFlags & SD_INIT_ATTEMPTED)) {
-        sdioPinConfigure();
-        SDIO_GPIO_Init();
-    }
-#endif
-
-
 #ifdef USE_VTX_RTC6705
     bool useRTC6705 = rtc6705IOInit(vtxIOConfig());
 #endif
 
 #ifdef USE_CAMERA_CONTROL
     cameraControlInit();
-#endif
-
-// XXX These kind of code should goto target/config.c?
-// XXX And these no longer work properly as FEATURE_RANGEFINDER does control HCSR04 runtime configuration.
-#if defined(RANGEFINDER_HCSR04_SOFTSERIAL2_EXCLUSIVE) && defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL2)
-    if (featureIsEnabled(FEATURE_RANGEFINDER) && featureIsEnabled(FEATURE_SOFTSERIAL)) {
-        serialRemovePort(SERIAL_PORT_SOFTSERIAL2);
-    }
-#endif
-
-#if defined(RANGEFINDER_HCSR04_SOFTSERIAL1_EXCLUSIVE) && defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1)
-    if (featureIsEnabled(FEATURE_RANGEFINDER) && featureIsEnabled(FEATURE_SOFTSERIAL)) {
-        serialRemovePort(SERIAL_PORT_SOFTSERIAL1);
-    }
 #endif
 
 #ifdef USE_ADC
@@ -775,13 +728,14 @@ SLOW_CODE void init(void)
 
     pidInit(currentPidProfile);
 
+    mixerInitProfile();
+
 #ifdef USE_PID_AUDIO
     pidAudioInit();
 #endif
 
 #ifdef USE_SERVOS
     servosInit();
-    servoConfigureOutput();
     if (isMixerUsingServos()) {
         //pwm_params.useChannelForwarding = featureIsEnabled(FEATURE_CHANNEL_FORWARDING);
         servoDevInit(&servoConfig()->dev);
@@ -842,12 +796,6 @@ SLOW_CODE void init(void)
     }
 #endif
 
-#ifdef USE_TELEMETRY
-    if (featureIsEnabled(FEATURE_TELEMETRY)) {
-        telemetryInit();
-    }
-#endif
-
 #ifdef USE_ESC_SENSOR
     if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
         escSensorInit();
@@ -881,7 +829,6 @@ SLOW_CODE void init(void)
     if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD) {
         if (sdcardConfig()->mode) {
             if (!(initFlags & SD_INIT_ATTEMPTED)) {
-                initFlags |= SD_INIT_ATTEMPTED;
                 sdCardAndFSInit();
 
                 // Fully initialize FS here
@@ -894,6 +841,7 @@ SLOW_CODE void init(void)
                     }
                     delay(1);
                 }
+                initFlags |= SD_INIT_ATTEMPTED;
             }
         }
     }
@@ -944,15 +892,6 @@ SLOW_CODE void init(void)
     timerStart();
 #endif
 
-#ifdef SOFTSERIAL_LOOPBACK
-    // FIXME this is a hack, perhaps add a FUNCTION_LOOPBACK to support it properly
-    loopbackPort = (serialPort_t*)&(softSerialPorts[0]);
-    if (!loopbackPort->vTable) {
-        loopbackPort = openSoftSerial(0, NULL, 19200, SERIAL_NOT_INVERTED);
-    }
-    serialPrint(loopbackPort, "LOOPBACK\r\n");
-#endif
-
     batteryInit(); // always needs doing, regardless of features.
 
 #ifdef USE_RCDEVICE
@@ -972,6 +911,12 @@ SLOW_CODE void init(void)
  */
 #ifdef USE_CMS
     cmsInit();
+#endif
+
+#ifdef USE_TELEMETRY
+    if (featureIsEnabled(FEATURE_TELEMETRY)) {
+        telemetryInit();
+    }
 #endif
 
 #if (defined(USE_OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)))
@@ -1017,12 +962,12 @@ SLOW_CODE void init(void)
                 osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
             }
 #else
-            osdDisplayPort = max7456DisplayPortInit(vcdProfile());
-#endif
-            if (osdDisplayPort || device == OSD_DISPLAYPORT_DEVICE_MAX7456) {
+            // If there is a max7456 chip for the OSD configured and detected then use it.
+            if (max7456DisplayPortInit(vcdProfile(), &osdDisplayPort) || device == OSD_DISPLAYPORT_DEVICE_MAX7456) {
                 osdDisplayPortDevice = OSD_DISPLAYPORT_DEVICE_MAX7456;
                 break;
             }
+#endif
             FALLTHROUGH;
 #endif
 
@@ -1045,6 +990,10 @@ SLOW_CODE void init(void)
 
         // osdInit will register with CMS by itself.
         osdInit(osdDisplayPort, osdDisplayPortDevice);
+
+        if (osdDisplayPortDevice == OSD_DISPLAYPORT_DEVICE_NONE) {
+            featureDisableImmediate(FEATURE_OSD);
+        }
     }
 #endif // USE_OSD
 
@@ -1068,20 +1017,27 @@ SLOW_CODE void init(void)
     }
 #endif
 
-#if defined(USE_CMS) && defined(USE_SPEKTRUM_CMS_TELEMETRY) && defined(USE_TELEMETRY_SRXL)
-    // Register the srxl Textgen telemetry sensor as a displayport device
-    cmsDisplayPortRegister(displayPortSrxlInit());
-#endif
-
-#if defined(USE_CMS) && defined(USE_CRSF_CMS_TELEMETRY)
-    cmsDisplayPortRegister(displayPortCrsfInit());
-#endif
-
     setArmingDisabled(ARMING_DISABLED_BOOT_GRACE_TIME);
+
+    // On F4/F7 allocate SPI DMA streams before motor timers
+#if defined(STM32F4) || defined(STM32F7)
+#ifdef USE_SPI
+    // Attempt to enable DMA on all SPI busses
+    spiInitBusDMA();
+#endif
+#endif
 
 #ifdef USE_MOTOR
     motorPostInit();
     motorEnable();
+#endif
+
+    // On H7/G4 allocate SPI DMA streams after motor timers as SPI DMA allocate will always be possible
+#if defined(STM32H7) || defined(STM32G4)
+#ifdef USE_SPI
+    // Attempt to enable DMA on all SPI busses
+    spiInitBusDMA();
+#endif
 #endif
 
     swdPinsInit();

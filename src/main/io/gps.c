@@ -54,6 +54,8 @@
 #include "flight/pid.h"
 #include "flight/gps_rescue.h"
 
+#include "scheduler/scheduler.h"
+
 #include "sensors/sensors.h"
 
 #define LOG_ERROR        '?'
@@ -228,14 +230,18 @@ typedef struct {
 #endif // USE_GPS_UBLOX
 
 typedef enum {
-    GPS_UNKNOWN,
-    GPS_INITIALIZING,
-    GPS_INITIALIZED,
-    GPS_CHANGE_BAUD,
-    GPS_CONFIGURE,
-    GPS_RECEIVING_DATA,
-    GPS_LOST_COMMUNICATION
+    GPS_STATE_UNKNOWN,
+    GPS_STATE_INITIALIZING,
+    GPS_STATE_INITIALIZED,
+    GPS_STATE_CHANGE_BAUD,
+    GPS_STATE_CONFIGURE,
+    GPS_STATE_RECEIVING_DATA,
+    GPS_STATE_LOST_COMMUNICATION,
+    GPS_STATE_COUNT
 } gpsState_e;
+
+// Max time to wait for received data
+#define GPS_MAX_WAIT_DATA_RX 30
 
 gpsData_t gpsData;
 
@@ -288,12 +294,12 @@ void gpsInit(void)
     memset(gpsPacketLog, 0x00, sizeof(gpsPacketLog));
 
     // init gpsData structure. if we're not actually enabled, don't bother doing anything else
-    gpsSetState(GPS_UNKNOWN);
+    gpsSetState(GPS_STATE_UNKNOWN);
 
     gpsData.lastMessage = millis();
 
     if (gpsConfig()->provider == GPS_MSP) { // no serial ports used when GPS_MSP is configured
-        gpsSetState(GPS_INITIALIZED);
+        gpsSetState(GPS_STATE_INITIALIZED);
         return;
     }
 
@@ -324,7 +330,7 @@ void gpsInit(void)
     }
 
     // signal GPS "thread" to initialize when it gets to it
-    gpsSetState(GPS_INITIALIZING);
+    gpsSetState(GPS_STATE_INITIALIZING);
 }
 
 #ifdef USE_GPS_NMEA
@@ -334,7 +340,7 @@ void gpsInitNmea(void)
     uint32_t now;
 #endif
     switch (gpsData.state) {
-        case GPS_INITIALIZING:
+        case GPS_STATE_INITIALIZING:
 #if !defined(GPS_NMEA_TX_ONLY)
            now = millis();
            if (now - gpsData.state_ts < 1000) {
@@ -350,11 +356,11 @@ void gpsInitNmea(void)
                gpsData.state_position++;
            } else {
                // we're now (hopefully) at the correct rate, next state will switch to it
-               gpsSetState(GPS_CHANGE_BAUD);
+               gpsSetState(GPS_STATE_CHANGE_BAUD);
            }
            break;
 #endif
-        case GPS_CHANGE_BAUD:
+        case GPS_STATE_CHANGE_BAUD:
 #if !defined(GPS_NMEA_TX_ONLY)
            now = millis();
            if (now - gpsData.state_ts < 1000) {
@@ -373,7 +379,7 @@ void gpsInitNmea(void)
                serialSetBaudRate(gpsPort, baudRates[gpsInitData[gpsData.baudrateIndex].baudrateIndex]);
            }
 #endif
-               gpsSetState(GPS_RECEIVING_DATA);
+               gpsSetState(GPS_STATE_RECEIVING_DATA);
             break;
     }
 }
@@ -421,7 +427,7 @@ void gpsInitUblox(void)
 
 
     switch (gpsData.state) {
-        case GPS_INITIALIZING:
+        case GPS_STATE_INITIALIZING:
             now = millis();
             if (now - gpsData.state_ts < GPS_BAUDRATE_CHANGE_DELAY)
                 return;
@@ -444,18 +450,18 @@ void gpsInitUblox(void)
                 gpsData.state_position++;
             } else {
                 // we're now (hopefully) at the correct rate, next state will switch to it
-                gpsSetState(GPS_CHANGE_BAUD);
+                gpsSetState(GPS_STATE_CHANGE_BAUD);
             }
             break;
-        case GPS_CHANGE_BAUD:
+        case GPS_STATE_CHANGE_BAUD:
             serialSetBaudRate(gpsPort, baudRates[gpsInitData[gpsData.baudrateIndex].baudrateIndex]);
-            gpsSetState(GPS_CONFIGURE);
+            gpsSetState(GPS_STATE_CONFIGURE);
             break;
-        case GPS_CONFIGURE:
+        case GPS_STATE_CONFIGURE:
 
             // Either use specific config file for GPS or let dynamically upload config
             if ( gpsConfig()->autoConfig == GPS_AUTOCONFIG_OFF ) {
-                gpsSetState(GPS_RECEIVING_DATA);
+                gpsSetState(GPS_STATE_RECEIVING_DATA);
                 break;
             }
 
@@ -636,7 +642,7 @@ void gpsInitUblox(void)
 
             if (gpsData.messageState >= GPS_MESSAGE_STATE_INITIALIZED) {
                 // ublox should be initialised, try receiving
-                gpsSetState(GPS_RECEIVING_DATA);
+                gpsSetState(GPS_STATE_RECEIVING_DATA);
             }
             break;
     }
@@ -673,12 +679,18 @@ static void updateGpsIndicator(timeUs_t currentTimeUs)
 
 void gpsUpdate(timeUs_t currentTimeUs)
 {
+    static gpsState_e gpsStateDurationUs[GPS_STATE_COUNT];
+    timeUs_t executeTimeUs;
+    gpsState_e gpsCurState = gpsData.state;
+
+
     // read out available GPS bytes
     if (gpsPort) {
-        while (serialRxBytesWaiting(gpsPort))
+        while (serialRxBytesWaiting(gpsPort) && (cmpTimeUs(micros(), currentTimeUs) < GPS_MAX_WAIT_DATA_RX)) {
             gpsNewData(serialRead(gpsPort));
+        }
     } else if (GPS_update & GPS_MSP_UPDATE) { // GPS data received via MSP
-        gpsSetState(GPS_RECEIVING_DATA);
+        gpsSetState(GPS_STATE_RECEIVING_DATA);
         gpsData.lastMessage = millis();
         sensorsSet(SENSOR_GPS);
         onGpsNewData();
@@ -686,17 +698,17 @@ void gpsUpdate(timeUs_t currentTimeUs)
     }
 
     switch (gpsData.state) {
-        case GPS_UNKNOWN:
-        case GPS_INITIALIZED:
+        case GPS_STATE_UNKNOWN:
+        case GPS_STATE_INITIALIZED:
             break;
 
-        case GPS_INITIALIZING:
-        case GPS_CHANGE_BAUD:
-        case GPS_CONFIGURE:
+        case GPS_STATE_INITIALIZING:
+        case GPS_STATE_CHANGE_BAUD:
+        case GPS_STATE_CONFIGURE:
             gpsInitHardware();
             break;
 
-        case GPS_LOST_COMMUNICATION:
+        case GPS_STATE_LOST_COMMUNICATION:
             gpsData.timeouts++;
             if (gpsConfig()->autoBaud) {
                 // try another rate
@@ -706,15 +718,15 @@ void gpsUpdate(timeUs_t currentTimeUs)
             gpsData.lastMessage = millis();
             gpsSol.numSat = 0;
             DISABLE_STATE(GPS_FIX);
-            gpsSetState(GPS_INITIALIZING);
+            gpsSetState(GPS_STATE_INITIALIZING);
             break;
 
-        case GPS_RECEIVING_DATA:
+        case GPS_STATE_RECEIVING_DATA:
             // check for no data/gps timeout/cable disconnection etc
             if (millis() - gpsData.lastMessage > GPS_TIMEOUT) {
                 // remove GPS from capability
                 sensorsClear(SENSOR_GPS);
-                gpsSetState(GPS_LOST_COMMUNICATION);
+                gpsSetState(GPS_STATE_LOST_COMMUNICATION);
 #ifdef USE_GPS_UBLOX
             } else {
                 if (gpsConfig()->autoConfig == GPS_AUTOCONFIG_ON) { // Only if autoconfig is enabled
@@ -737,6 +749,14 @@ void gpsUpdate(timeUs_t currentTimeUs)
             }
             break;
     }
+
+    executeTimeUs = micros() - currentTimeUs;
+
+    if (executeTimeUs > gpsStateDurationUs[gpsCurState]) {
+        gpsStateDurationUs[gpsCurState] = executeTimeUs;
+    }
+    schedulerSetNextStateTime(gpsStateDurationUs[gpsData.state]);
+
     if (sensors(SENSOR_GPS)) {
         updateGpsIndicator(currentTimeUs);
     }
@@ -792,7 +812,7 @@ bool gpsNewFrame(uint8_t c)
 // Check for healthy communications
 bool gpsIsHealthy()
 {
-    return (gpsData.state == GPS_RECEIVING_DATA);
+    return (gpsData.state == GPS_STATE_RECEIVING_DATA);
 }
 
 /* This is a light implementation of a GPS frame decoding
@@ -950,11 +970,7 @@ static bool gpsNewFrameNMEA(char c)
                                 gps_Msg.longitude *= -1;
                             break;
                         case 6:
-                            if (string[0] > '0') {
-                                ENABLE_STATE(GPS_FIX);
-                            } else {
-                                DISABLE_STATE(GPS_FIX);
-                            }
+                            gpsSetFixState(string[0] > '0');
                             break;
                         case 7:
                             gps_Msg.numSat = grab_fields(string, 0);
@@ -1277,11 +1293,7 @@ static bool UBLOX_parse_gps(void)
         gpsSol.llh.lon = _buffer.posllh.longitude;
         gpsSol.llh.lat = _buffer.posllh.latitude;
         gpsSol.llh.altCm = _buffer.posllh.altitudeMslMm / 10;  //alt in cm
-        if (next_fix) {
-            ENABLE_STATE(GPS_FIX);
-        } else {
-            DISABLE_STATE(GPS_FIX);
-        }
+        gpsSetFixState(next_fix);
         _new_position = true;
         break;
     case MSG_STATUS:
@@ -1499,7 +1511,7 @@ static void GPS_calculateDistanceFlownVerticalSpeed(bool initialize)
             if (speed > GPS_DISTANCE_FLOWN_MIN_SPEED_THRESHOLD_CM_S) {
                 uint32_t dist;
                 int32_t dir;
-                GPS_distance_cm_bearing(&gpsSol.llh.lat, &gpsSol.llh.lon, &lastCoord[LAT], &lastCoord[LON], &dist, &dir);
+                GPS_distance_cm_bearing(&gpsSol.llh.lat, &gpsSol.llh.lon, &lastCoord[GPS_LATITUDE], &lastCoord[GPS_LONGITUDE], &dist, &dir);
                 if (gpsConfig()->gps_use_3d_speed) {
                     dist = sqrtf(powf(gpsSol.llh.altCm - lastAlt, 2.0f) + powf(dist, 2.0f));
                 }
@@ -1509,8 +1521,8 @@ static void GPS_calculateDistanceFlownVerticalSpeed(bool initialize)
         GPS_verticalSpeedInCmS = (gpsSol.llh.altCm - lastAlt) * 1000 / (currentMillis - lastMillis);
         GPS_verticalSpeedInCmS = constrain(GPS_verticalSpeedInCmS, -1500, 1500);
     }
-    lastCoord[LON] = gpsSol.llh.lon;
-    lastCoord[LAT] = gpsSol.llh.lat;
+    lastCoord[GPS_LONGITUDE] = gpsSol.llh.lon;
+    lastCoord[GPS_LATITUDE] = gpsSol.llh.lat;
     lastAlt = gpsSol.llh.altCm;
     lastMillis = currentMillis;
 }
@@ -1519,8 +1531,8 @@ void GPS_reset_home_position(void)
 {
     if (!STATE(GPS_FIX_HOME) || !gpsConfig()->gps_set_home_point_once) {
         if (STATE(GPS_FIX) && gpsSol.numSat >= 5) {
-            GPS_home[LAT] = gpsSol.llh.lat;
-            GPS_home[LON] = gpsSol.llh.lon;
+            GPS_home[GPS_LATITUDE] = gpsSol.llh.lat;
+            GPS_home[GPS_LONGITUDE] = gpsSol.llh.lon;
             GPS_calc_longitude_scaling(gpsSol.llh.lat); // need an initial value for distance and bearing calc
             // Set ground altitude
             ENABLE_STATE(GPS_FIX_HOME);
@@ -1550,7 +1562,7 @@ void GPS_calculateDistanceAndDirectionToHome(void)
     if (STATE(GPS_FIX_HOME)) {      // If we don't have home set, do not display anything
         uint32_t dist;
         int32_t dir;
-        GPS_distance_cm_bearing(&gpsSol.llh.lat, &gpsSol.llh.lon, &GPS_home[LAT], &GPS_home[LON], &dist, &dir);
+        GPS_distance_cm_bearing(&gpsSol.llh.lat, &gpsSol.llh.lon, &GPS_home[GPS_LATITUDE], &GPS_home[GPS_LONGITUDE], &dist, &dir);
         GPS_distanceToHome = dist / 100;
         GPS_directionToHome = dir / 100;
     } else {
@@ -1585,4 +1597,13 @@ void onGpsNewData(void)
 #endif
 }
 
+void gpsSetFixState(bool state)
+{
+    if (state) {
+        ENABLE_STATE(GPS_FIX);
+        ENABLE_STATE(GPS_FIX_EVER);
+    } else {
+        DISABLE_STATE(GPS_FIX);
+    }
+}
 #endif

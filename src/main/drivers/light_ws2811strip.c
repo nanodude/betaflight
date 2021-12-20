@@ -46,10 +46,22 @@
 
 
 #ifndef USE_BRAINFPV_FPGA
+#include "scheduler/scheduler.h"
+
+#ifdef USE_LEDSTRIP_CACHE_MGMT
+// WS2811_DMA_BUFFER_SIZE is multiples of uint32_t
+// Number of bytes required for buffer
+#define WS2811_DMA_BUF_BYTES              (WS2811_DMA_BUFFER_SIZE * sizeof(uint32_t))
+// Number of bytes required to cache align buffer
+#define WS2811_DMA_BUF_CACHE_ALIGN_BYTES  ((WS2811_DMA_BUF_BYTES + 0x20) & ~0x1f)
+// Size of array to create a cache aligned buffer
+#define WS2811_DMA_BUF_CACHE_ALIGN_LENGTH (WS2811_DMA_BUF_CACHE_ALIGN_BYTES / sizeof(uint32_t))
+DMA_RW_AXI __attribute__((aligned(32))) uint32_t ledStripDMABuffer[WS2811_DMA_BUF_CACHE_ALIGN_LENGTH];
+#else
 #if defined(STM32F1) || defined(STM32F3)
 uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #elif defined(STM32F7)
-FAST_RAM_ZERO_INIT uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+FAST_DATA_ZERO_INIT uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #elif defined(STM32H7)
 DMA_RAM uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #else
@@ -187,6 +199,7 @@ void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
 {
     // don't wait - risk of infinite block, just get an update next time round
     if (!ws2811Initialised || ws2811LedDataTransferInProgress) {
+        ignoreTaskStateTime();
         return;
     }
 
@@ -202,6 +215,10 @@ void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
         updateLEDDMABuffer(ledFormat, rgb24, ledIndex++);
     }
     needsFullRefresh = false;
+
+#ifdef USE_LEDSTRIP_CACHE_MGMT
+    SCB_CleanDCache_by_Addr(ledStripDMABuffer, WS2811_DMA_BUF_CACHE_ALIGN_BYTES);
+#endif
 
     ws2811LedDataTransferInProgress = true;
     ws2811LedStripDMAEnable();

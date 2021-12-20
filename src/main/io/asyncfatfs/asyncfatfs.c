@@ -516,7 +516,7 @@ typedef struct afatfs_t {
 } afatfs_t;
 
 #ifdef STM32H7
-static DMA_RW_AXI uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
+static DMA_DATA_ZERO_INIT uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
 #endif
 
 static afatfs_t afatfs;
@@ -2617,8 +2617,18 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
                                 opState->phase = AFATFS_CREATEFILE_PHASE_FAILURE;
                                 goto doMore;
                             }
+                        } else if (entry->attrib & FAT_FILE_ATTRIBUTE_VOLUME_ID) {
+                            break;
                         } else if (strncmp(entry->filename, (char*) opState->filename, FAT_FILENAME_LENGTH) == 0) {
-                            // We found a file with this name!
+                            // We found a file or directory with this name!
+
+                            // Do not open file as dir or dir as file
+                            if (((entry->attrib ^ file->attrib) & FAT_FILE_ATTRIBUTE_DIRECTORY) != 0) {
+                                afatfs_findLast(&afatfs.currentDirectory);
+                                opState->phase = AFATFS_CREATEFILE_PHASE_FAILURE;
+                                goto doMore;
+                            }
+
                             afatfs_fileLoadDirectoryEntry(file, entry);
 
                             afatfs_findLast(&afatfs.currentDirectory);

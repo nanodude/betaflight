@@ -31,7 +31,7 @@
 
 displayPort_t hottDisplayPort;
 
-static int hottDrawScreen(displayPort_t *displayPort)
+static bool hottDrawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     return 0;
@@ -86,7 +86,7 @@ static int hottHeartbeat(displayPort_t *displayPort)
     return 0;
 }
 
-static void hottResync(displayPort_t *displayPort)
+static void hottRedraw(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
 }
@@ -121,17 +121,17 @@ static const displayPortVTable_t hottVTable = {
     .writeChar = hottWriteChar,
     .isTransferInProgress = hottIsTransferInProgress,
     .heartbeat = hottHeartbeat,
-    .resync = hottResync,
+    .redraw = hottRedraw,
     .txBytesFree = hottTxBytesFree,
     .layerSupported = NULL,
     .layerSelect = NULL,
     .layerCopy = NULL,
 };
 
-displayPort_t *displayPortHottInit()
+static displayPort_t *displayPortHottInit()
 {
     hottDisplayPort.device = NULL;
-    displayInit(&hottDisplayPort, &hottVTable);
+    displayInit(&hottDisplayPort, &hottVTable, DISPLAYPORT_DEVICE_TYPE_HOTT);
     hottDisplayPort.useFullscreen = true;
     hottDisplayPort.rows = HOTT_TEXTMODE_DISPLAY_ROWS;
     hottDisplayPort.cols = HOTT_TEXTMODE_DISPLAY_COLUMNS;

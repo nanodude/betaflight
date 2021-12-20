@@ -143,7 +143,7 @@ typedef enum {
 #define TIMUP_TIMERS ( BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(8) | BIT(15) | BIT(16) | BIT(17) )
 #elif defined(STM32G4)
 #define HARDWARE_TIMER_DEFINITION_COUNT 12
-#define TIMUP_TIMERS ( BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(8) | BIT(15) | BIT(16) | BIT(17) )
+#define TIMUP_TIMERS ( BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(8) | BIT(15) | BIT(16) | BIT(17) | BIT(20))
 #endif
 
 #define MHZ_TO_HZ(x) ((x) * 1000000)
@@ -176,7 +176,7 @@ extern const timerHardware_t timerHardware[];
 
 #elif defined(STM32G4)
 
-#define FULL_TIMER_CHANNEL_COUNT 91 // XXX Need review
+#define FULL_TIMER_CHANNEL_COUNT 93 // XXX Need review
 
 #endif
 
@@ -278,9 +278,10 @@ extern const resourceOwner_t freeOwner;
 struct timerIOConfig_s;
 
 struct timerIOConfig_s *timerIoConfigByTag(ioTag_t ioTag);
-const resourceOwner_t *timerGetOwner(int8_t timerNumber, uint16_t timerChannel);
+const timerHardware_t *timerGetAllocatedByNumberAndChannel(int8_t timerNumber, uint16_t timerChannel);
+const resourceOwner_t *timerGetOwner(const timerHardware_t *timer);
 #endif
-const timerHardware_t *timerGetByTag(ioTag_t ioTag);
+const timerHardware_t *timerGetConfiguredByTag(ioTag_t ioTag);
 const timerHardware_t *timerAllocate(ioTag_t ioTag, resourceOwner_e owner, uint8_t resourceIndex);
 const timerHardware_t *timerGetByTagAndIndex(ioTag_t ioTag, unsigned timerIndex);
 ioTag_t timerioTagGetByUsage(timerUsageFlag_e usageFlag, uint8_t index);

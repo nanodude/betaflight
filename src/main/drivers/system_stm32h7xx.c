@@ -77,9 +77,19 @@ void systemInit(void)
 
     //RCC_ClearFlag();
 
+#if defined(STM32H743xx) || defined(STM32H750xx)
     __HAL_RCC_D2SRAM1_CLK_ENABLE();
     __HAL_RCC_D2SRAM2_CLK_ENABLE();
     __HAL_RCC_D2SRAM3_CLK_ENABLE();
+#elif defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
+    __HAL_RCC_AHBSRAM1_CLK_ENABLE();
+    __HAL_RCC_AHBSRAM2_CLK_ENABLE();
+#elif defined(STM32H723xx) || defined(STM32H725xx)
+    __HAL_RCC_D2SRAM1_CLK_ENABLE();
+    __HAL_RCC_D2SRAM2_CLK_ENABLE();
+#else
+#error Unknown MCU
+#endif
 
 #ifdef USE_MCO_OUTPUTS
     configureMasterClockOutputs();
@@ -91,28 +101,19 @@ void systemInit(void)
     // SysTick is updated whenever HAL_RCC_ClockConfig is called.
 }
 
-#if !defined(USE_CUSTOM_RESET)
-#define SYSTEM_RESET NVIC_SystemReset
-#else
-#define SYSTEM_RESET CustomSystemReset
-#endif
-
 void systemReset(void)
 {
-#if !defined(DEBUG)
     SCB_DisableDCache();
     SCB_DisableICache();
-#endif
+
     __disable_irq();
-    SYSTEM_RESET();
+    NVIC_SystemReset();
 }
 
-void forcedSystemResetWithoutDisablingCaches(void)
+void systemResetWithoutDisablingCaches(void)
 {
-    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_FORCED);
-
     __disable_irq();
-    SYSTEM_RESET();
+    NVIC_SystemReset();
 }
 
 void systemResetToBootloader(bootloaderRequestType_e requestType)
@@ -132,11 +133,17 @@ void systemResetToBootloader(bootloaderRequestType_e requestType)
     }
 
     __disable_irq();
-    SYSTEM_RESET();
+    NVIC_SystemReset();
 }
 
 
+#if defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H723xx) || defined(STM32H725xx)
 #define SYSMEMBOOT_VECTOR_TABLE ((uint32_t *)0x1ff09800)
+#elif defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
+#define SYSMEMBOOT_VECTOR_TABLE ((uint32_t *)0x1ff0a000)
+#else
+#error Unknown MCU
+#endif
 
 typedef void *(*bootJumpPtr)(void);
 
@@ -156,11 +163,9 @@ void systemJumpToBootloader(void)
 }
 
 
-static uint32_t bootloaderRequest;
-
-void systemCheckResetReason(void)
+void systemProcessResetReason(void)
 {
-    bootloaderRequest = persistentObjectRead(PERSISTENT_OBJECT_RESET_REASON);
+    uint32_t bootloaderRequest = persistentObjectRead(PERSISTENT_OBJECT_RESET_REASON);
 
     switch (bootloaderRequest) {
 #if defined(USE_FLASH_BOOT_LOADER)
@@ -168,30 +173,26 @@ void systemCheckResetReason(void)
 #endif
     case RESET_BOOTLOADER_REQUEST_ROM:
         persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_BOOTLOADER_POST);
+        systemJumpToBootloader();
+
         break;
 
     case RESET_FORCED:
         persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
-        return;
-
-    case RESET_NONE:
-        if (!(RCC->RSR & RCC_RSR_SFTRSTF)) {
-            // Direct hard reset case
-            return;
-        }
-        // Soft reset; boot loader may have been active with BOOT pin pulled high.
-        FALLTHROUGH;
+        break;
 
     case RESET_BOOTLOADER_POST:
         // Boot loader activity magically prevents SysTick from interrupting.
         // Issue a soft reset to prevent the condition.
-#if !defined(USE_BRAINFPV_BOOTLOADER)
-        forcedSystemResetWithoutDisablingCaches(); // observed that disabling dcache after cold boot with BOOT pin high causes segfault.
-#endif
-    	break;
-    }
+        persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_FORCED);
+        systemResetWithoutDisablingCaches(); // observed that disabling dcache after cold boot with BOOT pin high causes segfault.
 
-#if !defined(USE_BRAINFPV_BOOTLOADER)
-    systemJumpToBootloader();
-#endif
+        break;
+
+    case RESET_MSC_REQUEST:
+    case RESET_NONE:
+    default:
+        break;
+
+    }
 }

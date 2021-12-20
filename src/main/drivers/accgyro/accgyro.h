@@ -25,6 +25,7 @@
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/sensor_alignment.h"
+#include "common/time.h"
 #include "drivers/exti.h"
 #include "drivers/bus.h"
 #include "drivers/sensor.h"
@@ -33,9 +34,10 @@
 #pragma GCC diagnostic push
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_MULTITHREAD)
 #include <pthread.h>
-#elif !defined(UNIT_TEST)
-#pragma GCC diagnostic warning "-Wpadded"
 #endif
+
+#define GYRO_SCALE_2000DPS (2000.0f / (1 << 15))   // 16.384 dps/lsb scalefactor for 2000dps sensors
+#define GYRO_SCALE_4000DPS (4000.0f / (1 << 15))   //  8.192 dps/lsb scalefactor for 4000dps sensors
 
 typedef enum {
     GYRO_NONE = 0,
@@ -53,8 +55,10 @@ typedef enum {
     GYRO_ICM20649,
     GYRO_ICM20689,
     GYRO_ICM42605,
+    GYRO_ICM42688P,
     GYRO_BMI160,
     GYRO_BMI270,
+    GYRO_LSM6DSO,
     GYRO_FAKE
 } gyroHardware_e;
 
@@ -70,10 +74,18 @@ typedef enum {
     GYRO_RATE_1100_Hz,
     GYRO_RATE_3200_Hz,
     GYRO_RATE_6400_Hz,
+    GYRO_RATE_6664_Hz,
     GYRO_RATE_8_kHz,
     GYRO_RATE_9_kHz,
     GYRO_RATE_32_kHz,
 } gyroRateKHz_e;
+
+typedef enum {
+    GYRO_EXTI_INIT = 0,
+    GYRO_EXTI_INT_DMA,
+    GYRO_EXTI_INT,
+    GYRO_EXTI_NO_INT
+} gyroModeSPI_e;
 
 typedef struct gyroDev_s {
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_MULTITHREAD)
@@ -83,7 +95,7 @@ typedef struct gyroDev_s {
     sensorGyroReadFuncPtr readFn;                             // read 3 axis data function
     sensorGyroReadDataFuncPtr temperatureFn;                  // read temperature if available
     extiCallbackRec_t exti;
-    busDevice_t bus;
+    extDevice_t dev;
     float scale;                                             // scalefactor
     float gyroZero[XYZ_AXIS_COUNT];
     float gyroADC[XYZ_AXIS_COUNT];                           // gyro data after calibration and alignment
@@ -93,7 +105,16 @@ typedef struct gyroDev_s {
     mpuDetectionResult_t mpuDetectionResult;
     sensor_align_e gyroAlign;
     gyroRateKHz_e gyroRateKHz;
-    bool dataReady;
+    gyroModeSPI_e gyroModeSPI;
+#ifdef USE_GYRO_EXTI
+    uint32_t detectedEXTI;
+    uint32_t gyroLastEXTI;
+    uint32_t gyroSyncEXTI;
+    int32_t gyroShortPeriod;
+    int32_t gyroDmaMaxDuration;
+    busSegment_t segments[2];
+#endif
+    volatile bool dataReady;
     bool gyro_high_fsr;
     uint8_t hardware_lpf;
     uint8_t hardware_32khz_lpf;
@@ -113,12 +134,12 @@ typedef struct accDev_s {
     float acc_1G_rec;
     sensorAccInitFuncPtr initFn;                              // initialize function
     sensorAccReadFuncPtr readFn;                              // read 3 axis data function
-    busDevice_t bus;
     uint16_t acc_1G;
     int16_t ADCRaw[XYZ_AXIS_COUNT];
     mpuDetectionResult_t mpuDetectionResult;
     sensor_align_e accAlign;
     bool dataReady;
+    gyroDev_t *gyro;
     bool acc_high_fsr;
     char revisionCode;                                      // a revision code for the sensor, if known
     uint8_t filler[2];

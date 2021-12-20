@@ -48,6 +48,10 @@
 #include "cms/cms_menu_brainfpv.h"
 #endif
 
+#ifdef USE_PERSISTENT_STATS
+#include "cms/cms_menu_persistent_stats.h"
+#endif
+
 // VTX supplied menus
 
 #include "cms/cms_menu_vtx_common.h"
@@ -93,6 +97,9 @@ static const OSD_Entry menuFeaturesEntries[] =
     {"POWER", OME_Submenu, cmsMenuChange, &cmsx_menuPower, 0},
 #ifdef USE_CMS_FAILSAFE_MENU
     {"FAILSAFE", OME_Submenu, cmsMenuChange, &cmsx_menuFailsafe, 0},
+#endif
+#ifdef USE_PERSISTENT_STATS
+    {"PERSISTENT STATS", OME_Submenu, cmsMenuChange, &cmsx_menuPersistentStats, 0},
 #endif
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}

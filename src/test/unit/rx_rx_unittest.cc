@@ -235,6 +235,7 @@ extern "C" {
     void xBusInit(const rxConfig_t *, rxRuntimeState_t *) {}
     void rxMspInit(const rxConfig_t *, rxRuntimeState_t *) {}
     void rxPwmInit(const rxConfig_t *, rxRuntimeState_t *) {}
+    bool taskUpdateRxMainInProgress() { return true; }
     float pt1FilterGain(float f_cut, float dT)
     {
         UNUSED(f_cut);
@@ -254,4 +255,6 @@ extern "C" {
         UNUSED(input);
         return 0.0;
     }
+
+    void pinioBoxTaskControl(void) {}
 }

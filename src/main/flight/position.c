@@ -38,6 +38,8 @@
 
 #include "io/gps.h"
 
+#include "scheduler/scheduler.h"
+
 #include "sensors/sensors.h"
 #include "sensors/barometer.h"
 
@@ -94,6 +96,7 @@ void calculateEstimatedAltitude(timeUs_t currentTimeUs)
 
     const uint32_t dTime = currentTimeUs - previousTimeUs;
     if (dTime < BARO_UPDATE_FREQUENCY_40HZ) {
+        ignoreTaskExecTime();
         return;
     }
     previousTimeUs = currentTimeUs;
@@ -167,7 +170,7 @@ void calculateEstimatedAltitude(timeUs_t currentTimeUs)
 #endif
     }
 
-	
+
 
     DEBUG_SET(DEBUG_ALTITUDE, 0, (int32_t)(100 * gpsTrust));
     DEBUG_SET(DEBUG_ALTITUDE, 1, baroAlt);
@@ -188,12 +191,9 @@ int32_t getEstimatedAltitudeCm(void)
     return estimatedAltitudeCm;
 }
 
-// This should be removed or fixed, but it would require changing a lot of other things to get rid of.
+#ifdef USE_VARIO
 int16_t getEstimatedVario(void)
 {
-#ifdef USE_VARIO
     return estimatedVario;
-#else
-    return 0;
-#endif
 }
+#endif

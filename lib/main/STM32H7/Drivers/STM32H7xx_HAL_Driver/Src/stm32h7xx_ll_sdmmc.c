@@ -446,13 +446,13 @@ HAL_StatusTypeDef SDMMC_ConfigData(SDMMC_TypeDef *SDMMCx, SDMMC_DataInitTypeDef*
 
   // DC - See errata 2.11.4 - 8 SDMMC clock cycles must elapse before DTEN can be set.
   // 32U below is used as a VERY rough guess that the SDMMC clock is 1/4 of the sytem clock, 8 * 4 = 32 and that the
-  // assembly below only takes 1 CPU cycle to run. All of which will be wrong, but right enough most of the time, especially
-  // when considering other processing overheads.
+  // loop code below only takes 2 CPU cycles to run. All of which will likely be wrong, but right enough most of the time.
+  // It's important that the code isn't optimized-out by the compiler or linker too, see
+  // https://stackoverflow.com/questions/7083482/how-to-prevent-gcc-from-optimizing-out-a-busy-wait-loop
   register uint32_t count = 32U;
-  do
-  {
-    count--;
-  } while(count > 0);
+  for (unsigned i = 0; i < count; i++) {
+    __asm__ volatile("" : "+g" (i) : :);
+  }
   // DC - See errata 2.11.4
 
   /* Write to SDMMC DCTRL */
@@ -739,16 +739,17 @@ uint32_t SDMMC_CmdEraseEndAdd(SDMMC_TypeDef *SDMMCx, uint32_t EndAdd)
 
 /**
   * @brief  Send the Erase command and check the response
-  * @param  SDMMCx: Pointer to SDMMC register base
+  * @param  SDMMCx Pointer to SDMMC register base
+  * @param  EraseType Type of erase to be performed
   * @retval HAL status
   */
-uint32_t SDMMC_CmdErase(SDMMC_TypeDef *SDMMCx)
+uint32_t SDMMC_CmdErase(SDMMC_TypeDef *SDMMCx, uint32_t EraseType)
 {
   SDMMC_CmdInitTypeDef  sdmmc_cmdinit;
   uint32_t errorstate;
 
   /* Set Block Size for Card */
-  sdmmc_cmdinit.Argument         = 0U;
+  sdmmc_cmdinit.Argument         = EraseType;
   sdmmc_cmdinit.CmdIndex         = SDMMC_CMD_ERASE;
   sdmmc_cmdinit.Response         = SDMMC_RESPONSE_SHORT;
   sdmmc_cmdinit.WaitForInterrupt = SDMMC_WAIT_NO;
@@ -1215,7 +1216,7 @@ static uint32_t SDMMC_GetCmdError(SDMMC_TypeDef *SDMMCx)
 {
   /* 8 is the number of required instructions cycles for the below loop statement.
   The SDMMC_CMDTIMEOUT is expressed in ms */
-  register uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
+  uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
 
   do
   {
@@ -1245,7 +1246,7 @@ static uint32_t SDMMC_GetCmdResp1(SDMMC_TypeDef *SDMMCx, uint8_t SD_CMD, uint32_
 
   /* 8 is the number of required instructions cycles for the below loop statement.
   The Timeout is expressed in ms */
-  register uint32_t count = Timeout * (SystemCoreClock / 8U /1000U);
+  uint32_t count = Timeout * (SystemCoreClock / 8U /1000U);
 
   do
   {
@@ -1378,7 +1379,7 @@ static uint32_t SDMMC_GetCmdResp2(SDMMC_TypeDef *SDMMCx)
   uint32_t sta_reg;
   /* 8 is the number of required instructions cycles for the below loop statement.
   The SDMMC_CMDTIMEOUT is expressed in ms */
-  register uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
+  uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
 
   do
   {
@@ -1422,7 +1423,7 @@ static uint32_t SDMMC_GetCmdResp3(SDMMC_TypeDef *SDMMCx)
   uint32_t sta_reg;
   /* 8 is the number of required instructions cycles for the below loop statement.
   The SDMMC_CMDTIMEOUT is expressed in ms */
-  register uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
+  uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
 
   do
   {
@@ -1464,7 +1465,7 @@ static uint32_t SDMMC_GetCmdResp6(SDMMC_TypeDef *SDMMCx, uint8_t SD_CMD, uint16_
 
   /* 8 is the number of required instructions cycles for the below loop statement.
   The SDMMC_CMDTIMEOUT is expressed in ms */
-  register uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
+  uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
 
   do
   {
@@ -1535,7 +1536,7 @@ static uint32_t SDMMC_GetCmdResp7(SDMMC_TypeDef *SDMMCx)
   uint32_t sta_reg;
   /* 8 is the number of required instructions cycles for the below loop statement.
   The SDMMC_CMDTIMEOUT is expressed in ms */
-  register uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
+  uint32_t count = SDMMC_CMDTIMEOUT * (SystemCoreClock / 8U /1000U);
 
   do
   {

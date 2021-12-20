@@ -81,6 +81,8 @@
 
 #include "rx/rx.h"
 
+#include "scheduler/scheduler.h"
+
 #include "sensors/acceleration.h"
 #include "sensors/adcinternal.h"
 #include "sensors/barometer.h"
@@ -91,9 +93,8 @@
 #include "sensors/sensors.h"
 #include "sensors/rangefinder.h"
 
-#include "scheduler/scheduler.h"
-
 #include "telemetry/telemetry.h"
+#include "telemetry/crsf.h"
 
 #ifdef USE_BST
 #include "i2c_bst.h"
@@ -115,6 +116,9 @@
 #endif
 
 #include "tasks.h"
+
+// Add a margin to the task duration estimation
+#define RX_TASK_MARGIN 5
 
 static void taskMain(timeUs_t currentTimeUs)
 {
@@ -166,22 +170,84 @@ static void taskUpdateAccelerometer(timeUs_t currentTimeUs)
 }
 #endif
 
+typedef enum {
+    RX_STATE_CHECK,
+    RX_STATE_PROCESS,
+    RX_STATE_MODES,
+    RX_STATE_UPDATE,
+    RX_STATE_COUNT
+} rxState_e;
+
+static rxState_e rxState = RX_STATE_CHECK;
+
+bool taskUpdateRxMainInProgress()
+{
+    return (rxState != RX_STATE_CHECK);
+}
+
 static void taskUpdateRxMain(timeUs_t currentTimeUs)
 {
-    if (!processRx(currentTimeUs)) {
+    static timeUs_t rxStateDurationUs[RX_STATE_COUNT];
+    timeUs_t executeTimeUs;
+    timeUs_t existingDurationUs;
+    rxState_e oldRxState = rxState;
+
+    // Where we are using a state machine call schedulerIgnoreTaskExecRate() for all states bar one
+    if (rxState != RX_STATE_UPDATE) {
+        ignoreTaskExecRate();
+    }
+
+    switch (rxState) {
+    default:
+    case RX_STATE_CHECK:
+        rxState = RX_STATE_PROCESS;
+        break;
+
+    case RX_STATE_PROCESS:
+        if (!processRx(currentTimeUs)) {
+            rxState = RX_STATE_CHECK;
+            break;
+        }
+        rxState = RX_STATE_MODES;
+        break;
+
+    case RX_STATE_MODES:
+        processRxModes(currentTimeUs);
+        rxState = RX_STATE_UPDATE;
+        break;
+
+    case RX_STATE_UPDATE:
+        // updateRcCommands sets rcCommand, which is needed by updateAltHoldState and updateSonarAltHoldState
+        updateRcCommands();
+        updateArmingStatus();
+
+#ifdef USE_USB_CDC_HID
+        if (!ARMING_FLAG(ARMED)) {
+            sendRcDataToHid();
+        }
+#endif
+        rxState = RX_STATE_CHECK;
+        break;
+    }
+
+    if (getIgnoreTaskExecTime()) {
         return;
     }
 
-    // updateRcCommands sets rcCommand, which is needed by updateAltHoldState and updateSonarAltHoldState
-    updateRcCommands();
-    updateArmingStatus();
+    executeTimeUs = micros() - currentTimeUs;
 
-#ifdef USE_USB_CDC_HID
-    if (!ARMING_FLAG(ARMED)) {
-        sendRcDataToHid();
+    existingDurationUs = rxStateDurationUs[oldRxState] / TASK_STATS_MOVING_SUM_COUNT;
+
+    // If the execution time is higher than expected, double the weight in the moving average
+    if (executeTimeUs > existingDurationUs) {
+        rxStateDurationUs[oldRxState] += executeTimeUs - existingDurationUs;
     }
-#endif
+
+    rxStateDurationUs[oldRxState] += executeTimeUs - existingDurationUs;
+
+    schedulerSetNextStateTime((rxStateDurationUs[rxState] / TASK_STATS_MOVING_SUM_COUNT) + RX_TASK_MARGIN);
 }
+
 
 #ifdef USE_BARO
 static void taskUpdateBaro(timeUs_t currentTimeUs)
@@ -189,7 +255,7 @@ static void taskUpdateBaro(timeUs_t currentTimeUs)
     UNUSED(currentTimeUs);
 
     if (sensors(SENSOR_BARO)) {
-        const uint32_t newDeadline = baroUpdate();
+        const uint32_t newDeadline = baroUpdate(currentTimeUs);
         if (newDeadline != 0) {
             rescheduleTask(TASK_SELF, newDeadline);
         }
@@ -265,7 +331,7 @@ void tasksInit(void)
     const bool useBatteryAlerts = batteryConfig()->useVBatAlerts || batteryConfig()->useConsumptionAlerts || featureIsEnabled(FEATURE_OSD);
     setTaskEnabled(TASK_BATTERY_ALERTS, (useBatteryVoltage || useBatteryCurrent) && useBatteryAlerts);
 
-#ifdef STACK_CHECK
+#ifdef USE_STACK_CHECK
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
 
@@ -353,7 +419,8 @@ void tasksInit(void)
 #ifdef USE_BRAINFPV_OSD
     setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && osdInitialized() && !VideoIsInitialized());
 #else
-    setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && osdInitialized());
+    rescheduleTask(TASK_OSD, TASK_PERIOD_HZ(osdConfig()->framerate_hz));
+    setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && osdGetDisplayPort(NULL));
 #endif
 #endif
 
@@ -370,7 +437,7 @@ void tasksInit(void)
 #endif
 
 #ifdef USE_PINIOBOX
-    setTaskEnabled(TASK_PINIOBOX, true);
+    pinioBoxTaskControl();
 #endif
 
 #ifdef USE_CMS
@@ -402,9 +469,13 @@ void tasksInit(void)
 #ifdef USE_RCDEVICE
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
+
+#ifdef USE_CRSF_V3
+    const bool useCRSF = rxRuntimeState.serialrxProvider == SERIALRX_CRSF;
+    setTaskEnabled(TASK_SPEED_NEGOTIATION, useCRSF);
+#endif
 }
 
-#if defined(USE_TASK_STATISTICS)
 #define DEFINE_TASK(taskNameParam, subTaskNameParam, checkFuncParam, taskFuncParam, desiredPeriodParam, staticPriorityParam) {  \
     .taskName = taskNameParam, \
     .subTaskName = subTaskNameParam, \
@@ -413,15 +484,6 @@ void tasksInit(void)
     .desiredPeriodUs = desiredPeriodParam, \
     .staticPriority = staticPriorityParam \
 }
-#else
-#define DEFINE_TASK(taskNameParam, subTaskNameParam, checkFuncParam, taskFuncParam, desiredPeriodParam, staticPriorityParam) {  \
-    .checkFunc = checkFuncParam, \
-    .taskFunc = taskFuncParam, \
-    .desiredPeriodUs = desiredPeriodParam, \
-    .staticPriority = staticPriorityParam \
-}
-#endif
-
 
 task_t tasks[TASK_COUNT] = {
     [TASK_SYSTEM] = DEFINE_TASK("SYSTEM", "LOAD", NULL, taskSystemLoad, TASK_PERIOD_HZ(10), TASK_PRIORITY_MEDIUM_HIGH),
@@ -435,7 +497,7 @@ task_t tasks[TASK_COUNT] = {
     [TASK_TRANSPONDER] = DEFINE_TASK("TRANSPONDER", NULL, NULL, transponderUpdate, TASK_PERIOD_HZ(250), TASK_PRIORITY_LOW),
 #endif
 
-#ifdef STACK_CHECK
+#ifdef USE_STACK_CHECK
     [TASK_STACK_CHECK] = DEFINE_TASK("STACKCHECK", NULL, NULL, taskStackCheck, TASK_PERIOD_HZ(10), TASK_PRIORITY_IDLE),
 #endif
 
@@ -473,8 +535,8 @@ task_t tasks[TASK_COUNT] = {
     [TASK_DASHBOARD] = DEFINE_TASK("DASHBOARD", NULL, NULL, dashboardUpdate, TASK_PERIOD_HZ(10), TASK_PRIORITY_LOW),
 #endif
 
-#if defined(USE_OSD)
-    [TASK_OSD] = DEFINE_TASK("OSD", NULL, NULL, osdUpdate, TASK_PERIOD_HZ(60), TASK_PRIORITY_LOW),
+#ifdef USE_OSD
+    [TASK_OSD] = DEFINE_TASK("OSD", NULL, osdUpdateCheck, osdUpdate, TASK_PERIOD_HZ(OSD_FRAMERATE_DEFAULT_HZ), TASK_PRIORITY_LOW),
 #endif
 
 #ifdef USE_TELEMETRY
@@ -519,6 +581,10 @@ task_t tasks[TASK_COUNT] = {
 
 #ifdef USE_RANGEFINDER
     [TASK_RANGEFINDER] = DEFINE_TASK("RANGEFINDER", NULL, NULL, taskUpdateRangefinder, TASK_PERIOD_HZ(10), TASK_PRIORITY_IDLE),
+#endif
+
+#ifdef USE_CRSF_V3
+    [TASK_SPEED_NEGOTIATION] = DEFINE_TASK("SPEED_NEGOTIATION", NULL, NULL, speedNegotiationProcess, TASK_PERIOD_HZ(100), TASK_PRIORITY_IDLE),
 #endif
 };
 
