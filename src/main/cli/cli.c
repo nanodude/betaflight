@@ -4903,8 +4903,6 @@ static void cliStatus(const char *cmdName, char *cmdline)
     cliPrintLinefeed();
 }
 
-#if defined(USE_TASK_STATISTICS)
-
 #if defined(USE_CHIBIOS)
 #include "ch.h"
 
