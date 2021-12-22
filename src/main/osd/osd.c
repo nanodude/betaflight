@@ -201,6 +201,10 @@ const osd_stats_e osdStatsDisplayOrder[OSD_STAT_COUNT] = {
 // Allow a margin by which a group render can exceed that of the sum of the elements before declaring insane
 // This will most likely be violated by a USB interrupt whilst using the CLI
 #define OSD_ELEMENT_RENDER_GROUP_MARGIN 5
+// Safe margin when rendering elements
+#define OSD_ELEMENT_RENDER_MARGIN 5
+// Safe margin in other states
+#define OSD_MARGIN 2
 
 // Format a float to the specified number of decimal places with optional rounding.
 // OSD symbols can optionally be placed before and after the formatted number (use SYM_NONE for no symbol).
@@ -945,7 +949,7 @@ timeDelta_t osdShowArmed(void)
             brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
         }
         else {
-            osdDrawLogo(3, 1);
+        osdDrawLogo(3, 1);
         }
 #else
         osdDrawLogo(3, 1);
@@ -962,10 +966,9 @@ timeDelta_t osdShowArmed(void)
 static bool osdStatsVisible = false;
 static bool osdStatsEnabled = false;
 
-STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
+STATIC_UNIT_TESTED void osdDrawStats1(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
-    static bool osdStatsEnabled = false;
     static timeUs_t osdStatsRefreshTimeUs;
 
     // detect arm/disarm
@@ -974,10 +977,6 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             osdStatsEnabled = false;
             osdStatsVisible = false;
             osdResetStats();
-
-#if defined(USE_BRAINFPV_OSD)
-            osdArming = true;
-#endif
             resumeRefreshAt = osdShowArmed() + currentTimeUs;
         } else if (isSomeStatEnabled()
                    && !suppressStatsDisplay
@@ -1009,31 +1008,12 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             } else if (!IS_RC_MODE_ACTIVE(BOXOSD)) {
                 if (!osdStatsVisible) {
                     osdStatsVisible = true;
-#ifdef USE_BRAINFPV_OSD
-                    if (!useBrainFPVOSD) {
-                        osdStatsRefreshTimeUs = 0;
-                    }
-#else
                     osdStatsRefreshTimeUs = 0;
-#endif
-
                 }
-#ifdef USE_BRAINFPV_OSD
-                if (useBrainFPVOSD) {
-                    osdRefreshStats();
-                }
-                else {
-                    if (currentTimeUs >= osdStatsRefreshTimeUs) {
-                        osdStatsRefreshTimeUs = currentTimeUs + REFRESH_1S;
-                        osdRefreshStats();
-                    }
-                }
-#else
                 if (currentTimeUs >= osdStatsRefreshTimeUs) {
                     osdStatsRefreshTimeUs = currentTimeUs + REFRESH_1S;
                     osdRefreshStats();
                 }
-#endif /* USE_BRAINFPV_OSD */
             }
         }
     }
@@ -1056,11 +1036,6 @@ void osdDrawStats2(timeUs_t currentTimeUs)
             resumeRefreshAt = 0;
             osdStatsEnabled = false;
             stats.armed_time = 0;
-#ifdef USE_BRAINFPV_OSD
-            if (useBrainFPVOSD) {
-                osdArming = false;
-            }
-#endif
         }
     }
 #ifdef USE_ESC_SENSOR
@@ -1125,30 +1100,6 @@ bool osdUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTimeUs)
         }
     }
 
-    // redraw values in buffer
-#define DRAW_FREQ_DENOM 5
-
-#ifdef USE_BRAINFPV_OSD
-    if (useBrainFPVOSD || (counter % DRAW_FREQ_DENOM == 0)) {
-#else
-    if (counter % DRAW_FREQ_DENOM == 0) {
-#endif
-        osdRefresh(currentTimeUs);
-        showVisualBeeper = false;
-    } else {
-        bool doDrawScreen = true;
-#if defined(USE_CMS) && defined(USE_MSP_DISPLAYPORT) && defined(USE_OSD_OVER_MSP_DISPLAYPORT)
-        // For the MSP displayPort device only do the drawScreen once per
-        // logical OSD cycle as there is no output buffering needing to be flushed.
-        if (osdDisplayPortDeviceType == OSD_DISPLAYPORT_DEVICE_MSP) {
-            doDrawScreen = (counter % DRAW_FREQ_DENOM == 1);
-        }
-#endif
-        // Redraw a portion of the chars per idle to spread out the load and SPI bus utilization
-        if (doDrawScreen) {
-            displayDrawScreen(osdDisplayPort);
-        }
-    }    
     return (osdState != OSD_STATE_IDLE);
 }
 
@@ -1167,7 +1118,7 @@ void osdUpdate(timeUs_t currentTimeUs)
     osdState_e osdCurState = osdState;
 
     if (osdState != OSD_STATE_UPDATE_CANVAS) {
-        ignoreTaskExecRate();
+        schedulerIgnoreTaskExecRate();
     }
 
     switch (osdState) {
@@ -1177,7 +1128,7 @@ void osdUpdate(timeUs_t currentTimeUs)
             if (osdDisplayPortDeviceType == OSD_DISPLAYPORT_DEVICE_FRSKYOSD) {
                 displayRedraw(osdDisplayPort);
             } else {
-                ignoreTaskExecTime();
+                schedulerIgnoreTaskExecTime();
             }
             return;
         }
@@ -1403,15 +1354,14 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 
     if (osdState == OSD_STATE_UPDATE_ELEMENTS) {
-        schedulerSetNextStateTime(osdElementGroupDurationUs[osdElementGroup]);
+        schedulerSetNextStateTime(osdElementGroupDurationUs[osdElementGroup] + OSD_ELEMENT_RENDER_MARGIN);
     } else {
         if (osdState == OSD_STATE_IDLE) {
-            schedulerSetNextStateTime(osdStateDurationUs[OSD_STATE_CHECK]);
+            schedulerSetNextStateTime(osdStateDurationUs[OSD_STATE_CHECK] + OSD_MARGIN);
         } else {
-            schedulerSetNextStateTime(osdStateDurationUs[osdState]);
+            schedulerSetNextStateTime(osdStateDurationUs[osdState] + OSD_MARGIN);
         }
-        ignoreTaskExecTime();
->>>>>>> origin/master
+        schedulerIgnoreTaskExecTime();
     }
 }
 

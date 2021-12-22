@@ -229,7 +229,7 @@ static bool backgroundLayerSupported = false;
 
 // Blink control
 #define OSD_BLINK_FREQUENCY_HZ 2
-static bool blinkState = true;
+bool blinkState = true;
 static uint32_t blinkBits[(OSD_ITEM_COUNT + 31) / 32];
 #define SET_BLINK(item) (blinkBits[(item) / 32] |= (1 << ((item) % 32)))
 #define CLR_BLINK(item) (blinkBits[(item) / 32] &= ~(1 << ((item) % 32)))
@@ -266,7 +266,7 @@ static int getEscRpm(int i)
     if (motorConfig()->dev.useDshotTelemetry) {
         return 100.0f / (motorConfig()->motorPoleCount / 2.0f) * getDshotTelemetry(i);
     }
-#endif 
+#endif
 #ifdef USE_ESC_SENSOR
     if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
         return calcEscRpm(getEscSensorData(i)->rpm);
@@ -988,7 +988,7 @@ static void osdElementFlymode(osdElementParms_t *element)
     //  5. ACRO
 
     if (FLIGHT_MODE(FAILSAFE_MODE)) {
-        strcpy(element->buff, "*FS*");
+        strcpy(element->buff, "!FS!");
     } else if (FLIGHT_MODE(GPS_RESCUE_MODE)) {
         strcpy(element->buff, "RESC");
     } else if (FLIGHT_MODE(HEADFREE_MODE)) {
@@ -1126,7 +1126,7 @@ static void osdBackgroundHorizonSidebars(osdElementParms_t *element)
 }
 
 #ifdef USE_RX_LINK_QUALITY_INFO
-void osdElementLinkQuality(osdElementParms_t *element)
+static void osdElementLinkQuality(osdElementParms_t *element)
 {
     uint16_t osdLinkQuality = 0;
     if (linkQualitySource == LQ_SOURCE_RX_PROTOCOL_CRSF) { // 0-99
@@ -1356,7 +1356,7 @@ static void osdElementRemainingTimeEstimate(osdElementParms_t *element)
     }
 }
 
-void osdElementRssi(osdElementParms_t *element)
+static void osdElementRssi(osdElementParms_t *element)
 {
     uint16_t osdRssi = getRssi() * 100 / 1024; // change range
     if (osdRssi >= 100) {
@@ -1613,7 +1613,6 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_MAIN_BATT_USAGE]         = osdElementMainBatteryUsage,
     [OSD_DISARMED]                = osdElementDisarmed,
 #ifdef USE_GPS
-
     [OSD_HOME_DIR]                = osdElementGpsHomeDirection,
     [OSD_HOME_DIST]               = osdElementGpsHomeDistance,
 #endif
@@ -1681,7 +1680,7 @@ const osdElementDrawFn osdElementDrawFunction[OSD_ITEM_COUNT] = {
     [OSD_EFFICIENCY]              = osdElementEfficiency,
 #endif
 #ifdef USE_PERSISTENT_STATS
-    [OSD_TOTAL_FLIGHTS]   = osdElementTotalFlights,
+    [OSD_TOTAL_FLIGHTS]           = osdElementTotalFlights,
 #endif
 };
 
@@ -1872,12 +1871,10 @@ void osdElementsInit(bool backgroundLayerFlag)
     // Copy elements to RAM and overwrite BrainFPV ones if OSD is active
     memcpy(osdElementDrawFunctionRAM, osdElementDrawFunction, sizeof(osdElementDrawFunctionRAM));
     if (VideoIsInitialized()) {
-        osdElementDrawFunctionRAM[OSD_RSSI_VALUE] = osdElementRssi_BrainFPV;
         osdElementDrawFunctionRAM[OSD_CROSSHAIRS] = osdBackgroundCrosshairs_BrainFPV;
         osdElementDrawFunctionRAM[OSD_ARTIFICIAL_HORIZON] = osdElementArtificialHorizon_BrainFPV;
         osdElementDrawFunctionRAM[OSD_CRAFT_NAME] = osdElementCraftName_BrainFPV;
         osdElementDrawFunctionRAM[OSD_HOME_DIR] = osdElementGpsHomeDirection_BrainFPV;
-        osdElementDrawFunctionRAM[OSD_LINK_QUALITY] = osdElementLinkQuality_BrainFPV;
 
     }
 #endif
@@ -1905,23 +1902,7 @@ void osdUpdateAlarms(void)
 
     int32_t alt = osdGetMetersToSelectedUnit(getEstimatedAltitudeCm()) / 100;
 
-#if defined(USE_BRAINFPV_OSD)
-    // If we use the CRSF widget for the RSSI field, use LQ for blinking
-    bool blink_rssi = false;
-    if (brainfpv_show_crsf_link_info) {
-        if (rxGetLinkQualityPercent() < osdConfig()->rssi_alarm) {
-            blink_rssi = true;
-        }
-    }
-    else {
-        if (getRssiPercent() < osdConfig()->rssi_alarm) {
-            blink_rssi = true;
-        }
-    }
-    if (blink_rssi) {
-#else
     if (getRssiPercent() < osdConfig()->rssi_alarm) {
-#endif
         SET_BLINK(OSD_RSSI_VALUE);
     } else {
         CLR_BLINK(OSD_RSSI_VALUE);
