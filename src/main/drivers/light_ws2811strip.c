@@ -67,6 +67,7 @@ DMA_RAM uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #else
 uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #endif
+#endif
 #else
 #include "fpga_drv.h"
 #endif
