@@ -194,7 +194,7 @@ static void taskUpdateRxMain(timeUs_t currentTimeUs)
 
     // Where we are using a state machine call schedulerIgnoreTaskExecRate() for all states bar one
     if (rxState != RX_STATE_UPDATE) {
-        ignoreTaskExecRate();
+        schedulerIgnoreTaskExecRate();
     }
 
     switch (rxState) {
@@ -230,7 +230,7 @@ static void taskUpdateRxMain(timeUs_t currentTimeUs)
         break;
     }
 
-    if (getIgnoreTaskExecTime()) {
+    if (schedulerGetIgnoreTaskExecTime()) {
         return;
     }
 
@@ -344,9 +344,9 @@ void tasksInit(void)
 #else
         rescheduleTask(TASK_GYRO, gyro.sampleLooptime);
         rescheduleTask(TASK_FILTER, gyro.targetLooptime);
-        rescheduleTask(TASK_PID, gyro.targetLooptime);     
+        rescheduleTask(TASK_PID, gyro.targetLooptime);
 #endif
-     	setTaskEnabled(TASK_GYRO, true);
+        setTaskEnabled(TASK_GYRO, true);
         setTaskEnabled(TASK_FILTER, true);
         setTaskEnabled(TASK_PID, true);
         schedulerEnableGyro();
@@ -417,7 +417,8 @@ void tasksInit(void)
 
 #ifdef USE_OSD
 #ifdef USE_BRAINFPV_OSD
-    setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && osdInitialized() && !VideoIsInitialized());
+    rescheduleTask(TASK_OSD, TASK_PERIOD_HZ(osdConfig()->framerate_hz));
+    setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && !VideoIsInitialized() && osdGetDisplayPort(NULL));
 #else
     rescheduleTask(TASK_OSD, TASK_PERIOD_HZ(osdConfig()->framerate_hz));
     setTaskEnabled(TASK_OSD, featureIsEnabled(FEATURE_OSD) && osdGetDisplayPort(NULL));
