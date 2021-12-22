@@ -43,7 +43,7 @@
 #include "pg/max7456.h"
 #include "pg/vcd.h"
 
-static displayPort_t max7456DisplayPort;
+displayPort_t max7456DisplayPort;
 static vcdProfile_t const *max7456VcdProfile;
 
 static int grab(displayPort_t *displayPort)
