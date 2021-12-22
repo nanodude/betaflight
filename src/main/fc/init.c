@@ -959,7 +959,10 @@ SLOW_CODE void init(void)
                     .video_system=VIDEO_SYSTEM_AUTO,
                     .h_offset = 0,
                     .v_offset = 0};
-                osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
+                if (max7456DisplayPortInit(&vcdProfile_, &osdDisplayPort)) {
+                    osdDisplayPortDevice = OSD_DISPLAYPORT_DEVICE_MAX7456;
+                    break;
+                }
             }
 #else
             // If there is a max7456 chip for the OSD configured and detected then use it.
