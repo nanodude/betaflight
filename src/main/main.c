@@ -28,12 +28,6 @@
 
 #include "scheduler/scheduler.h"
 
-void main_step(void)
-{
-    scheduler();
-    processLoopback();
-}
-
 #ifndef NOMAIN
 #if !defined(USE_CHIBIOS)
 void run(void);
