@@ -115,7 +115,7 @@ const hsvColor_t hsv[] = {
 // macro to save typing on default colors
 #define HSV(color) (hsv[COLOR_ ## color])
 
-PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 1);
+PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 2);
 
 void pgResetFn_ledStripConfig(ledStripConfig_t *ledStripConfig)
 {
@@ -1066,8 +1066,8 @@ static void applyStatusProfile(timeUs_t now) {
     }
 
     if (!timActive) {
-        // Call ignoreTaskExecTime() unless data is being processed
-        ignoreTaskExecTime();
+        // Call schedulerIgnoreTaskExecTime() unless data is being processed
+        schedulerIgnoreTaskExecTime();
         return;          // no change this update, keep old state
     }
 
@@ -1253,8 +1253,8 @@ void ledStripUpdate(timeUs_t currentTimeUs)
 #endif
 
     if (!isWS2811LedStripReady()) {
-        // Call ignoreTaskExecTime() unless data is being processed
-        ignoreTaskExecTime();
+        // Call schedulerIgnoreTaskExecTime() unless data is being processed
+        schedulerIgnoreTaskExecTime();
         return;
     }
 
@@ -1282,8 +1282,8 @@ void ledStripUpdate(timeUs_t currentTimeUs)
                 break;
         }
     } else {
-        // Call ignoreTaskExecTime() unless data is being processed
-        ignoreTaskExecTime();
+        // Call schedulerIgnoreTaskExecTime() unless data is being processed
+        schedulerIgnoreTaskExecTime();
     }
 }
 
