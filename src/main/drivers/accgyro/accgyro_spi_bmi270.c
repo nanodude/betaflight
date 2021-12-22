@@ -48,10 +48,6 @@ bool gyro_sample_processed = false;
 #include "drivers/system.h"
 #include "drivers/time.h"
 
-#if !defined(BMI270_SPI_DIVISOR)
-#define BMI270_SPI_DIVISOR 16
-#endif
-
 // 10 MHz max SPI frequency
 #define BMI270_MAX_SPI_CLK_HZ 10000000
 
