@@ -39,7 +39,6 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/system.h"
 
-
 #include "fc/core.h"
 #include "fc/tasks.h"
 
@@ -189,6 +188,8 @@ void taskSystemLoad(timeUs_t currentTimeUs)
         averageSystemLoadPercent = 100 * taskTotalExecutionTime / deltaTime;
         taskTotalExecutionTime = 0;
         lastExecutedAtUs = currentTimeUs;
+    } else {
+        schedulerIgnoreTaskExecTime();
     }
 
 #if defined(SIMULATOR_BUILD)
@@ -222,7 +223,7 @@ void getTaskInfo(taskId_e taskId, taskInfo_t * taskInfo)
     taskInfo->subTaskName = getTask(taskId)->subTaskName;
     taskInfo->maxExecutionTimeUs = getTask(taskId)->maxExecutionTimeUs;
     taskInfo->totalExecutionTimeUs = getTask(taskId)->totalExecutionTimeUs;
-    taskInfo->averageExecutionTimeUs = getTask(taskId)->anticipatedExecutionTimeUs / TASK_STATS_MOVING_SUM_COUNT;
+    taskInfo->averageExecutionTimeUs = getTask(taskId)->anticipatedExecutionTime >> TASK_EXEC_TIME_SHIFT;
     taskInfo->averageDeltaTimeUs = getTask(taskId)->movingSumDeltaTimeUs / TASK_STATS_MOVING_SUM_COUNT;
     taskInfo->latestDeltaTimeUs = getTask(taskId)->taskLatestDeltaTimeUs;
     taskInfo->movingAverageCycleTimeUs = getTask(taskId)->movingAverageCycleTimeUs;
@@ -276,25 +277,25 @@ timeDelta_t getTaskDeltaTimeUs(taskId_e taskId)
 }
 
 // Called by tasks executing what are known to be short states
-void ignoreTaskStateTime()
+void schedulerIgnoreTaskStateTime()
 {
     ignoreCurrentTaskExecRate = true;
     ignoreCurrentTaskExecTime = true;
 }
 
 // Called by tasks with state machines to only count one state as determining rate
-void ignoreTaskExecRate()
+void schedulerIgnoreTaskExecRate()
 {
     ignoreCurrentTaskExecRate = true;
 }
 
 // Called by tasks without state machines executing in what is known to be a shorter time than peak
-void ignoreTaskExecTime()
+void schedulerIgnoreTaskExecTime()
 {
     ignoreCurrentTaskExecTime = true;
 }
 
-bool getIgnoreTaskExecTime()
+bool schedulerGetIgnoreTaskExecTime()
 {
     return ignoreCurrentTaskExecTime;
 }
@@ -302,12 +303,12 @@ bool getIgnoreTaskExecTime()
 void schedulerResetTaskStatistics(taskId_e taskId)
 {
     if (taskId == TASK_SELF) {
-        currentTask->anticipatedExecutionTimeUs = 0;
+        currentTask->anticipatedExecutionTime = 0;
         currentTask->movingSumDeltaTimeUs = 0;
         currentTask->totalExecutionTimeUs = 0;
         currentTask->maxExecutionTimeUs = 0;
     } else if (taskId < TASK_COUNT) {
-        getTask(taskId)->anticipatedExecutionTimeUs = 0;
+        getTask(taskId)->anticipatedExecutionTime = 0;
         getTask(taskId)->movingSumDeltaTimeUs = 0;
         getTask(taskId)->totalExecutionTimeUs = 0;
         getTask(taskId)->maxExecutionTimeUs = 0;
@@ -357,17 +358,10 @@ void schedulerInit(void)
 #if defined(USE_LATE_TASK_STATISTICS)
     nextTimingCycles = lastTargetCycles;
 #endif
-}
 
-void schedulerOptimizeRate(bool optimizeRate)
-{
-#if defined(USE_CHIBIOS)
-    UNUSED(optimizeRate);
-    periodCalculationBasisOffset = offsetof(task_t, lastExecutedAtUs);
-#else
-    periodCalculationBasisOffset = optimizeRate ? offsetof(task_t, lastDesiredAt) : offsetof(task_t, lastExecutedAtUs);
-#endif // USE_CHIBIOS
-    optimizeSchedRate = optimizeRate;
+    for (taskId_e taskId = 0; taskId < TASK_COUNT; taskId++) {
+        schedulerResetTaskStatistics(taskId);
+    }
 }
 
 inline static timeUs_t getPeriodCalculationBasis(const task_t* task)
@@ -413,9 +407,14 @@ FAST_CODE timeUs_t schedulerExecuteTask(task_t *selectedTask, timeUs_t currentTi
 
         // Update estimate of expected task duration
         if (taskNextStateTime != -1) {
-            selectedTask->anticipatedExecutionTimeUs = taskNextStateTime * TASK_STATS_MOVING_SUM_COUNT;
+            selectedTask->anticipatedExecutionTime = taskNextStateTime << TASK_EXEC_TIME_SHIFT;
         } else if (!ignoreCurrentTaskExecTime) {
-            selectedTask->anticipatedExecutionTimeUs += taskExecutionTimeUs - selectedTask->anticipatedExecutionTimeUs / TASK_STATS_MOVING_SUM_COUNT;
+            if (taskExecutionTimeUs > (selectedTask->anticipatedExecutionTime >> TASK_EXEC_TIME_SHIFT)) {
+                selectedTask->anticipatedExecutionTime = taskExecutionTimeUs << TASK_EXEC_TIME_SHIFT;
+            } else if (selectedTask->anticipatedExecutionTime > 1) {
+                // Slowly decay the max time
+                selectedTask->anticipatedExecutionTime--;
+            }
         }
 
         if (!ignoreCurrentTaskExecTime) {
@@ -622,7 +621,7 @@ FAST_CODE void scheduler(void)
         }
 
         if (selectedTask) {
-            timeDelta_t taskRequiredTimeUs = selectedTask->anticipatedExecutionTimeUs / TASK_STATS_MOVING_SUM_COUNT;
+            timeDelta_t taskRequiredTimeUs = selectedTask->anticipatedExecutionTime >> TASK_EXEC_TIME_SHIFT;
 #if defined(USE_LATE_TASK_STATISTICS)
             selectedTask->execTime = taskRequiredTimeUs;
 #endif
@@ -656,7 +655,7 @@ FAST_CODE void scheduler(void)
                     if (taskGuardCycles < taskGuardMaxCycles) {
                         taskGuardCycles += taskGuardDeltaUpCycles;
                     }
-                } else  if (taskGuardCycles > taskGuardMinCycles) {
+                } else if (taskGuardCycles > taskGuardMinCycles) {
                     taskGuardCycles -= taskGuardDeltaDownCycles;
                 }
 #if defined(USE_LATE_TASK_STATISTICS)
@@ -665,7 +664,7 @@ FAST_CODE void scheduler(void)
             } else if (selectedTask->taskAgeCycles > TASK_AGE_EXPEDITE_COUNT) {
                 // If a task has been unable to run, then reduce it's recorded estimated run time to ensure
                 // it's ultimate scheduling
-                selectedTask->anticipatedExecutionTimeUs *= TASK_AGE_EXPEDITE_SCALE;
+                selectedTask->anticipatedExecutionTime *= TASK_AGE_EXPEDITE_SCALE;
             }
         }
 #if defined(USE_CHIBIOS)
@@ -678,10 +677,8 @@ FAST_CODE void scheduler(void)
 #endif
     }
 
-#if defined(SCHEDULER_DEBUG)
 #if !defined(UNIT_TEST)
     DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - schedulerStartTimeUs - taskExecutionTimeUs); // time spent in scheduler
-#endif
 #endif
 
 #if defined(UNIT_TEST)
