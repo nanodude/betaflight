@@ -517,6 +517,13 @@ SRC += $(TARGET_SRC)
 
 ifneq ($(filter SPECTROGRAPH,$(FEATURES)),)
 SRC += brainfpv/spectrograph.c
+SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_init_f32.c
+SRC += $(DSP_LIB)/Source/TransformFunctions/arm_rfft_fast_f32.c
+SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_f32.c
+SRC += $(DSP_LIB)/Source/TransformFunctions/arm_cfft_radix8_f32.c
+SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
+SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
+SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
 DEVICE_FLAGS += -DFFT_SIZE_512
 endif
 
