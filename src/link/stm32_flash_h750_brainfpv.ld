@@ -71,6 +71,9 @@ __process_stack_size__  = 0x800;
 /* Define output sections */
 SECTIONS
 {
+  /* used during startup to initialized dmaram_data */
+  _sdmaram_idata = LOADADDR(.dmaram_data);
+  
   /* The vector table is first */
   .isr_vector :
   {
@@ -255,18 +258,40 @@ SECTIONS
     __sram2_end__ = _esram2;
   } >D2_RAM
   
-  .DMA_RAM (NOLOAD) :
+  . = ALIGN(32);
+  .dmaram_data :
   {
-    . = ALIGN(32);
     PROVIDE(dmaram_start = .);
     _sdmaram = .;
     _dmaram_start__ = _sdmaram;
+    _sdmaram_data = .;        /* create a global symbol at data start */
+    *(.dmaram_data)           /* .data sections */
+    *(.dmaram_data*)          /* .data* sections */
+    . = ALIGN(32);
+    _edmaram_data = .;        /* define a global symbol at data end */
+  } >D2_DMA_RAM
+  
+  . = ALIGN(32);
+  .dmaram_bss (NOLOAD) :
+  {
+    _sdmaram_bss = .;
+    __dmaram_bss_start__ = _sdmaram_bss;
+    *(.dmaram_bss)
+    *(SORT_BY_ALIGNMENT(.dmaram_bss*))
+    . = ALIGN(32);
+    _edmaram_bss = .;
+    __dmaram_bss_end__ = _edmaram_bss;
+  } >D2_DMA_RAM
+
+  . = ALIGN(32);
+  .DMA_RAM (NOLOAD) :
+  {
     KEEP(*(.DMA_RAM))
     PROVIDE(dmaram_end = .);
     _edmaram = .;
     _dmaram_end__ = _edmaram;
   } >D2_DMA_RAM
-
+  
   /* Also in D2 RAM, other H7's have it in AXI */
   .DMA_RW_AXI (NOLOAD) :
   {
