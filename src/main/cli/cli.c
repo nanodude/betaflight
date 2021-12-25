@@ -146,6 +146,7 @@ bool cliMode = false;
 #include "pg/rx.h"
 #include "pg/rx_pwm.h"
 #include "pg/rx_spi_cc2500.h"
+#include "pg/rx_spi_expresslrs.h"
 #include "pg/serial_uart.h"
 #include "pg/sdio.h"
 #include "pg/timerio.h"
@@ -309,6 +310,7 @@ static const char *mcuTypeNames[] = {
     "H7A3",
     "H723/H725",
     "G474",
+    "H730",
 };
 
 static const char *configurationStates[] = { "UNCONFIGURED", "CUSTOM DEFAULTS", "CONFIGURED" };
@@ -3099,7 +3101,7 @@ static void cliVtxInfo(const char *cmdName, char *cmdline)
 static void applySimplifiedTuningAllProfiles(void)
 {
     for (unsigned pidProfileIndex = 0; pidProfileIndex < PID_PROFILE_COUNT; pidProfileIndex++) {
-        applySimplifiedTuning(pidProfilesMutable(pidProfileIndex));
+        applySimplifiedTuning(pidProfilesMutable(pidProfileIndex), gyroConfigMutable());
     }
 }
 
@@ -3111,7 +3113,7 @@ static void cliSimplifiedTuning(const char *cmdName, char *cmdline)
         cliPrintLine("Applied simplified tuning.");
     } else if (strcasecmp(cmdline, "disable") == 0) {
         for (unsigned pidProfileIndex = 0; pidProfileIndex < PID_PROFILE_COUNT; pidProfileIndex++) {
-            disableSimplifiedTuning(pidProfilesMutable(pidProfileIndex));
+            disableSimplifiedTuning(pidProfilesMutable(pidProfileIndex), gyroConfigMutable());
         }
 
         cliPrintLine("Disabled simplified tuning.");
@@ -4996,7 +4998,7 @@ static void cliTasks(const char *cmdName, char *cmdline)
         taskInfo_t taskInfo;
         getTaskInfo(taskId, &taskInfo);
         if (taskInfo.isEnabled) {
-            int taskFrequency = taskInfo.averageDeltaTimeUs == 0 ? 0 : lrintf(1e6f / taskInfo.averageDeltaTimeUs);
+            int taskFrequency = taskInfo.averageDeltaTime10thUs == 0 ? 0 : lrintf(1e7f / taskInfo.averageDeltaTime10thUs);
             cliPrintf("%02d - (%15s) ", taskId, taskInfo.taskName);
             const int maxLoad = taskInfo.maxExecutionTimeUs == 0 ? 0 : (taskInfo.maxExecutionTimeUs * taskFrequency) / 1000;
             const int averageLoad = taskInfo.averageExecutionTimeUs == 0 ? 0 : (taskInfo.averageExecutionTimeUs * taskFrequency) / 1000;
@@ -5291,6 +5293,10 @@ const cliResourceValue_t resourceTable[] = {
 #if defined(USE_RX_CC2500_SPI_DIVERSITY)
     DEFS( OWNER_RX_SPI_CC2500_ANT_SEL, PG_RX_CC2500_SPI_CONFIG, rxCc2500SpiConfig_t, antSelIoTag ),
 #endif
+#endif
+#if defined(USE_RX_EXPRESSLRS)
+    DEFS( OWNER_RX_SPI_EXPRESSLRS_RESET, PG_RX_EXPRESSLRS_SPI_CONFIG, rxExpressLrsSpiConfig_t, resetIoTag ),
+    DEFS( OWNER_RX_SPI_EXPRESSLRS_BUSY, PG_RX_EXPRESSLRS_SPI_CONFIG, rxExpressLrsSpiConfig_t, busyIoTag ),
 #endif
 #endif
 #ifdef USE_GYRO_EXTI

@@ -117,8 +117,11 @@
 
 #include "tasks.h"
 
+// taskUpdateRxMain() has occasional peaks in execution time so normal moving average duration estimation doesn't work
+// Decay the estimated max task duration by 1/(1 << RX_TASK_DECAY_SHIFT) on every invocation
+#define RX_TASK_DECAY_SHIFT 5
 // Add a margin to the task duration estimation
-#define RX_TASK_MARGIN 5
+#define RX_TASK_MARGIN 1
 
 static void taskMain(timeUs_t currentTimeUs)
 {
@@ -187,9 +190,8 @@ bool taskUpdateRxMainInProgress()
 
 static void taskUpdateRxMain(timeUs_t currentTimeUs)
 {
-    static timeUs_t rxStateDurationUs[RX_STATE_COUNT];
+    static timeUs_t rxStateDurationFracUs[RX_STATE_COUNT];
     timeUs_t executeTimeUs;
-    timeUs_t existingDurationUs;
     rxState_e oldRxState = rxState;
 
     // Where we are using a state machine call schedulerIgnoreTaskExecRate() for all states bar one
@@ -234,18 +236,16 @@ static void taskUpdateRxMain(timeUs_t currentTimeUs)
         return;
     }
 
-    executeTimeUs = micros() - currentTimeUs;
+    executeTimeUs = micros() - currentTimeUs + RX_TASK_MARGIN;
 
-    existingDurationUs = rxStateDurationUs[oldRxState] / TASK_STATS_MOVING_SUM_COUNT;
-
-    // If the execution time is higher than expected, double the weight in the moving average
-    if (executeTimeUs > existingDurationUs) {
-        rxStateDurationUs[oldRxState] += executeTimeUs - existingDurationUs;
+    if (executeTimeUs > (rxStateDurationFracUs[oldRxState] >> RX_TASK_DECAY_SHIFT)) {
+        rxStateDurationFracUs[oldRxState] = executeTimeUs << RX_TASK_DECAY_SHIFT;
+    } else {
+        // Slowly decay the max time
+        rxStateDurationFracUs[oldRxState]--;
     }
 
-    rxStateDurationUs[oldRxState] += executeTimeUs - existingDurationUs;
-
-    schedulerSetNextStateTime((rxStateDurationUs[rxState] / TASK_STATS_MOVING_SUM_COUNT) + RX_TASK_MARGIN);
+    schedulerSetNextStateTime(rxStateDurationFracUs[rxState] >> RX_TASK_DECAY_SHIFT);
 }
 
 
@@ -517,7 +517,7 @@ task_t tasks[TASK_COUNT] = {
 #endif
 
 #ifdef USE_GPS
-    [TASK_GPS] = DEFINE_TASK("GPS", NULL, NULL, gpsUpdate, TASK_PERIOD_HZ(100), TASK_PRIORITY_MEDIUM), // Required to prevent buffer overruns if running at 115200 baud (115 bytes / period < 256 bytes buffer)
+    [TASK_GPS] = DEFINE_TASK("GPS", NULL, NULL, gpsUpdate, TASK_PERIOD_HZ(TASK_GPS_RATE), TASK_PRIORITY_MEDIUM), // Required to prevent buffer overruns if running at 115200 baud (115 bytes / period < 256 bytes buffer)
 #endif
 
 #ifdef USE_MAG

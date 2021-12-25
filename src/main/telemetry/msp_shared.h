@@ -26,7 +26,6 @@
 // type of function to send MSP response chunk over telemetry.
 typedef void (*mspResponseFnPtr)(uint8_t *payload, const uint8_t payloadSize);
 
-
 void initSharedMsp(void);
 
 // receives telemetry payload with msp and handles it.
