@@ -119,6 +119,13 @@ struct {
     { 0x000000, 0, 0, 0, 0 }
 };
 
+// Option to skip some sectors
+#ifdef M25P16_FIRST_SECTOR
+#define TRANSLATE_ADDR(fdevice, addr) (addr + M25P16_FIRST_SECTOR * fdevice->geometry.sectorSize)
+#else
+#define TRANSLATE_ADDR(fdevice, addr) (addr)
+#endif
+
 #define M25P16_PAGESIZE 256
 
 STATIC_ASSERT(M25P16_PAGESIZE < FLASH_MAX_PAGE_SIZE, M25P16_PAGESIZE_too_small);
@@ -177,6 +184,13 @@ bool m25p16_detect(flashDevice_t *fdevice, uint32_t chipID)
             maxReadClkSPIHz = m25p16FlashConfig[index].maxReadClkSPIMHz * 1000000;
             geometry->sectors = m25p16FlashConfig[index].sectors;
             geometry->pagesPerSector = m25p16FlashConfig[index].pagesPerSector;
+
+#if defined(M25P16_FIRST_SECTOR)
+            geometry->sectors = geometry->sectors - M25P16_FIRST_SECTOR;
+#endif
+#if defined(M25P16_SECTORS_SPARE_END)
+            geometry->sectors = geometry->sectors - M25P16_SECTORS_SPARE_END;
+#endif
             break;
         }
     }
@@ -275,6 +289,8 @@ busStatus_e m25p16_callbackReady(uint32_t arg)
  */
 static void m25p16_eraseSector(flashDevice_t *fdevice, uint32_t address)
 {
+    address = TRANSLATE_ADDR(fdevice, address);
+
     STATIC_DMA_DATA_AUTO uint8_t sectorErase[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
     STATIC_DMA_DATA_AUTO uint8_t readStatus[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
     STATIC_DMA_DATA_AUTO uint8_t readyStatus[2];
@@ -323,6 +339,8 @@ static void m25p16_eraseCompletely(flashDevice_t *fdevice)
 
 static void m25p16_pageProgramBegin(flashDevice_t *fdevice, uint32_t address, void (*callback)(uint32_t length))
 {
+    address = TRANSLATE_ADDR(fdevice, address);
+
     fdevice->callback = callback;
     fdevice->currentWriteAddress = address;
 }
@@ -422,6 +440,8 @@ static void m25p16_pageProgram(flashDevice_t *fdevice, uint32_t address, const u
  */
 static int m25p16_readBytes(flashDevice_t *fdevice, uint32_t address, uint8_t *buffer, uint32_t length)
 {
+    address = TRANSLATE_ADDR(fdevice, address);
+
     STATIC_DMA_DATA_AUTO uint8_t readStatus[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
     STATIC_DMA_DATA_AUTO uint8_t readyStatus[2];
     STATIC_DMA_DATA_AUTO uint8_t readBytes[5] = { M25P16_INSTRUCTION_READ_BYTES };
