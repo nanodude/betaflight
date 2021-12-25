@@ -188,32 +188,6 @@ CMS_Menu cmsx_menuBrainFPVIr = {
 
 #endif /* defined(USE_BRAINFPV_IR_TRANSPONDER) */
 
-const char * CRSF_OPT_NAMES[] = {"NO", "WHEN LQ LOW", "WHEN SNR LOW", "YES"};
-OSD_TAB_t entryCrsfRssiMode = {&bfOsdConfigCms.crsf_link_stats_rssi, 3, &CRSF_OPT_NAMES[0]};
-OSD_TAB_t entryCrsfSnrMode = {&bfOsdConfigCms.crsf_link_stats_snr, 3, &CRSF_OPT_NAMES[0]};
-OSD_INT8_t entryCrsfSnrThreshold = {&bfOsdConfigCms.crsf_link_stats_snr_threshold, -10, 10, 1};
-
-OSD_Entry cmsx_menuBrainFPVCrsfLinkEntries[] =
-{
-    {"-- CRSF LINK QUALITY --", OME_Label, NULL, NULL, 0},
-
-    {"ENABLED", OME_Bool, NULL, &bfOsdConfigCms.crsf_link_stats, 0},
-    {"TX POWER", OME_Bool, NULL, &bfOsdConfigCms.crsf_link_stats_power, 0},
-    {"RSSI", OME_TAB, NULL, &entryCrsfRssiMode, 0},
-    {"SNR", OME_TAB, NULL, &entryCrsfSnrMode, 0},
-    {"SNR THRESHOLD", OME_INT8, NULL, &entryCrsfSnrThreshold, 0},
-
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
-};
-
-CMS_Menu cmsx_menuBrainFPVCrsfLink = {
-    .onEnter = NULL,
-    .onExit = NULL,
-    .entries = cmsx_menuBrainFPVCrsfLinkEntries,
-};
-
-
 const char * LOGO_ON_ARM_OPT_NAMES[] = {"OFF", "ON", "FIRST"};
 OSD_TAB_t entryLogoOnArmingMode = {&logo_on_arming, 3, &LOGO_ON_ARM_OPT_NAMES[0]};
 
@@ -227,7 +201,6 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
 #if defined(USE_BRAINFPV_OSD)
     {"BRAIN OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
     {"HD FRAME", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVHdFrame, 0},
-    {"CRSF LINK QUALITY", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVCrsfLink, 0},
 #endif
 
 #if defined(USE_BRAINFPV_RGB_STATUS_LED)
