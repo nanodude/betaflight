@@ -810,22 +810,23 @@ void SystemInit (void)
 
     /* Configure the Vector Table location add offset address ------------------*/
 #if defined(VECT_TAB_SRAM)
-#if defined(VECT_TAB_BASE)
-    SCB->VTOR = VECT_TAB_BASE;
-#elif defined(STM32H743xx) || defined(STM32H750xx)
+#if defined(STM32H743xx) || defined(STM32H750xx)
     SCB->VTOR = D1_AXISRAM_BASE  | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal ITCMSRAM */
 #elif defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
     SCB->VTOR = CD_AXISRAM_BASE  | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal ITCMSRAM */
 #else
 #error Unknown MCU type
 #endif
-
 #elif defined(USE_EXST)
     extern void *isr_vector_table_base;
 
     SCB->VTOR = (uint32_t)&isr_vector_table_base;
 #else
     SCB->VTOR = FLASH_BANK1_BASE | VECT_TAB_OFFSET;       /* Vector Table Relocation in Internal FLASH */
+#endif
+
+#if defined(VECT_TAB_BASE)
+    SCB->VTOR = VECT_TAB_BASE;
 #endif
 
 #ifdef USE_HAL_DRIVER
