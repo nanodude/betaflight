@@ -60,8 +60,8 @@ void clearGraphics()
 #if VIDEO_BITS_PER_PIXEL == 4
 
 
-static FAST_RAM_ZERO_INIT uint16_t TWOBIT_TO_4BIT_VALUE[256];
-static FAST_RAM_ZERO_INIT uint16_t TWOBIT_TO_4BIT_MASK[256];
+static FAST_DATA_ZERO_INIT uint16_t TWOBIT_TO_4BIT_VALUE[256];
+static FAST_DATA_ZERO_INIT uint16_t TWOBIT_TO_4BIT_MASK[256];
 
 static void fill_2bit_mask_table(void)
 {

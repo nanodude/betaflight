@@ -102,8 +102,6 @@
 
 #include "cms/cms.h"
 
-#include "rx/crsf.h"
-#include "rx/rx.h"
 #include "pg/rx.h"
 
 
@@ -145,11 +143,6 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .hd_frame_height = 55,
   .hd_frame_h_offset = 0,
   .hd_frame_v_offset = 0,
-  .crsf_link_stats = 1,
-  .crsf_link_stats_power = 1,
-  .crsf_link_stats_rssi = CRSF_LQ_LOW,
-  .crsf_link_stats_snr = CRSF_SNR_LOW,
-  .crsf_link_stats_snr_threshold = -2,
   .x_scale_diff = 0,
 );
 
@@ -165,9 +158,6 @@ extern bool blinkState;
 extern bool cmsInMenu;
 extern bool osdStatsVisible;
 bool osdArming = false;
-
-extern crsfLinkInfo_t crsf_link_info;
-bool brainfpv_show_crsf_link_info;
 
 bool brainfpv_user_avatar_set = false;
 bool brainfpv_hd_frame_menu = false;
@@ -187,6 +177,8 @@ void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 void draw_map_uav_center();
 void draw_hd_frame(const bfOsdConfig_t * config);
 void osdShowArmed(void);
+bool brainFPVOsdUpdate(timeUs_t currentTimeUs);
+
 
 #if defined(BRAINFPV_OSD_CMS_BG_BOX)
 static void draw_cms_background_box(void);
@@ -227,13 +219,13 @@ void max7456PreInit(const max7456Config_t *max7456Config)
     (void)max7456Config;
 }
 
-bool max7456Init(const struct max7456Config_s *max7456Config, const struct vcdProfile_s *vcdProfile, bool cpuOverclock)
+max7456InitStatus_e max7456Init(const max7456Config_t *max7456Config, const vcdProfile_t *pVcdProfile, bool cpuOverclock)
 {
     (void)max7456Config;
-    (void)vcdProfile;
+    (void)pVcdProfile;
     (void)cpuOverclock;
 
-    return true;
+    return MAX7456_INIT_OK;
 }
 
 void max7456Invert(bool invert)
@@ -249,9 +241,10 @@ void max7456Brightness(uint8_t black, uint8_t white)
 
 bool max7456LayerSupported(displayPortLayer_e layer)
 {
-    if (layer == DISPLAYPORT_LAYER_FOREGROUND || layer == DISPLAYPORT_LAYER_BACKGROUND) {
+    if (layer == DISPLAYPORT_LAYER_FOREGROUND) {
         return true;
     } else {
+        // return false for DISPLAYPORT_LAYER_BACKGROUND, so it is always drawn
         return false;
     }
 }
@@ -279,8 +272,10 @@ bool max7456DmaInProgress(void)
     return false;
 }
 
-void max7456DrawScreen(void)
-{}
+bool max7456DrawScreen(void)
+{
+    return false;
+}
 
 bool  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 {
@@ -329,9 +324,21 @@ bool max7456BuffersSynced(void)
     return true;
 }
 
+bool max7456ReInitIfRequired(bool forceStallCheck)
+{
+    (void)forceStallCheck;
+
+    return false;
+}
+
 bool max7456IsDeviceDetected(void)
 {
     return true;
+}
+
+void max7456SetBackgroundType(displayPortBackground_e backgroundType)
+{
+    (void)backgroundType;
 }
 /*******************************************************************************/
 
@@ -426,12 +433,6 @@ void brainFpvOsdInit(void)
             break;
         }
     }
-    if (bfOsdConfig()->crsf_link_stats && (rxConfig()->serialrx_provider == SERIALRX_CRSF)) {
-        brainfpv_show_crsf_link_info = true;
-    }
-    else {
-        brainfpv_show_crsf_link_info = false;
-    }
 }
 
 void brainFpvOsdWelcome(void)
@@ -455,7 +456,7 @@ static int32_t getAltitude(void)
 {
     int32_t alt = getEstimatedAltitudeCm();
     switch (osdConfig()->units) {
-        case OSD_UNIT_IMPERIAL:
+        case UNIT_IMPERIAL:
             return (alt * 328) / 100; // Convert to feet / 100
         default:
             return alt;               // Already in metre / 100
@@ -467,7 +468,7 @@ static float getVelocity(void)
     float vel = gpsSol.groundSpeed;
 
     switch (osdConfig()->units) {
-        case OSD_UNIT_IMPERIAL:
+        case UNIT_IMPERIAL:
             return CM_S_TO_MPH(vel);
         default:
             return CM_S_TO_KM_H(vel);
@@ -615,15 +616,11 @@ void osdMain(void) {
                         cmsUpdate(currentTime);
                     }
                     if (!cmsInMenu){
-                        osdUpdate(currentTime);
-                        if (!osdStatsVisible && !osdArming) {
+                        if (brainFPVOsdUpdate(currentTime)) {
                             osdUpdateLocal();
                         }
-                        if (osdArming) {
-                            osdShowArmed();
-                        }
                     }
-                    if (cmsInMenu && brainfpv_hd_frame_menu) {
+                    else if (brainfpv_hd_frame_menu) {
                         draw_hd_frame(&bfOsdConfigCms);
                     }
                     break;
@@ -951,91 +948,6 @@ void osdBackgroundCrosshairs_BrainFPV(osdElementParms_t *element)
                         crosshair_y - CENTER_BODY,  0, 0, OSD_COLOR_WHITE, OSD_COLOR_BLACK);
 
     element->drawElement = false;
-}
-
-void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold);
-
-void osdElementRssi(osdElementParms_t *element);
-void osdElementRssi_BrainFPV(osdElementParms_t *element)
-{
-    if (!brainfpv_show_crsf_link_info) {
-        osdElementRssi(element);
-    }
-    else {
-        osd_crsf_widget(element, osdConfig()->rssi_alarm);
-    }
-}
-
-void osdElementLinkQuality(osdElementParms_t *element);
-void osdElementLinkQuality_BrainFPV(osdElementParms_t *element)
-{
-    if (!brainfpv_show_crsf_link_info) {
-        osdElementLinkQuality(element);
-    }
-    else {
-        osd_crsf_widget(element, osdConfig()->link_quality_alarm);
-    }
-}
-
-#define CRSF_LINE_SPACING 12
-void osd_crsf_widget(osdElementParms_t *element, uint16_t lq_threshold)
-{
-    bool show = false;
-    char tmp_str[20];
-
-    uint16_t x_pos = MAX_X(element->elemPosX);
-    uint16_t y_pos = MAX_Y(element->elemPosY);
-
-    tfp_sprintf(tmp_str, "%c%d", SYM_RSSI, crsf_link_info.lq);
-    draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bf_font());
-    y_pos += 16;
-
-    if (bfOsdConfig()->crsf_link_stats_power) {
-        tfp_sprintf(tmp_str, "%dmW", crsf_link_info.tx_power);
-        draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-        y_pos += CRSF_LINE_SPACING;
-    }
-
-    switch (bfOsdConfig()->crsf_link_stats_rssi) {
-        case CRSF_OFF:
-            show = false;
-            break;
-        case CRSF_LQ_LOW:
-            show = (crsf_link_info.lq <= lq_threshold);
-            break;
-        case CRSF_SNR_LOW:
-            show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
-            break;
-        case CRSF_ON:
-            show = true;
-            break;
-    }
-
-    if (show) {
-        tfp_sprintf(tmp_str, "%ddBm", -1 * (int16_t)crsf_link_info.rssi);
-        draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-        y_pos += CRSF_LINE_SPACING;
-    }
-
-    switch (bfOsdConfig()->crsf_link_stats_snr) {
-        case CRSF_OFF:
-            show = false;
-            break;
-        case CRSF_LQ_LOW:
-            show = (crsf_link_info.lq <= lq_threshold);
-            break;
-        case CRSF_SNR_LOW:
-            show =  (crsf_link_info.snr <= bfOsdConfig()->crsf_link_stats_snr_threshold);
-            break;
-        case CRSF_ON:
-            show = true;
-            break;
-    }
-
-    if (show) {
-        tfp_sprintf(tmp_str, "SN %ddB", crsf_link_info.snr);
-        draw_string(tmp_str, x_pos, y_pos, 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, FONT8X10);
-    }
 }
 
 #if defined(BRAINFPV_OSD_CMS_BG_BOX)

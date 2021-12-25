@@ -35,11 +35,6 @@ typedef struct bfOsdConfig_s {
     uint8_t hd_frame_height;
     int8_t hd_frame_h_offset;
     int8_t hd_frame_v_offset;
-    uint8_t crsf_link_stats;
-    uint8_t crsf_link_stats_power;
-    uint8_t crsf_link_stats_rssi;
-    uint8_t crsf_link_stats_snr;
-    int8_t crsf_link_stats_snr_threshold;
     uint8_t spec_enabled;
     int8_t x_scale_diff;
 } bfOsdConfig_t;
