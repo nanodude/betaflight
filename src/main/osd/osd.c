@@ -936,6 +936,8 @@ static void osdRefreshStats(void)
     osdShowStats(osdStatsRowCount);
 }
 
+bool osdShowArming = false;
+
 timeDelta_t osdShowArmed(void)
 {
     timeDelta_t ret;
@@ -954,8 +956,10 @@ timeDelta_t osdShowArmed(void)
 #else
         osdDrawLogo(3, 1);
 #endif
+        osdShowArming = true;
         ret = osdConfig()->logo_on_arming_duration * 1e5;
     } else {
+        osdShowArming = false;
         ret = (REFRESH_1S / 2);
     }
     displayWrite(osdDisplayPort, 12, 11, DISPLAYPORT_ATTR_NONE, "ARMED");
@@ -1364,6 +1368,48 @@ void osdUpdate(timeUs_t currentTimeUs)
         schedulerIgnoreTaskExecTime();
     }
 }
+
+#if defined(USE_BRAINFPV_OSD)
+bool brainFPVOsdUpdate(timeUs_t currentTimeUs)
+{
+    bool moreElements = true;
+
+    if (osdState == OSD_STATE_INIT) {
+        // Initialize on first run
+        osdCompleteInitialization();
+        osdState = OSD_STATE_UPDATE_ELEMENTS;
+    }
+
+    if (isBeeperOn()) {
+        showVisualBeeper = true;
+    }
+
+    osdDrawStats1(currentTimeUs);
+    showVisualBeeper = false;
+    osdDrawStats2(currentTimeUs);
+    osdDrawStats3(currentTimeUs);
+    osdSyncBlink();
+
+    if (osdShowArming) {
+        if (stats.armed_time > (timeUs_t)osdShowArmed()) {
+            osdShowArming = false;
+        }
+        return false;
+    }
+
+    if (osdStatsVisible) {
+        osdRefreshStats();
+        return false;
+    }
+
+    do {
+        moreElements = osdDrawNextActiveElement(osdDisplayPort, currentTimeUs);
+    } while (moreElements);
+
+    return true;
+}
+#endif/* defined(USE_BRAINFPV_OSD) */
+
 
 void osdSuppressStats(bool flag)
 {
