@@ -88,17 +88,16 @@ struct re1_shadow_reg {
     uint8_t reg_osdc_1;
 };
 
+extDevice_t fpga_spi_dev;
+
 static bool fpga_initialized = false;
 
 static volatile struct re1_shadow_reg shadow_reg;
 static IO_t re1FPGACsPin = IO_NONE;
 static IO_t re1FPGAResetPin = IO_NONE;
 
-
 static int32_t BRAINFPVFPGA_WriteReg(uint8_t reg, uint8_t data, uint8_t mask);
 static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data);
-int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds);
-int32_t BRAINFPVFPGA_SetIRData(const uint8_t * ir_data, uint8_t n_bytes);
 
 #if defined(BRAINFPV_FPGA_INCLUDE_BITSTREAM)
 static int32_t BRAINFPVFPGA_LoadBitstream(void);
@@ -112,12 +111,17 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
 {
 	UNUSED(load_config);
 
+    if (!spiSetBusInstance(&fpga_spi_dev, SPI_DEV_TO_CFG(spiDeviceByInstance(BRAINFPVFPGA_SPI_INSTANCE)))) {
+        return -1;
+    }
+
     re1FPGACsPin = IOGetByTag(IO_TAG(BRAINFPVFPGA_CS_PIN));
     IOInit(re1FPGACsPin, OWNER_OSD, 0);
     IOConfigGPIO(re1FPGACsPin, SPI_IO_CS_CFG);
     IOHi(re1FPGACsPin);
+    fpga_spi_dev.busType_u.spi.csnPin = re1FPGACsPin;
 
-    spiSetDivisor(BRAINFPVFPGA_SPI_INSTANCE, BRAINFPVFPGA_SPI_DIVISOR);
+    spiSetClkDivisor(&fpga_spi_dev, BRAINFPVFPGA_SPI_DIVISOR);
 
     /* Configure 16MHz clock output to FPGA */
     IOInit(IOGetByTag(IO_TAG(BRAINFPVFPGA_CLOCK_PIN)), OWNER_OSD, 0);
@@ -154,31 +158,6 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_LED_B, 0xFF);
 
     fpga_initialized = true;
-
-    return 0;
-}
-
-/**
- * @brief Claim the SPI bus for the communications and select this chip
- * @return 0 if successful, -1 for invalid device, -2 if unable to claim bus
- */
-static int32_t BRAINFPVFPGA_ClaimBus()
-{
-    IOLo(re1FPGACsPin);
-
-    return 0;
-}
-
-/**
- * @brief Release the SPI bus for the communications and end the transaction
- * @return 0 if successful
- */
-static int32_t BRAINFPVFPGA_ReleaseBus()
-{
-    // wait for SPI to be done
-    while (spiIsBusBusy(BRAINFPVFPGA_SPI_INSTANCE)) {};
-
-    IOHi(re1FPGACsPin);
 
     return 0;
 }
@@ -232,14 +211,7 @@ static int32_t BRAINFPVFPGA_WriteReg(enum re1fpga_register reg, uint8_t data, ui
 
 static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data)
 {
-
-    if (BRAINFPVFPGA_ClaimBus() != 0)
-        return -3;
-
-    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x7f & reg);
-    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, data);
-
-    BRAINFPVFPGA_ReleaseBus();
+    spiWriteReg(&fpga_spi_dev, reg, data);
 
     switch (reg) {
         case BRAINFPVFPGA_REG_LED:
@@ -286,62 +258,19 @@ uint8_t BRAINFPVFPGA_GetHWRevision()
 /**
  * @brief Set programmable LED (WS2812B) colors
  */
-int32_t BRAINFPVFPGA_SetLEDs(const uint8_t * led_data, uint16_t n_leds)
+int32_t BRAINFPVFPGA_SetLEDs(uint8_t * led_data, uint16_t n_leds)
 {
     if (!fpga_initialized) {
         return 0;
     }
 
-    if (BRAINFPVFPGA_ClaimBus() != 0)
-        return -1;
-
     n_leds = MIN(n_leds, 1024);
 
-    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x7f & BRAINFPVFPGA_REG_LED);
-    spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, led_data, NULL, 3 * n_leds);
-
-    BRAINFPVFPGA_ReleaseBus();
+    spiWriteRegBuf(&fpga_spi_dev, BRAINFPVFPGA_REG_LED, led_data, 3 * n_leds);
 
     return 0;
 }
 
-/**
- * @brief Set programmable LED (WS2812B) color
- */
-#define LED_BLOCK_SIZE 16
-int32_t BRAINFPVFPGA_SetLEDColor(uint16_t n_leds, uint8_t red, uint8_t green, uint8_t blue)
-{
-    if (!fpga_initialized) {
-        return 0;
-    }
-
-    uint8_t LED_DATA[LED_BLOCK_SIZE * 3];
-
-    n_leds = MIN(n_leds, 1024);
-
-    if (BRAINFPVFPGA_ClaimBus() != 0)
-        return -1;
-
-    for (int i=0; i<LED_BLOCK_SIZE; i++) {
-        LED_DATA[3 * i] = green;
-        LED_DATA[3 * i + 1] = red;
-        LED_DATA[3 * i + 2] = blue;
-    }
-
-    spiTransferByte(BRAINFPVFPGA_SPI_INSTANCE, 0x7f & BRAINFPVFPGA_REG_LED);
-
-    for (int i=0; i<n_leds/LED_BLOCK_SIZE; i++) {
-        spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, LED_DATA, NULL, 3 * LED_BLOCK_SIZE);
-    }
-
-    if (n_leds % LED_BLOCK_SIZE != 0) {
-        spiTransfer(BRAINFPVFPGA_SPI_INSTANCE, LED_DATA, NULL, 3 * (n_leds % LED_BLOCK_SIZE));
-    }
-
-    BRAINFPVFPGA_ReleaseBus();
-
-    return 0;
-}
 
 /**
  * @brief Set OSD x offset
