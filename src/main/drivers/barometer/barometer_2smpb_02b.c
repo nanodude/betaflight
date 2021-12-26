@@ -43,6 +43,9 @@
 
 #include "barometer_2smpb_02b.h"
 
+// 10 MHz max SPI frequency
+#define BARO_2SMBP_MAX_SPI_CLK_HZ 10000000
+
 #if defined(USE_BARO) && defined(USE_BARO_2SMBP_02B)
 
 #define BARO_2SMBP_I2C_ADDRESS 0x70
@@ -96,12 +99,12 @@ static baroState_t  baroState;
 static uint8_t baroDataBuf[6];
 
 
-static int32_t readSignedRegister(busDevice_t * busDev, uint8_t reg, uint8_t nBytes)
+static int32_t readSignedRegister(const extDevice_t *dev, uint8_t reg, uint8_t nBytes)
 {
     uint8_t buf[3];
     uint32_t rawValue = 0;
 
-    busReadRegisterBuffer(busDev, reg, &buf[0], nBytes);
+    busReadRegisterBuffer(dev, reg, &buf[0], nBytes);
 
     for (int i=0; i<nBytes; i++) {
         rawValue += (uint32_t)buf[i] << (8 * (nBytes - i - 1));
@@ -126,7 +129,7 @@ static int32_t getSigned24bitValue(uint8_t * pData)
     return raw;
 }
 
-static bool deviceConfigure(busDevice_t * busDev)
+static bool deviceConfigure(const extDevice_t *dev)
 {
     /** Note: Chip reset causes I2C error due missing ACK. This causes interrupt based read (busReadRegisterBufferStart)
         to not work (read stops due to error flags). It works fine without chip reset. **/
@@ -136,29 +139,29 @@ static bool deviceConfigure(busDevice_t * busDev)
     // No need to write IO_SETUP register: default values are fine
 
     // Read calibration coefficients and scale them
-    baroState.calib.aa = (4.2e-4f  * readSignedRegister(busDev, REG_COE_PTAT31, 2)) / 32767;
-    baroState.calib.ba = (8.0e0f  * readSignedRegister(busDev, REG_COE_PTAT21, 2)) / 32767 - 1.6e2f;
-    baroState.calib.ca = readSignedRegister(busDev, REG_COE_PTAT11, 3);
-    baroState.calib.ap = (3.0e-5f  * readSignedRegister(busDev, REG_COE_PR31, 2)) / 32767;
-    baroState.calib.bp = (10 * readSignedRegister(busDev, REG_COE_PR21, 2)) / 32767 + 3.0e1f;
-    baroState.calib.cp = readSignedRegister(busDev, REG_COE_PR11, 3);
-    baroState.calib.at = (8.0e-11f  * readSignedRegister(busDev, REG_COE_TEMP31, 2)) / 32767;
-    baroState.calib.bt = (1.6e-6f  * readSignedRegister(busDev, REG_COE_TEMP21, 2)) / 32767 - 6.6e-6f;
-    baroState.calib.ct = (8.5e-3f  * readSignedRegister(busDev, REG_COE_TEMP11, 2)) / 32767 + 4.0e-2f;
+    baroState.calib.aa = (4.2e-4f  * readSignedRegister(dev, REG_COE_PTAT31, 2)) / 32767;
+    baroState.calib.ba = (8.0e0f  * readSignedRegister(dev, REG_COE_PTAT21, 2)) / 32767 - 1.6e2f;
+    baroState.calib.ca = readSignedRegister(dev, REG_COE_PTAT11, 3);
+    baroState.calib.ap = (3.0e-5f  * readSignedRegister(dev, REG_COE_PR31, 2)) / 32767;
+    baroState.calib.bp = (10 * readSignedRegister(dev, REG_COE_PR21, 2)) / 32767 + 3.0e1f;
+    baroState.calib.cp = readSignedRegister(dev, REG_COE_PR11, 3);
+    baroState.calib.at = (8.0e-11f  * readSignedRegister(dev, REG_COE_TEMP31, 2)) / 32767;
+    baroState.calib.bt = (1.6e-6f  * readSignedRegister(dev, REG_COE_TEMP21, 2)) / 32767 - 6.6e-6f;
+    baroState.calib.ct = (8.5e-3f  * readSignedRegister(dev, REG_COE_TEMP11, 2)) / 32767 + 4.0e-2f;
 
     // Configure IIR filter
-    busWriteRegister(busDev, REG_IIR_CNT, REG_IIR_CNT_VAL_8X);
+    busWriteRegister(dev, REG_IIR_CNT, REG_IIR_CNT_VAL_8X);
 
     return true;
 }
 
 #define DETECTION_MAX_RETRY_COUNT   5
-static bool deviceDetect(busDevice_t * busDev)
+static bool deviceDetect(const extDevice_t *dev)
 {
     for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
         uint8_t chipId;
 
-        chipId = busReadRegister(busDev, REG_CHIP_ID);
+        chipId = busReadRegister(dev, REG_CHIP_ID);
 
         if (chipId == BARO_2SMBP_CHIP_ID) {
             return true;
@@ -170,50 +173,46 @@ static bool deviceDetect(busDevice_t * busDev)
     return false;
 }
 
-static void busDeviceInit(busDevice_t *busdev, resourceOwner_e owner)
+static void deviceInit(const extDevice_t *dev, resourceOwner_e owner)
 {
 #ifdef USE_BARO_SPI_2SMBP_02B
-    if (busdev->bustype == BUSTYPE_SPI) {
-        IOHi(busdev->busdev_u.spi.csnPin);
-        IOInit(busdev->busdev_u.spi.csnPin, owner, 0);
-        IOConfigGPIO(busdev->busdev_u.spi.csnPin, IOCFG_OUT_PP);
-#ifdef USE_SPI_TRANSACTION
-        spiBusTransactionInit(busdev, SPI_MODE3_POL_HIGH_EDGE_2ND, SPI_CLOCK_STANDARD); // Mode 3
-#else
-        spiBusSetDivisor(busdev, SPI_CLOCK_STANDARD);
-#endif
+    if (dev->bus->busType == BUS_TYPE_SPI) {
+        IOHi(dev->busType_u.spi.csnPin); // Disable
+        IOInit(dev->busType_u.spi.csnPin, owner, 0);
+        IOConfigGPIO(dev->busType_u.spi.csnPin, IOCFG_OUT_PP);
+        spiSetClkDivisor(dev, spiCalculateDivider(BARO_2SMBP_MAX_SPI_CLK_HZ));
     }
 #else
-    UNUSED(busdev);
+    UNUSED(dev);
     UNUSED(owner);
 #endif
 }
 
-static void busDeviceDeInit(busDevice_t *busdev)
+static void busDeviceDeInit(const extDevice_t *dev)
 {
 #ifdef USE_BARO_SPI_2SMBP_02B
-    if (busdev->bustype == BUSTYPE_SPI) {
-        spiPreinitByIO(busdev->busdev_u.spi.csnPin);
+    if (dev->bus->busType == BUS_TYPE_SPI) {
+        spiPreinitByIO(dev->busType_u.spi.csnPin);
     }
 #else
-    UNUSED(busdev);
+    UNUSED(dev);
 #endif
 }
 
 static void b2smpbStartUP(baroDev_t *baro)
 {
     // start a forced measurement
-    busWriteRegister(&baro->busdev, REG_CTRL_MEAS, REG_CLT_MEAS_VAL_TAVG4X_PAVG32X_FORCED);
+    busWriteRegister(&baro->dev, REG_CTRL_MEAS, REG_CLT_MEAS_VAL_TAVG4X_PAVG32X_FORCED);
 }
 
 static bool b2smpbReadUP(baroDev_t *baro)
 {
-    if (busBusy(&baro->busdev, NULL)) {
+    if (busBusy(&baro->dev, NULL)) {
         return false;
     }
 
     // Start reading temperature and pressure data
-    busReadRegisterBufferStart(&baro->busdev, REG_PRESS_TXD2, &baroDataBuf[0], 6);
+    busReadRegisterBufferStart(&baro->dev, REG_PRESS_TXD2, &baroDataBuf[0], 6);
 
     return true;
 }
@@ -223,7 +222,7 @@ static bool b2smpbGetUP(baroDev_t *baro)
     int32_t dtp;
     float tr, pl, tmp;
 
-    if (busBusy(&baro->busdev, NULL)) {
+    if (busBusy(&baro->dev, NULL)) {
         return false;
     }
 
@@ -279,26 +278,26 @@ static void deviceCalculate(int32_t *pressure, int32_t *temperature)
 
 bool baro2SMPB02BDetect(baroDev_t *baro)
 {
-    busDevice_t *busdev = &baro->busdev;
+    extDevice_t *dev = &baro->dev;
     bool defaultAddressApplied = false;
 
-    busDeviceInit(&baro->busdev, OWNER_BARO_CS);
+    deviceInit(&baro->dev, OWNER_BARO_CS);
 
-    if ((busdev->bustype == BUSTYPE_I2C) && (busdev->busdev_u.i2c.address == 0)) {
-        busdev->busdev_u.i2c.address = BARO_2SMBP_I2C_ADDRESS;
+    if ((dev->bus->busType == BUS_TYPE_I2C) && (dev->busType_u.i2c.address == 0)) {
+        dev->busType_u.i2c.address = BARO_2SMBP_I2C_ADDRESS;
         defaultAddressApplied = true;
     }
 
-    if (!deviceDetect(busdev)) {
-        busDeviceDeInit(busdev);
+    if (!deviceDetect(dev)) {
+        busDeviceDeInit(dev);
         if (defaultAddressApplied) {
-            busdev->busdev_u.i2c.address = 0;
+            dev->busType_u.i2c.address = 0;
         }
         return false;
     }
 
-    if (!deviceConfigure(busdev)) {
-        busDeviceDeInit(busdev);
+    if (!deviceConfigure(dev)) {
+        busDeviceDeInit(dev);
         return false;
     }
 
