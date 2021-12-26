@@ -189,7 +189,7 @@ static const OSD_Entry menuMainEntries[] =
     {"-- MAIN --",  OME_Label, NULL, NULL},
 
 #if defined(USE_BRAINFPV_OSD)
-    {"BRAINFPV", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPV, 0},
+    {"BRAINFPV", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPV},
 #endif
 
     {"PROFILE",     OME_Submenu,  cmsMenuChange, &cmsx_menuImu},

@@ -1376,6 +1376,7 @@ bool brainFPVOsdUpdate(timeUs_t currentTimeUs)
 
     if (osdState == OSD_STATE_INIT) {
         // Initialize on first run
+        displayCheckReady(osdDisplayPort, false);
         osdCompleteInitialization();
         osdState = OSD_STATE_UPDATE_ELEMENTS;
     }

@@ -156,8 +156,8 @@ extern uint8_t *disp_buffer;
 
 extern bool blinkState;
 extern bool cmsInMenu;
-extern bool osdStatsVisible;
-bool osdArming = false;
+
+extern displayPort_t max7456DisplayPort;
 
 bool brainfpv_user_avatar_set = false;
 bool brainfpv_hd_frame_menu = false;
@@ -613,6 +613,7 @@ void osdMain(void) {
                             draw_cms_background_box();
                         }
 #endif
+                        max7456DisplayPort.cleared = true;
                         cmsUpdate(currentTime);
                     }
                     if (!cmsInMenu){

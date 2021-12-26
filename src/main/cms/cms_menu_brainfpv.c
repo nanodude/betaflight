@@ -107,27 +107,27 @@ OSD_UINT16_t entryMapMaxDist =  {&bfOsdConfigCms.map_max_dist_m, 10, 32767, 10};
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
-    {"--- BRAIN OSD ---", OME_Label, NULL, NULL, 0},
-    {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
-    {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale, 0},
-    {"SPEED SCALE", OME_Bool, NULL, &bfOsdConfigCms.speed_scale, 0},
-    {"MAP", OME_Bool, NULL, &bfOsdConfigCms.map, 0},
-    {"MAP MAX DIST M", OME_UINT16, NULL, &entryMapMaxDist, 0},
-    {"SHOW STICKS", OME_TAB, NULL, &entrySticksDisplay, 0},
-    {"FONT", OME_TAB, NULL, &entryOSDFont, 0},
+    {"--- BRAIN OSD ---", OME_Label, NULL, NULL},
+    {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps},
+    {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale},
+    {"SPEED SCALE", OME_Bool, NULL, &bfOsdConfigCms.speed_scale},
+    {"MAP", OME_Bool, NULL, &bfOsdConfigCms.map},
+    {"MAP MAX DIST M", OME_UINT16, NULL, &entryMapMaxDist},
+    {"SHOW STICKS", OME_TAB, NULL, &entrySticksDisplay},
+    {"FONT", OME_TAB, NULL, &entryOSDFont},
 #if defined(BRAINFPV_OSD_WHITE_LEVEL_MIN)
-    {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel, 0},
-    {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel, 0},
+    {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel},
+    {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel},
 #endif
-    {"INVERT", OME_Bool, NULL, &bfOsdConfigCms.invert, 0},
-    {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh, 0},
-    {"OSD X OFF", OME_INT8, NULL, &entryXoff, 0},
-    {"OSD X SC", OME_INT8, NULL, &entryXScale, 0},
-    {"3D MODE", OME_Bool, NULL, &bfOsdConfigCms.sbs_3d_enabled, 0},
-    {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift, 0},
+    {"INVERT", OME_Bool, NULL, &bfOsdConfigCms.invert},
+    {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh},
+    {"OSD X OFF", OME_INT8, NULL, &entryXoff},
+    {"OSD X SC", OME_INT8, NULL, &entryXScale},
+    {"3D MODE", OME_Bool, NULL, &bfOsdConfigCms.sbs_3d_enabled},
+    {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift},
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    {"BACK", OME_Back, NULL, NULL},
+    {NULL, OME_END, NULL, NULL}
 };
 
 CMS_Menu cmsx_menuBrainFPVOsd = {
@@ -145,15 +145,15 @@ OSD_INT8_t entryHdFrameVOffset = {&bfOsdConfigCms.hd_frame_v_offset, -100, 100, 
 
 OSD_Entry cmsx_menuBrainFPVHdFrameEntries[] =
 {
-    {"-- HD CAM FRAME --", OME_Label, NULL, NULL, 0},
-    {"MODE", OME_TAB, NULL, &entryHdFrameMode, 0},
-    {"WIDTH", OME_UINT8, NULL, &entryHdFrameWidth, 0},
-    {"HEIGHT", OME_UINT8, NULL, &entryHdFrameHeight, 0},
-    {"H OFFSET", OME_INT8, NULL, &entryHdFrameHOffset, 0},
-    {"V OFFSET", OME_INT8, NULL, &entryHdFrameVOffset, 0},
+    {"-- HD CAM FRAME --", OME_Label, NULL, NULL},
+    {"MODE", OME_TAB, NULL, &entryHdFrameMode},
+    {"WIDTH", OME_UINT8, NULL, &entryHdFrameWidth},
+    {"HEIGHT", OME_UINT8, NULL, &entryHdFrameHeight},
+    {"H OFFSET", OME_INT8, NULL, &entryHdFrameHOffset},
+    {"V OFFSET", OME_INT8, NULL, &entryHdFrameVOffset},
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    {"BACK", OME_Back, NULL, NULL},
+    {NULL, OME_END, NULL, NULL}
 };
 
 CMS_Menu cmsx_menuBrainFPVHdFrame = {
@@ -171,13 +171,13 @@ OSD_UINT16_t entryIRTrackmate =  {&bfOsdConfigCms.ir_trackmate_id, 0, 4095, 1};
 
 OSD_Entry cmsx_menuBrainFPVIrEntries[] =
 {
-    {"-- IR TRANSPONDER --", OME_Label, NULL, NULL, 0},
-    {"IR SYS", OME_TAB, NULL, &entryIRSys, 0},
-    {"I LAP ID", OME_UINT32, NULL, &entryIRIlap, 0},
-    {"TRACKMATE ID", OME_UINT16, NULL, &entryIRTrackmate, 0},
+    {"-- IR TRANSPONDER --", OME_Label, NULL, NULL},
+    {"IR SYS", OME_TAB, NULL, &entryIRSys},
+    {"I LAP ID", OME_UINT32, NULL, &entryIRIlap},
+    {"TRACKMATE ID", OME_UINT16, NULL, &entryIRTrackmate},
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    {"BACK", OME_Back, NULL, NULL},
+    {NULL, OME_END, NULL, NULL}
 };
 
 CMS_Menu cmsx_menuBrainFPVIr = {
@@ -197,30 +197,30 @@ OSD_UINT8_t entryLEDBrightness =  {&brainFpvSystemConfigCms.status_led_brightnes
 
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
-    {"--- BRAINFPV ---", OME_Label, NULL, NULL, 0},
+    {"--- BRAINFPV ---", OME_Label, NULL, NULL},
 #if defined(USE_BRAINFPV_OSD)
-    {"BRAIN OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
-    {"HD FRAME", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVHdFrame, 0},
+    {"BRAIN OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd},
+    {"HD FRAME", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVHdFrame},
 #endif
 
 #if defined(USE_BRAINFPV_RGB_STATUS_LED)
-    {"LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&brainFpvSystemConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }, 0 },
-    {"LED BRIGHTNESS ",  OME_UINT8, NULL, &entryLEDBrightness, 0},
+    {"LED COLOR",  OME_TAB,   NULL, &(OSD_TAB_t){&brainFpvSystemConfigCms.status_led_color, COLOR_COUNT - 1, lookupTableLedstripColors }},
+    {"LED BRIGHTNESS ",  OME_UINT8, NULL, &entryLEDBrightness},
 #endif
 
 #if defined(USE_BRAINFPV_IR_TRANSPONDER)
-    {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVIr, 0},
+    {"IR TRANSPONDER", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVIr},
 #endif /* defined(USE_BRAINFPV_IR_TRANSPONDER) */
 
 #if defined(USE_BRAINFPV_SPECTROGRAPH)
-    {"SPECTROGRAPH", OME_Bool, NULL, &bfOsdConfigCms.spec_enabled, 0},
+    {"SPECTROGRAPH", OME_Bool, NULL, &bfOsdConfigCms.spec_enabled},
 #endif /* defined(USE_BRAINFPV_SPECTROGRAPH) */
 #if defined(USE_BRAINFPV_OSD)
-    {"SHOW LOGO ON ARM", OME_TAB, NULL, &entryLogoOnArmingMode, 0},
-    {"SHOW PILOT LOGO", OME_Bool, NULL, &bfOsdConfigCms.show_pilot_logo, 0},
+    {"SHOW LOGO ON ARM", OME_TAB, NULL, &entryLogoOnArmingMode},
+    {"SHOW PILOT LOGO", OME_Bool, NULL, &bfOsdConfigCms.show_pilot_logo},
 #endif
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    {"BACK", OME_Back, NULL, NULL},
+    {NULL, OME_END, NULL, NULL}
 };
 
 CMS_Menu cmsx_menuBrainFPV = {
