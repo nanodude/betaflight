@@ -137,15 +137,12 @@ void ws2811LedStripInit(ioTag_t ioTag)
 #ifndef USE_BRAINFPV_FPGA
     memset(ledStripDMABuffer, 0, sizeof(ledStripDMABuffer));
 
-    const hsvColor_t hsv_white = { 0, 255, 255 };
-    setStripColor(&hsv_white);
-
     ledStripIoTag = ioTag;
 #else
     (void)ioTag;
-#endif
     // RGB or GRB ordering doesn't matter for white
-    ws2811UpdateStrip(LED_RGB);
+    ws2811UpdateStrip(LED_RGB, 100);
+#endif
 }
 
 #ifndef USE_BRAINFPV_FPGA
@@ -241,9 +238,7 @@ void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat, uint8_t brightness)
     ws2811LedStripDMAEnable();
 }
 #else
-static uint8_t last_active_led = 0;
 static uint8_t led_data[WS2811_LED_STRIP_LENGTH * 3];
-
 
 void ws2811LedStripEnable(void)
 {
@@ -254,13 +249,20 @@ bool isWS2811LedStripReady(void)
     return true;
 }
 
-void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
+void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat, uint8_t brightness)
 {
     static rgbColor24bpp_t *rgb24;
+    hsvColor_t scaledLed;
     uint8_t pos = 0;
 
-    for (int i=0; i<WS2811_LED_STRIP_LENGTH; i++) {
-        rgb24 = hsvToRgb24(&ledColorBuffer[i]);
+    unsigned int ledUpdateCount = needsFullRefresh ? WS2811_LED_STRIP_LENGTH : usedLedCount;
+    const hsvColor_t hsvBlack = { 0, 0, 0 };
+
+    for (unsigned int ledIndex=0; ledIndex<ledUpdateCount; ledIndex++) {
+        scaledLed = ledIndex < usedLedCount ? ledColorBuffer[ledIndex] : hsvBlack;
+        scaledLed.v = scaledLed.v * brightness / 100;
+        rgb24 = hsvToRgb24(&scaledLed);
+
         switch(ledFormat) {
             case LED_RGB:
                 led_data[pos++] = rgb24->rgb.r;
@@ -274,14 +276,9 @@ void ws2811UpdateStrip(ledStripFormatRGB_e ledFormat)
                 led_data[pos++] = rgb24->rgb.b;
                 break;
         }
-        if ((rgb24->rgb.g != 0) || (rgb24->rgb.r != 0) || (rgb24->rgb.b != 0)) {
-            if (i > last_active_led) {
-                last_active_led = i;
-            }
-        }
     }
 
-    BRAINFPVFPGA_SetLEDs(led_data, last_active_led + 1);
+    BRAINFPVFPGA_SetLEDs(led_data, ledUpdateCount + 1);
 }
 #endif /* USE_BRAINFPV_FPGA */
 
