@@ -142,10 +142,11 @@ static void BMI160_Init(const extDevice_t *dev)
 #ifdef BRAINFPV
     /* Perform fast offset compensation if requested */
     if (bfOsdConfig()->bmi160foc) {
-        int16_t foc_ret = BMI160_do_foc(bus);
+        int16_t foc_ret = BMI160_do_foc(dev);
         bfOsdConfigMutable()->bmi160foc = false;
         bfOsdConfigMutable()->bmi160foc_ret = foc_ret;
         writeEEPROM();
+    }
 #endif
 
     BMI160InitDone = true;
@@ -290,7 +291,6 @@ static void bmi160IntExtiInit(gyroDev_t *gyro)
 bool bmi160AccRead(accDev_t *acc)
 {
     enum {
-        IDX_REG = 0,
         IDX_ACCEL_XOUT_L,
         IDX_ACCEL_XOUT_H,
         IDX_ACCEL_YOUT_L,
@@ -301,9 +301,11 @@ bool bmi160AccRead(accDev_t *acc)
     };
 
     uint8_t bmi160_rx_buf[BUFFER_SIZE];
-    static const uint8_t bmi160_tx_buf[BUFFER_SIZE] = {BMI160_REG_ACC_DATA_X_LSB | 0x80, 0, 0, 0, 0, 0, 0};
+    //static const uint8_t bmi160_tx_buf[BUFFER_SIZE] = {BMI160_REG_ACC_DATA_X_LSB | 0x80, 0, 0, 0, 0, 0, 0};
 
-    spiReadWriteBufRB(&acc->gyro->dev, bmi160_tx_buf, bmi160_rx_buf, BUFFER_SIZE);   // receive response
+    //spiReadWriteBufRB(&acc->gyro->dev, bmi160_tx_buf, bmi160_rx_buf, BUFFER_SIZE);   // receive response
+
+    spiReadRegBuf(&acc->gyro->dev, BMI160_REG_ACC_DATA_X_LSB, bmi160_rx_buf, BUFFER_SIZE);
 
     acc->ADCRaw[X] = (int16_t)((bmi160_rx_buf[IDX_ACCEL_XOUT_H] << 8) | bmi160_rx_buf[IDX_ACCEL_XOUT_L]);
     acc->ADCRaw[Y] = (int16_t)((bmi160_rx_buf[IDX_ACCEL_YOUT_H] << 8) | bmi160_rx_buf[IDX_ACCEL_YOUT_L]);
@@ -316,7 +318,6 @@ bool bmi160AccRead(accDev_t *acc)
 bool bmi160GyroRead(gyroDev_t *gyro)
 {
     enum {
-        IDX_REG = 0,
         IDX_GYRO_XOUT_L,
         IDX_GYRO_XOUT_H,
         IDX_GYRO_YOUT_L,
@@ -327,9 +328,11 @@ bool bmi160GyroRead(gyroDev_t *gyro)
     };
 
     uint8_t bmi160_rx_buf[BUFFER_SIZE];
-    static const uint8_t bmi160_tx_buf[BUFFER_SIZE] = {BMI160_REG_GYR_DATA_X_LSB | 0x80, 0, 0, 0, 0, 0, 0};
+    //static const uint8_t bmi160_tx_buf[BUFFER_SIZE] = {BMI160_REG_GYR_DATA_X_LSB | 0x80, 0, 0, 0, 0, 0, 0};
 
-    spiReadWriteBufRB(&acc->gyro->dev, bmi160_tx_buf, bmi160_rx_buf, BUFFER_SIZE);   // receive response
+    //spiReadWriteBufRB(&gyro->dev, bmi160_tx_buf, bmi160_rx_buf, BUFFER_SIZE);   // receive response
+
+    spiReadRegBuf(&gyro->dev, BMI160_REG_GYR_DATA_X_LSB, bmi160_rx_buf, BUFFER_SIZE);
 
     gyro->gyroADCRaw[X] = (int16_t)((bmi160_rx_buf[IDX_GYRO_XOUT_H] << 8) | bmi160_rx_buf[IDX_GYRO_XOUT_L]);
     gyro->gyroADCRaw[Y] = (int16_t)((bmi160_rx_buf[IDX_GYRO_YOUT_H] << 8) | bmi160_rx_buf[IDX_GYRO_YOUT_L]);
@@ -353,7 +356,7 @@ void bmi160SpiGyroInit(gyroDev_t *gyro)
 
 void bmi160SpiAccInit(accDev_t *acc)
 {
-    BMI160_Init(&acc->dev);
+    BMI160_Init(&acc->gyro->dev);
 
     acc->acc_1G = 512 * 8;
 }
@@ -361,7 +364,7 @@ void bmi160SpiAccInit(accDev_t *acc)
 
 bool bmi160SpiAccDetect(accDev_t *acc)
 {
-    if (bmi160Detect(&acc->dev) == MPU_NONE) {
+    if (bmi160Detect(&acc->gyro->dev) == MPU_NONE) {
         return false;
     }
 
