@@ -291,7 +291,7 @@ bool baroDetect(baroDev_t *baroDev, baroSensor_e baroHardwareToUse)
 
      case BARO_2SMPB_02B:
 #if defined(USE_BARO_2SMBP_02B) || defined(USE_BARO_SPI_2SMBP_02B)
-        if (baro2SMPB02BDetect(dev)) {
+        if (baro2SMPB02BDetect(baroDev)) {
             baroHardware = BARO_2SMPB_02B;
             break;
         }
