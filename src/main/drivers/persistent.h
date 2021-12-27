@@ -37,6 +37,10 @@ typedef enum {
 #endif
     PERSISTENT_OBJECT_RTC_HIGH,           // high 32 bits of rtcTime_t
     PERSISTENT_OBJECT_RTC_LOW,            // low 32 bits of rtcTime_t
+#ifdef BRAINFPV_BL
+    // PERSISTENT_OBJECT_RESET_REASON can get modified by bootloader. Use this backup location
+    PERSISTENT_OBJECT_RESET_REASON_BACKUP,
+#endif
     PERSISTENT_OBJECT_COUNT,
 #ifdef USE_SPRACING_PERSISTENT_RTC_WORKAROUND
     // On SPRACING H7 firmware use this alternate location for all reset reasons interpreted by this firmware

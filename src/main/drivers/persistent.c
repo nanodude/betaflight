@@ -39,6 +39,12 @@ uint32_t persistentObjectRead(persistentObjectId_e id)
 
     uint32_t value = HAL_RTCEx_BKUPRead(&rtcHandle, id);
 
+#ifdef BRAINFPV_BL
+    if (id == PERSISTENT_OBJECT_RESET_REASON) {
+        value = HAL_RTCEx_BKUPRead(&rtcHandle, PERSISTENT_OBJECT_RESET_REASON_BACKUP);
+    }
+#endif
+
     return value;
 }
 
@@ -56,6 +62,12 @@ void persistentObjectWrite(persistentObjectId_e id, uint32_t value)
             value = RESET_NONE;
         }
         HAL_RTCEx_BKUPWrite(&rtcHandle, PERSISTENT_OBJECT_RESET_REASON_FWONLY, value);
+    }
+#endif
+
+#ifdef BRAINFPV_BL
+    if (id == PERSISTENT_OBJECT_RESET_REASON) {
+        HAL_RTCEx_BKUPWrite(&rtcHandle, PERSISTENT_OBJECT_RESET_REASON_BACKUP, value);
     }
 #endif
 }
