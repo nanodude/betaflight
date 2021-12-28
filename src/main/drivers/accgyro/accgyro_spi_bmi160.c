@@ -221,7 +221,7 @@ static int32_t BMI160_do_foc(const extDevice_t *dev)
     spiWriteReg(dev, BMI160_REG_CMD, BMI160_CMD_START_FOC);
 
     // Wait for FOC to complete
-   for (int i=0; i<50; i++) {
+    for (int i=0; i<50; i++) {
         val = spiReadRegMsk(dev, BMI160_REG_STATUS);
         if (val & BMI160_REG_STATUS_FOC_RDY) {
             break;
@@ -258,7 +258,7 @@ extiCallbackRec_t bmi160IntCallbackRec;
 #ifdef USE_GYRO_EXTI
 // Called in ISR context
 // Gyro read has just completed
-busStatus_e bmi270Intcallback(uint32_t arg)
+busStatus_e bmi160Intcallback(uint32_t arg)
 {
     gyroDev_t *gyro = (gyroDev_t *)arg;
     int32_t gyroDmaDuration = cmpTimeCycles(getCycleCounter(), gyro->gyroLastEXTI);
@@ -376,6 +376,7 @@ static bool bmi160AccRead(accDev_t *acc)
 
 static bool bmi160GyroRead(gyroDev_t *gyro)
 {
+
     uint16_t *gyroData = (uint16_t *)gyro->dev.rxBuf;
     switch (gyro->gyroModeSPI) {
     case GYRO_EXTI_INIT:
@@ -395,7 +396,7 @@ static bool bmi160GyroRead(gyroDev_t *gyro)
                 gyro->dev.callbackArg = (uint32_t)gyro;
                 gyro->dev.txBuf[0] = BMI160_REG_GYR_DATA_X_LSB | 0x80;
                 gyro->segments[0].len = 13;
-                gyro->segments[0].callback = bmi270Intcallback;
+                gyro->segments[0].callback = bmi160Intcallback;
                 gyro->segments[0].txData = gyro->dev.txBuf;
                 gyro->segments[0].rxData = &gyro->dev.rxBuf[1];
                 gyro->segments[0].negateCS = true;
