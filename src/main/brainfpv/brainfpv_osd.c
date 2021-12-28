@@ -553,8 +553,10 @@ static void osd_draw_test_pattern(void) {
 
 void osdMain(void) {
     uint32_t draw_cnt = 0;
-    uint32_t key_time = 0;
     uint32_t currentTime;
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
+    uint32_t key_time = 0;
+#endif
 
     crosshair_x = GRAPHICS_X_MIDDLE;
     crosshair_y = GRAPHICS_Y_MIDDLE;
@@ -566,7 +568,9 @@ void osdMain(void) {
         }
 
         currentTime = micros();
+#if defined(USE_BRAINFPV_SPECTROGRAPH)
         enum SpecCommand spec_command = SPEC_COMMAND_NONE;
+#endif
         static enum BrainFPVOSDMode mode = MODE_BETAFLIGHT;
         clearGraphics();
 
