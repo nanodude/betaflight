@@ -85,7 +85,7 @@
 #define USE_VTX_CONTROL
 #define VTX_SMARTAUDIO
 
-#define USE_BRAINFPV_SPECTROGRAPH
+//#define USE_BRAINFPV_SPECTROGRAPH
 
 #define USE_EXTI
 #define USE_GYRO
@@ -192,6 +192,7 @@
 #define USE_DSHOT
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
 
+#undef USE_USB_MSC
 
 #undef USE_DSHOT_BITBANG
 
