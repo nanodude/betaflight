@@ -404,7 +404,11 @@ uint16_t spiCalculateDivider(uint32_t freq)
 #if defined(STM32F4) || defined(STM32G4) || defined(STM32F7)
     uint32_t spiClk = SystemCoreClock / 2;
 #elif defined(STM32H7)
+#if defined(BRAINFPV)
+    uint32_t spiClk = 80000000;
+#else
     uint32_t spiClk = 100000000;
+#endif
 #else
 #error "Base SPI clock not defined for this architecture"
 #endif
