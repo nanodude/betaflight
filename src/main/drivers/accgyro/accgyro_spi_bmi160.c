@@ -97,7 +97,7 @@ bool gyro_sample_processed = false;
 #define BMI160_REG_CONF_NVM_PROG_EN 0x02
 
 // Need to see at least this many interrupts during initialisation to confirm EXTI connectivity
-#define GYRO_EXTI_DETECT_THRESHOLD 1000
+#define GYRO_EXTI_DETECT_THRESHOLD 100
 
 ///* Global Variables */
 static volatile bool BMI160InitDone = false;
@@ -253,8 +253,6 @@ static int32_t BMI160_do_foc(const extDevice_t *dev)
     return 0;
 }
 
-extiCallbackRec_t bmi160IntCallbackRec;
-
 #ifdef USE_GYRO_EXTI
 // Called in ISR context
 // Gyro read has just completed
@@ -269,15 +267,18 @@ busStatus_e bmi160Intcallback(uint32_t arg)
 
     gyro->dataReady = true;
 
+#if defined(USE_CHIBIOS)
+    chSysLockFromISR();
+    gyro_sample_processed = false;
+    chBSemSignalI(&gyroSem);
+    chSysUnlockFromISR();
+#endif /* defined(USE_CHIBIOS) */
+
     return BUS_READY;
 }
 
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
 {
-#if defined(USE_CHIBIOS)
-    CH_IRQ_PROLOGUE();
-#endif /* defined(USE_CHIBIOS) */
-
     gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
 
     // Ideally we'd use a time to capture such information, but unfortunately the port used for EXTI interrupt does
@@ -291,14 +292,6 @@ void bmi160ExtiHandler(extiCallbackRec_t *cb)
     }
 
     gyro->detectedEXTI++;
-
-#if defined(USE_CHIBIOS)
-    chSysLockFromISR();
-    gyro_sample_processed = false;
-    chBSemSignalI(&gyroSem);
-    chSysUnlockFromISR();
-    CH_IRQ_EPILOGUE();
-#endif /* defined(USE_CHIBIOS) */
 }
 
 static void bmi160IntExtiInit(gyroDev_t *gyro)

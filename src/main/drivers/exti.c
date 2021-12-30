@@ -30,6 +30,10 @@
 #include "io_impl.h"
 #include "drivers/exti.h"
 
+#if defined(USE_BRAINFPV_OSD)
+#include "ch.h"
+#endif
+
 typedef struct {
     extiCallbackRec_t* handler;
 } extiChannelRec_t;
@@ -236,6 +240,12 @@ void EXTIEnable(IO_t io, bool enable)
 
 void EXTI_IRQHandler(uint32_t mask)
 {
+#if defined(USE_BRAINFPV_OSD)
+    if (IO_EXTI_Line(IOGetByTag(IO_TAG(VIDEO_VSYNC))) & mask) {
+        CH_IRQ_PROLOGUE();
+    }
+#endif
+
     uint32_t exti_active = (EXTI_REG_IMR & EXTI_REG_PR) & mask;
 
     EXTI_REG_PR = exti_active;  // clear pending mask (by writing 1)
@@ -244,8 +254,14 @@ void EXTI_IRQHandler(uint32_t mask)
         unsigned idx = 31 - __builtin_clz(exti_active);
         uint32_t mask = 1 << idx;
         extiChannelRecs[idx].handler->fn(extiChannelRecs[idx].handler);
+        EXTI_REG_PR = mask;
         exti_active &= ~mask;
     }
+#if defined(USE_BRAINFPV_OSD)
+    if (IO_EXTI_Line(IOGetByTag(IO_TAG(VIDEO_VSYNC))) & mask) {
+        CH_IRQ_EPILOGUE();
+    }
+#endif
 }
 
 #define _EXTI_IRQ_HANDLER(name, mask)            \

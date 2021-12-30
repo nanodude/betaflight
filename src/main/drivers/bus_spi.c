@@ -39,6 +39,10 @@
 #include "nvic.h"
 #include "pg/bus_spi.h"
 
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+#endif
+
 static uint8_t spiRegisteredDeviceCount = 0;
 
 spiDevice_t spiDevice[SPIDEV_COUNT];
@@ -475,6 +479,10 @@ static void spiIrqHandler(const extDevice_t *dev)
 // Interrupt handler for SPI receive DMA completion
 static void spiRxIrqHandler(dmaChannelDescriptor_t* descriptor)
 {
+#if defined(USE_CHIBIOS)
+    CH_IRQ_PROLOGUE();
+#endif /* defined(USE_CHIBIOS) */
+
     const extDevice_t *dev = (const extDevice_t *)descriptor->userParam;
 
     if (!dev) {
@@ -506,6 +514,10 @@ static void spiRxIrqHandler(dmaChannelDescriptor_t* descriptor)
 #endif // __DCACHE_PRESENT
 
     spiIrqHandler(dev);
+
+#if defined(USE_CHIBIOS)
+    CH_IRQ_EPILOGUE();
+#endif /* defined(USE_CHIBIOS) */
 }
 
 #if !defined(STM32G4) && !defined(STM32H7)

@@ -171,8 +171,6 @@ FAST_CODE void Vsync_ISR(extiCallbackRec_t *cb)
 
     uint32_t t_now;
 
-    CH_IRQ_PROLOGUE();
-
     t_now = microsISR();
 
     if (t_now - t_last < MIN_DELTA_VSYNC) {
@@ -192,7 +190,7 @@ FAST_CODE void Vsync_ISR(extiCallbackRec_t *cb)
 
     // discard spurious vsync pulses (due to improper grounding), so we don't overload the CPU
     if (active_line > 0 && active_line < video_type_cfg_ntsc.graphics_hight_real - 10) {
-        return false;
+        return;
     }
 
     // Update the number of video lines

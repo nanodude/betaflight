@@ -77,6 +77,11 @@
 #define NVIC_PRIO_SPI_DMA                  NVIC_BUILD_PRIORITY(0, 0)
 #define NVIC_PRIO_SDIO_DMA                 NVIC_BUILD_PRIORITY(0, 0)
 
+#ifdef USE_CHIBIOS
+#undef NVIC_PRIO_SPI_DMA
+#define NVIC_PRIO_SPI_DMA                  NVIC_BUILD_PRIORITY(3, 0)
+#endif
+
 #ifdef USE_HAL_DRIVER
 // utility macros to join/split priority
 #define NVIC_PRIORITY_GROUPING NVIC_PRIORITYGROUP_2

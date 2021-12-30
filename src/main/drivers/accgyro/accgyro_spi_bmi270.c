@@ -279,15 +279,18 @@ busStatus_e bmi270Intcallback(uint32_t arg)
 
     gyro->dataReady = true;
 
+#if defined(USE_CHIBIOS)
+    chSysLockFromISR();
+    gyro_sample_processed = false;
+    chBSemSignalI(&gyroSem);
+    chSysUnlockFromISR();
+#endif /* defined(USE_CHIBIOS) */
+
     return BUS_READY;
 }
 
 void bmi270ExtiHandler(extiCallbackRec_t *cb)
 {
-#if defined(USE_CHIBIOS)
-    CH_IRQ_PROLOGUE();
-#endif /* defined(USE_CHIBIOS) */
-
     gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
 
     // Ideally we'd use a time to capture such information, but unfortunately the port used for EXTI interrupt does
@@ -301,14 +304,6 @@ void bmi270ExtiHandler(extiCallbackRec_t *cb)
     }
 
     gyro->detectedEXTI++;
-
-#if defined(USE_CHIBIOS)
-    chSysLockFromISR();
-    gyro_sample_processed = false;
-    chBSemSignalI(&gyroSem);
-    chSysUnlockFromISR();
-    CH_IRQ_EPILOGUE();
-#endif /* defined(USE_CHIBIOS) */
 }
 
 static void bmi270IntExtiInit(gyroDev_t *gyro)
