@@ -409,8 +409,9 @@ void pgResetFn_osdElementConfig(osdElementConfig_t *osdElementConfig)
     osdElementConfig->item_pos[OSD_CAMERA_FRAME]       = OSD_POS(3, 1);
 
 #ifdef USE_BRAINFPV_OSD
-    osdElementConfig->item_pos[OSD_RSSI_VALUE]         = OSD_POS(8, 1)   | profileFlags;
-    osdElementConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(12, 1)  | profileFlags;
+    osdElementConfig->item_pos[OSD_LINK_QUALITY]       = OSD_POS(8, 1)   | profileFlags;
+    osdElementConfig->item_pos[OSD_TX_UPLINK_POWER]    = OSD_POS(8, 2)   | profileFlags;
+    osdElementConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(15, 1)  | profileFlags;
     osdElementConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(14, 6)   | profileFlags;
     osdElementConfig->item_pos[OSD_ITEM_TIMER_1]       = OSD_POS(22, 1)  | profileFlags;
     osdElementConfig->item_pos[OSD_ITEM_TIMER_2]       = OSD_POS(1, 1)   | profileFlags;
@@ -418,7 +419,7 @@ void pgResetFn_osdElementConfig(osdElementConfig_t *osdElementConfig)
     osdElementConfig->item_pos[OSD_CRAFT_NAME]         = OSD_POS(10, 11) | profileFlags;
     osdElementConfig->item_pos[OSD_CURRENT_DRAW]       = OSD_POS(1, 11)  | profileFlags;
     osdElementConfig->item_pos[OSD_MAH_DRAWN]          = OSD_POS(1, 10)  | profileFlags;
-    osdElementConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = OSD_POS(12, 2)  | profileFlags;
+    osdElementConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = OSD_POS(15, 2)  | profileFlags;
 #endif
 
     osdElementConfig->item_pos[OSD_UP_DOWN_REFERENCE]  = OSD_POS(13, 6);
