@@ -26,6 +26,8 @@
 #include "fpga_drv.h"
 #include "brainfpv/brainfpv_osd.h"
 #include "brainfpv/brainfpv_system.h"
+#include "brainfpv/ir_transponder.h"
+
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     //{ TIM12, IO_TAG(PB14), TIM_Channel_1, TIM_USE_PPM,   0, GPIO_AF_TIM12, NULL,  0, 0, },    // PPM_IN
