@@ -83,6 +83,10 @@ static void vtxFaultCheck(void)
 }
 #endif /* defined(USE_VTXFAULT_PIN) */
 
+#if defined(BRAINFPV_DEBUG_PIN)
+IO_t debugPin;
+#endif
+
 
 // CPU utilization measurement
 uint16_t brainFPVSystemGetCPULoad(void)
@@ -141,6 +145,13 @@ void brainFPVSystemInit(void)
     printfSerialInit();
     setPrintfSerialPort(port);
     tfp_printf("DEBUG Print Init\n\r");
+#endif
+
+#if defined(BRAINFPV_DEBUG_PIN)
+   debugPin = IOGetByTag(IO_TAG(BRAINFPV_DEBUG_PIN));
+   IOInit(debugPin,  OWNER_OSD, 0);
+   IOConfigGPIO(debugPin, IO_CONFIG(GPIO_Mode_OUT, GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_DOWN));
+   IOLo(debugPin);
 #endif
 }
 
