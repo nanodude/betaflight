@@ -24,7 +24,7 @@
 
 #include "platform.h"
 
-#ifdef USE_MAX7456 !defined(USE_BRAINFPV_OSD)
+#if defined(USE_MAX7456) && !defined(USE_BRAINFPV_OSD)
 
 #include "build/debug.h"
 
@@ -371,15 +371,12 @@ max7456InitStatus_e max7456Init(const max7456Config_t *max7456Config, const vcdP
     // Write 0xff to conclude any current SPI transaction the MAX7456 is expecting
     spiWrite(dev, END_STRING);
 
-
     uint8_t osdm = spiReadRegMsk(dev, MAX7456ADD_OSDM);
 
     if (osdm != 0x1B) {
         IOConfigGPIO(dev->busType_u.spi.csnPin, IOCFG_IPU);
         return MAX7456_INIT_NOT_FOUND;
     }
-
-    __spiBusTransactionEnd(busdev);
 
     // At this point, we can claim the ownership of the CS pin
     max7456DeviceDetected = true;
