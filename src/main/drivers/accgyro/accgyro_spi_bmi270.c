@@ -333,9 +333,6 @@ static bool bmi270AccRead(accDev_t *acc)
     case GYRO_EXTI_INT:
     case GYRO_EXTI_NO_INT:
     {
-        // Ensure any prior DMA has completed before continuing
-        spiWaitClaim(&acc->gyro->dev);
-
         acc->gyro->dev.txBuf[0] = BMI270_REG_ACC_DATA_X_LSB | 0x80;
 
         busSegment_t segments[] = {
@@ -391,8 +388,6 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         // Using DMA for gyro access upsets the scheduler on the F4
         if (gyro->detectedEXTI > GYRO_EXTI_DETECT_THRESHOLD) {
             if (spiUseDMA(&gyro->dev)) {
-                // Indicate that the bus on which this device resides may initiate DMA transfers from interrupt context
-                spiSetAtomicWait(&gyro->dev);
                 gyro->dev.callbackArg = (uint32_t)gyro;
                 gyro->dev.txBuf[0] = BMI270_REG_ACC_DATA_X_LSB | 0x80;
                 gyro->segments[0].len = 14;
@@ -416,9 +411,6 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
     case GYRO_EXTI_INT:
     case GYRO_EXTI_NO_INT:
     {
-        // Ensure any prior DMA has completed before continuing
-        spiWaitClaim(&gyro->dev);
-
         gyro->dev.txBuf[0] = BMI270_REG_GYR_DATA_X_LSB | 0x80;
 
         busSegment_t segments[] = {
