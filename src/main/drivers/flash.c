@@ -317,6 +317,12 @@ const flashGeometry_t *flashGetGeometry(void)
     return &noFlashGeometry;
 }
 
+void flashDisableDma(void)
+{
+    flashDevice.io.handle.dev->useDMA = false;
+}
+
+
 /*
  * Flash partitioning
  *
