@@ -634,6 +634,7 @@ SLOW_CODE void init(void)
         // it to identify the log files *before* starting the USB device to
         // prevent timeouts of the mass storage device.
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
+            flashDisableDma();
             emfat_init_files();
         }
 #endif
