@@ -626,6 +626,16 @@ void validateAndFixGyroConfig(void)
 
         // check for looptime restrictions based on motor protocol. Motor times have safety margin
         float motorUpdateRestriction;
+
+#if defined(STM32F40_41xxx) || defined(STM32F411xE)
+        /* If bidirectional DSHOT is being used on an F411 then force DSHOT300. The motor update restrictions then applied
+         * will automatically consider the loop time and adjust pid_process_denom appropriately
+         */
+        if (motorConfig()->dev.useDshotTelemetry && (motorConfig()->dev.motorPwmProtocol == PWM_TYPE_DSHOT600)) {
+            motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_DSHOT300;
+        }
+#endif
+
         switch (motorConfig()->dev.motorPwmProtocol) {
         case PWM_TYPE_STANDARD:
                 motorUpdateRestriction = 1.0f / BRUSHLESS_MOTORS_PWM_RATE;
@@ -772,6 +782,9 @@ void saveConfigAndNotify(void)
 #if defined(BRAINFPV)
     brainFPVSystemSetReq(BRAINFPV_REQ_SAVE_SETTINGS);
 #else
+    // The write to EEPROM will cause a big delay in the current task, so ignore
+    schedulerIgnoreTaskExecTime();
+
     writeEEPROM();
     readEEPROM();
     beeperConfirmationBeeps(1);
@@ -815,6 +828,9 @@ void changePidProfileFromCellCount(uint8_t cellCount)
 
 void changePidProfile(uint8_t pidProfileIndex)
 {
+    // The config switch will cause a big enough delay in the current task to upset the scheduler
+    schedulerIgnoreTaskExecTime();
+
     if (pidProfileIndex < PID_PROFILE_COUNT) {
         systemConfigMutable()->pidProfileIndex = pidProfileIndex;
         loadPidProfile();

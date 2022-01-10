@@ -98,7 +98,10 @@ typedef struct eprState_s {
     bool eventRecorded[EPR_EVENT_COUNT];
 } eprState_t;
 
-eprState_t eprState = {0};
+eprState_t eprState = {
+    .eventAtUs = {0},
+    .eventRecorded = {0},
+};
 
 static void expressLrsEPRRecordEvent(eprEvent_e event, uint32_t currentTimeUs)
 {
@@ -837,15 +840,15 @@ bool expressLrsSpiInit(const struct rxSpiConfig_s *rxConfig, struct rxRuntimeSta
     }
 
     rxSpiCommonIOInit(rxConfig);
-	
+    
     rxRuntimeState->channelCount = ELRS_MAX_CHANNELS;
-	
+    
     extiConfig->ioConfig = IOCFG_IPD;
     extiConfig->trigger = BETAFLIGHT_EXTI_TRIGGER_RISING;
 
     if (rxExpressLrsSpiConfig()->resetIoTag) {
         receiver.resetPin = IOGetByTag(rxExpressLrsSpiConfig()->resetIoTag);
-	} else {
+    } else {
         receiver.resetPin = IO_NONE;
     }
 

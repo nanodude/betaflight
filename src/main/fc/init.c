@@ -914,12 +914,6 @@ SLOW_CODE void init(void)
     cmsInit();
 #endif
 
-#ifdef USE_TELEMETRY
-    if (featureIsEnabled(FEATURE_TELEMETRY)) {
-        telemetryInit();
-    }
-#endif
-
 #if (defined(USE_OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)))
     displayPort_t *osdDisplayPort = NULL;
     osdDisplayPortDevice_e osdDisplayPortDevice = OSD_DISPLAYPORT_DEVICE_NONE;
@@ -1018,6 +1012,13 @@ SLOW_CODE void init(void)
         dashboardResetPageCycling();
         dashboardEnablePageCycling();
 #endif
+    }
+#endif
+
+#ifdef USE_TELEMETRY
+    // Telemetry will initialise displayport and register with CMS by itself.
+    if (featureIsEnabled(FEATURE_TELEMETRY)) {
+        telemetryInit();
     }
 #endif
 

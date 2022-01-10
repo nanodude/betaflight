@@ -925,6 +925,9 @@ static uint8_t osdShowStats(int statsRowCount)
 
 static void osdRefreshStats(void)
 {
+    // Non-flight operation which takes a little longer than normal
+    schedulerIgnoreTaskExecTime();
+
     displayClearScreen(osdDisplayPort);
     if (osdStatsRowCount == 0) {
         // No stats row count has been set yet.
@@ -1197,7 +1200,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         osdUpdateAlarms();
 
         if (resumeRefreshAt) {
-            osdState = OSD_STATE_IDLE;
+            osdState = OSD_STATE_TRANSFER;
         } else {
             osdState = OSD_STATE_UPDATE_CANVAS;
         }

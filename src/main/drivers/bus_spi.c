@@ -43,6 +43,8 @@
 #include "ch.h"
 #endif
 
+#define NUM_QUEUE_SEGS 5
+
 static uint8_t spiRegisteredDeviceCount = 0;
 
 spiDevice_t spiDevice[SPIDEV_COUNT];
@@ -173,8 +175,8 @@ void spiReadWriteBuf(const extDevice_t *dev, uint8_t *txData, uint8_t *rxData, i
 {
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {txData, rxData, len, true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {txData, rxData}, len, true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -202,8 +204,8 @@ uint8_t spiReadWrite(const extDevice_t *dev, uint8_t data)
 
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {&data, &retval, sizeof(data), true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {&data, &retval}, sizeof(data), true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -220,9 +222,9 @@ uint8_t spiReadWriteReg(const extDevice_t *dev, uint8_t reg, uint8_t data)
 
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {&reg, NULL, sizeof(reg), false, NULL},
-            {&data, &retval, sizeof(data), true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {&reg, NULL}, sizeof(reg), false, NULL},
+            {.u.buffers = {&data, &retval}, sizeof(data), true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -237,8 +239,8 @@ void spiWrite(const extDevice_t *dev, uint8_t data)
 {
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {&data, NULL, sizeof(data), true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {&data, NULL}, sizeof(data), true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -251,9 +253,9 @@ void spiWriteReg(const extDevice_t *dev, uint8_t reg, uint8_t data)
 {
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {&reg, NULL, sizeof(reg), false, NULL},
-            {&data, NULL, sizeof(data), true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {&reg, NULL}, sizeof(reg), false, NULL},
+            {.u.buffers = {&data, NULL}, sizeof(data), true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -279,9 +281,9 @@ void spiReadRegBuf(const extDevice_t *dev, uint8_t reg, uint8_t *data, uint8_t l
 {
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {&reg, NULL, sizeof(reg), false, NULL},
-            {NULL, data, length, true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {&reg, NULL}, sizeof(reg), false, NULL},
+            {.u.buffers = {NULL, data}, length, true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -313,9 +315,9 @@ void spiWriteRegBuf(const extDevice_t *dev, uint8_t reg, uint8_t *data, uint32_t
 {
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {&reg, NULL, sizeof(reg), false, NULL},
-            {data, NULL, length, true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {&reg, NULL}, sizeof(reg), false, NULL},
+            {.u.buffers = {data, NULL}, length, true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -329,9 +331,9 @@ uint8_t spiReadReg(const extDevice_t *dev, uint8_t reg)
     uint8_t data;
     // This routine blocks so no need to use static data
     busSegment_t segments[] = {
-            {&reg, NULL, sizeof(reg), false, NULL},
-            {NULL, &data, sizeof(data), true, NULL},
-            {NULL, NULL, 0, true, NULL},
+            {.u.buffers = {&reg, NULL}, sizeof(reg), false, NULL},
+            {.u.buffers = {NULL, &data}, sizeof(data), true, NULL},
+            {.u.buffers = {NULL, NULL}, 0, true, NULL},
     };
 
     spiSequence(dev, &segments[0]);
@@ -370,6 +372,19 @@ uint16_t spiCalculateDivider(uint32_t freq)
     return divisor;
 }
 
+uint32_t spiCalculateClock(uint16_t spiClkDivisor)
+{
+#if defined(STM32F4) || defined(STM32G4) || defined(STM32F7)
+    uint32_t spiClk = SystemCoreClock / 2;
+#elif defined(STM32H7)
+    uint32_t spiClk = 100000000;
+#else
+#error "Base SPI clock not defined for this architecture"
+#endif
+
+    return spiClk / spiClkDivisor;
+}
+
 // Interrupt handler for SPI receive DMA completion
 static void spiIrqHandler(const extDevice_t *dev)
 {
@@ -401,12 +416,12 @@ static void spiIrqHandler(const extDevice_t *dev)
 
     if (nextSegment->len == 0) {
         // If a following transaction has been linked, start it
-        if (nextSegment->txData) {
-            const extDevice_t *nextDev = (const extDevice_t *)nextSegment->txData;
-            busSegment_t *nextSegments = (busSegment_t *)nextSegment->rxData;
+        if (nextSegment->u.link.dev) {
+            const extDevice_t *nextDev = nextSegment->u.link.dev;
+            busSegment_t *nextSegments = nextSegment->u.link.segments;
             // The end of the segment list has been reached
             bus->curSegment = nextSegments;
-            nextSegment->txData = NULL;
+            nextSegment->u.link.dev = NULL;
             spiSequenceStart(nextDev);
         } else {
             // The end of the segment list has been reached, so mark transactions as complete
@@ -453,15 +468,15 @@ static void spiRxIrqHandler(dmaChannelDescriptor_t* descriptor)
 
 #ifdef __DCACHE_PRESENT
 #ifdef STM32H7
-    if (bus->curSegment->rxData &&
-        ((bus->curSegment->rxData < &_dmaram_start__) || (bus->curSegment->rxData >= &_dmaram_end__))) {
+    if (bus->curSegment->u.buffers.rxData &&
+        ((bus->curSegment->u.buffers.rxData < &_dmaram_start__) || (bus->curSegment->u.buffers.rxData >= &_dmaram_end__))) {
 #else
-    if (bus->curSegment->rxData) {
+    if (bus->curSegment->u.buffers.rxData) {
 #endif
          // Invalidate the D cache covering the area into which data has been read
         SCB_InvalidateDCache_by_Addr(
-            (uint32_t *)((uint32_t)bus->curSegment->rxData & ~CACHE_LINE_MASK),
-            (((uint32_t)bus->curSegment->rxData & CACHE_LINE_MASK) +
+            (uint32_t *)((uint32_t)bus->curSegment->u.buffers.rxData & ~CACHE_LINE_MASK),
+            (((uint32_t)bus->curSegment->u.buffers.rxData & CACHE_LINE_MASK) +
               bus->curSegment->len - 1 + CACHE_LINE_SIZE) & ~CACHE_LINE_MASK);
     }
 #endif // __DCACHE_PRESENT
@@ -568,16 +583,16 @@ void spiInitBusDMA()
 
             if (dmaTxChannelSpec) {
                 dmaTxIdentifier = dmaGetIdentifier(dmaTxChannelSpec->ref);
-                if (!dmaAllocate(dmaTxIdentifier, OWNER_SPI_MOSI, device + 1)) {
-                    dmaTxIdentifier = DMA_NONE;
-                    continue;
-                }
 #if defined(STM32F4) && defined(USE_DSHOT_BITBANG)
                 if (dshotBitbangActive && (DMA_DEVICE_NO(dmaTxIdentifier) == 2)) {
                     dmaTxIdentifier = DMA_NONE;
                     break;
                 }
 #endif
+                if (!dmaAllocate(dmaTxIdentifier, OWNER_SPI_MOSI, device + 1)) {
+                    dmaTxIdentifier = DMA_NONE;
+                    continue;
+                }
                 bus->dmaTx = dmaGetDescriptorByIdentifier(dmaTxIdentifier);
                 bus->dmaTx->stream = DMA_DEVICE_INDEX(dmaTxIdentifier);
                 bus->dmaTx->channel = dmaTxChannelSpec->channel;
@@ -602,16 +617,16 @@ void spiInitBusDMA()
 
             if (dmaRxChannelSpec) {
                 dmaRxIdentifier = dmaGetIdentifier(dmaRxChannelSpec->ref);
-                if (!dmaAllocate(dmaRxIdentifier, OWNER_SPI_MISO, device + 1)) {
-                    dmaRxIdentifier = DMA_NONE;
-                    continue;
-                }
 #if defined(STM32F4) && defined(USE_DSHOT_BITBANG)
                 if (dshotBitbangActive && (DMA_DEVICE_NO(dmaRxIdentifier) == 2)) {
                     dmaRxIdentifier = DMA_NONE;
                     break;
                 }
 #endif
+                if (!dmaAllocate(dmaRxIdentifier, OWNER_SPI_MISO, device + 1)) {
+                    dmaRxIdentifier = DMA_NONE;
+                    continue;
+                }
                 bus->dmaRx = dmaGetDescriptorByIdentifier(dmaRxIdentifier);
                 bus->dmaRx->stream = DMA_DEVICE_INDEX(dmaRxIdentifier);
                 bus->dmaRx->channel = dmaRxChannelSpec->channel;
@@ -732,18 +747,18 @@ void spiSequence(const extDevice_t *dev, busSegment_t *segments)
                         return;
                     }
 
-                    if (endCmpSegment->txData == NULL) {
+                    if (endCmpSegment->u.link.dev == NULL) {
                         // End of the segment list queue reached
                         break;
                     } else {
                         // Follow the link to the next queued segment list
-                        endCmpSegment = (busSegment_t *)endCmpSegment->rxData;
+                        endCmpSegment = endCmpSegment->u.link.segments;
                     }
                 }
 
                 // Record the dev and segments parameters in the terminating segment entry
-                endCmpSegment->txData = (uint8_t *)dev;
-                endCmpSegment->rxData = (uint8_t *)segments;
+                endCmpSegment->u.link.dev = dev;
+                endCmpSegment->u.link.segments = segments;
 
                 return;
             }
