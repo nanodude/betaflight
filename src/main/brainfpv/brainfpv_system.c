@@ -36,6 +36,7 @@
 #include "io/beeper.h"
 #include "drivers/serial_uart.h"
 #include "drivers/serial_uart_impl.h"
+#include "scheduler/scheduler.h"
 
 #include "pg/serial_uart.h"
 
@@ -195,6 +196,8 @@ void brainFPVSystemSetReq(BrainFPVSystemReq_t req)
 
 void saveConfigAndNotifyBrainFPV(void)
 {
+    schedulerIgnoreTaskExecTime();
+
     writeEEPROM();
     readEEPROM();
     beeperConfirmationBeeps(1);
