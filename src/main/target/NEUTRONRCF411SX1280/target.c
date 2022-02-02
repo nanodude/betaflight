@@ -18,22 +18,20 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-#include "common/time.h"
+#include "platform.h"
+#include "drivers/io.h"
 
-#define POSITION_DEFAULT_ALT_NUM_SATS_GPS_USE 10
-#define POSITION_DEFAULT_ALT_NUM_SATS_BARO_FALLBACK 7
+#include "drivers/dma.h"
+#include "drivers/timer.h"
+#include "drivers/timer_def.h"
 
-typedef struct positionConfig_s {
-    uint8_t altSource;
-    uint8_t altNumSatsGpsUse;
-    uint8_t altNumSatsBaroFallback;
-} positionConfig_t;
+const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
-PG_DECLARE(positionConfig_t, positionConfig);
-
-bool isAltitudeOffset(void);
-void calculateEstimatedAltitude(timeUs_t currentTimeUs);
-int32_t getEstimatedAltitudeCm(void);
-int16_t getEstimatedVario(void);
+    DEF_TIM( TIM3, CH4, PB1, TIM_USE_LED,              0, 0 ), // LED Strip
+    DEF_TIM( TIM4, CH3, PB8, TIM_USE_MOTOR,            0, 0 ), // M1
+    DEF_TIM( TIM2, CH1, PA0, TIM_USE_MOTOR,            0, 0 ), // M2
+    DEF_TIM( TIM2, CH3, PB10,TIM_USE_MOTOR,            0, 0 ), // M3
+    DEF_TIM( TIM4, CH2, PB7, TIM_USE_MOTOR,            0, 0 ), // M4
+};

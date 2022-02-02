@@ -18,22 +18,14 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "platform.h"
 
-#include "common/time.h"
+#include "pg/pg_ids.h"
+#include "pg/scheduler.h"
 
-#define POSITION_DEFAULT_ALT_NUM_SATS_GPS_USE 10
-#define POSITION_DEFAULT_ALT_NUM_SATS_BARO_FALLBACK 7
+PG_REGISTER_WITH_RESET_TEMPLATE(schedulerConfig_t, schedulerConfig, PG_SCHEDULER_CONFIG, 0);
 
-typedef struct positionConfig_s {
-    uint8_t altSource;
-    uint8_t altNumSatsGpsUse;
-    uint8_t altNumSatsBaroFallback;
-} positionConfig_t;
-
-PG_DECLARE(positionConfig_t, positionConfig);
-
-bool isAltitudeOffset(void);
-void calculateEstimatedAltitude(timeUs_t currentTimeUs);
-int32_t getEstimatedAltitudeCm(void);
-int16_t getEstimatedVario(void);
+PG_RESET_TEMPLATE(schedulerConfig_t, schedulerConfig,
+    .rxRelaxDeterminism = SCHEDULER_RELAX_RX,
+    .osdRelaxDeterminism = SCHEDULER_RELAX_OSD,
+);
