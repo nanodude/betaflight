@@ -1517,21 +1517,26 @@ bool brainFPVOsdUpdate(timeUs_t currentTimeUs)
         showVisualBeeper = true;
     }
 
-    osdDrawStats1(currentTimeUs);
+    osdProcessStats1(currentTimeUs);
+    osdProcessStats2(currentTimeUs);
+    osdProcessStats3(currentTimeUs);
+
     showVisualBeeper = false;
-    osdDrawStats2(currentTimeUs);
-    osdDrawStats3(currentTimeUs);
     osdSyncBlink();
+
+    if (osdStatsVisible) {
+        osdRenderStatsBegin();
+        bool complete = osdRenderStatsContinue();
+        while (!complete) {
+            complete = osdRenderStatsContinue();
+        }
+        return false;
+    }
 
     if (osdShowArming) {
         if (stats.armed_time > (timeUs_t)osdShowArmed()) {
             osdShowArming = false;
         }
-        return false;
-    }
-
-    if (osdStatsVisible) {
-        osdRefreshStats();
         return false;
     }
 
