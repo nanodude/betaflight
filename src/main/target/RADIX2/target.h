@@ -200,6 +200,7 @@
 #define USE_SPI_GYRO
 #define USE_GYRO_SPI_BMI270
 #define USE_ACCGYRO_BMI270
+#undef USE_GYRO_DLPF_EXPERIMENTAL
 
 // SPI2 is running at 80MHz
 #define BMI270_SPI_DIVISOR   8
