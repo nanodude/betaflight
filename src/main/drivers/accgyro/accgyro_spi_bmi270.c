@@ -35,6 +35,7 @@ bool gyro_sample_processed = false;
 
 #if defined(BRAINFPV)
 #include "brainfpv/brainfpv_osd.h"
+#include "brainfpv/brainfpv_system.h"
 #endif
 
 #include "drivers/accgyro/accgyro.h"
@@ -200,6 +201,13 @@ static void bmi270UploadConfig(const extDevice_t *dev)
 
 static uint8_t getBmiOsrMode()
 {
+
+#if defined(BRAINFPV)
+    if (brainFpvSystemConfig()->bmi_bwp_norm) {
+        return BMI270_VAL_GYRO_CONF_BWP_NORM;
+    }
+#endif
+
     switch(gyroConfig()->gyro_hardware_lpf) {
         case GYRO_HARDWARE_LPF_NORMAL:
             return BMI270_VAL_GYRO_CONF_BWP_OSR4;

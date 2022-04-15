@@ -28,6 +28,7 @@
 typedef struct brainFpvSystemConfig_s {
     colorId_e status_led_color;
     uint8_t status_led_brightness;
+    uint8_t bmi_bwp_norm;
 } brainFpvSystemConfig_t;
 
 PG_DECLARE(brainFpvSystemConfig_t, brainFpvSystemConfig);
