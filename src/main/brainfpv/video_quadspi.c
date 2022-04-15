@@ -163,8 +163,8 @@ void video_qspi_enable(void)
 {
     // re-enable interrupts
     spurious_vsync_cnt = 0;
-    EXTIEnable(vsync_io, true);
-    EXTIEnable(hsync_io, true);
+    EXTIEnable(vsync_io);
+    EXTIEnable(hsync_io);
 }
 
 /**
@@ -184,8 +184,8 @@ FAST_CODE void Vsync_ISR(extiCallbackRec_t *cb)
         spurious_vsync_cnt += 1;
         if (spurious_vsync_cnt >= MAX_SPURIOUS_VSYNCS) {
             // spurious detections: disable interrupts
-            EXTIEnable(vsync_io, false);
-            EXTIEnable(hsync_io, false);
+            EXTIDisable(vsync_io);
+            EXTIDisable(hsync_io);
         }
         return;
     }
@@ -514,8 +514,8 @@ void Video_Init()
     EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_BUILD_PRIORITY(1, 1), IOCFG_IN_FLOATING, BETAFLIGHT_EXTI_TRIGGER_FALLING);
 
     // Enable interrupts
-    EXTIEnable(vsync_io, true);
-    EXTIEnable(hsync_io, true);
+    EXTIEnable(vsync_io);
+    EXTIEnable(hsync_io);
 
 #if defined(USE_BRAINFPV_AUTO_SYNC_THRESHOLD)
    if (bfOsdConfig()->sync_threshold_mode == SYNC_THRESHOLD_AUTO) {
