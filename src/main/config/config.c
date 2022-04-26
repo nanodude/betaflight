@@ -97,6 +97,8 @@ static bool configIsDirty; /* someone indicated that the config is modified and 
 
 static bool rebootRequired = false;  // set if a config change requires a reboot to take effect
 
+static bool eepromWriteInProgress = false;
+
 pidProfile_t *currentPidProfile;
 
 #if defined(BRAINFPV)
@@ -133,6 +135,11 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .configurationState = CONFIGURATION_STATE_DEFAULTS_BARE,
     .enableStickArming = false,
 );
+
+bool isEepromWriteInProgress(void)
+{
+    return eepromWriteInProgress;
+}
 
 uint8_t getCurrentPidProfileIndex(void)
 {
@@ -746,9 +753,9 @@ void writeUnmodifiedConfigToEEPROM(void)
     validateAndFixConfig();
 
     suspendRxSignal();
-
+    eepromWriteInProgress = true;
     writeConfigToEEPROM();
-
+    eepromWriteInProgress = false;
     resumeRxSignal();
     configIsDirty = false;
 }
