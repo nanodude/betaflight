@@ -115,6 +115,10 @@ struct {
     // Cypress S25FL128L
     // Datasheet: https://www.cypress.com/file/316171/download
     { 0x016018, 133, 50, 256, 256 },
+#if defined(BRAINRE1)
+    // BrainFPV RE1 uses Spansion S25FL127. Use 10 MHz max clock (shared with FPGA)
+    {0x012018, 10, 10, 256, 256 },
+#endif
     // BergMicro W25Q32
     // Datasheet: https://www.winbond.com/resource-files/w25q32jv%20dtr%20revf%2002242017.pdf?__locale=zh_TW
     { 0xE04016, 133, 50, 1024, 16 },
