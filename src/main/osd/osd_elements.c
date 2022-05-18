@@ -1485,6 +1485,64 @@ static void osdElementWarnings(osdElementParms_t *element)
     }
 }
 
+#if defined(BRAINFPV)
+// Write warnings and link quality information into craft name element so it can be read by DJI system via MSP
+#define WARNING_LQ_TOGGLE_TIME_US 2000000
+
+void brainFPVRenderCraftNameWarningsDji(char * buffer, int bufferLength)
+{
+    static timeUs_t lastSwitchTimeUs = 0;
+    static bool showLq = false;
+
+    bool blinking;
+    uint8_t displayAttr;
+
+    renderOsdWarning(buffer, &blinking, &displayAttr);
+
+    if (displayAttr == DISPLAYPORT_ATTR_NONE) {
+        showLq = true;
+    }
+    else {
+        timeUs_t currentTimeUs = micros();
+        timeUs_t toggleTime = WARNING_LQ_TOGGLE_TIME_US;
+
+        if (blinking) {
+            toggleTime = toggleTime >> 1;
+        }
+
+        if (currentTimeUs - lastSwitchTimeUs > toggleTime) {
+            showLq = !showLq;
+            lastSwitchTimeUs = currentTimeUs;
+        }
+    }
+
+    if (showLq) {
+        // Show link quality and tx power
+        osdElementParms_t dummyElement;
+        char elemBuff[OSD_ELEMENT_BUFFER_LENGTH] = "";
+        dummyElement.buff = (char *)&elemBuff[0];
+
+        osdElementLinkQuality(&dummyElement);
+
+        if (strlen(elemBuff)) {
+            strncpy(buffer, "LQ: ", bufferLength);
+            strncpy(&buffer[4], &elemBuff[1], bufferLength - 4);
+        }
+        else {
+            return;
+        }
+
+        osdElementTxUplinkPower(&dummyElement);
+
+        if (strlen(elemBuff)) {
+            int pos = strlen(buffer);
+            strncpy(&buffer[pos], &elemBuff[1], bufferLength - pos);
+        }
+    }
+
+}
+#endif
+
 // Define the order in which the elements are drawn.
 // Elements positioned later in the list will overlay the earlier
 // ones if their character positions overlap

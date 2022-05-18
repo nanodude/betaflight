@@ -63,7 +63,7 @@ USBD_HandleTypeDef USBD_Device;
 
 #define USB_TIMEOUT  50
 
-static vcpPort_t vcpPort;
+vcpPort_t vcpPort;
 
 static void usbVcpSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
