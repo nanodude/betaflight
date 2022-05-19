@@ -20,8 +20,41 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "SPKY" // SParKY
+#define TARGET_BOARD_IDENTIFIER "NSKY" // NakedSparKY
 
+/* Start of common_pre.h overrides */
+
+#undef MINIMAL_CLI
+#undef USE_BRUSHED_ESC_AUTODETECT
+#undef USE_PPM
+#undef USE_SERIALRX_CRSF       // Team Black Sheep Crossfire protocol
+#undef USE_SERIALRX_GHST       // ImmersionRC Ghost Protocol
+#undef USE_SERIALRX_IBUS       // FlySky and Turnigy receivers
+#undef USE_SERIALRX_SPEKTRUM   // SRXL, DSM2 and DSMX protocol
+#undef USE_SERIALRX_SUMD       // Graupner Hott protocol
+#undef USE_ACRO_TRAINER
+#undef USE_BLACKBOX
+#undef USE_SERVOS
+#undef USE_TELEMETRY_FRSKY_HUB
+#undef USE_TELEMETRY_CRSF
+#undef USE_TELEMETRY_GHST
+#undef USE_TELEMETRY_SRXL
+#define USE_BOARD_INFO
+#define USE_SENSOR_NAMES
+#define USE_TELEMETRY_SENSORS_DISABLED_DETAILS
+#define USE_BATTERY_VOLTAGE_SAG_COMPENSATION
+#define USE_SENSOR_NAMES
+#define USE_TIMER_MGMT
+#define USE_QUAD_MIXER_ONLY
+#define USE_SERIAL_4WAY_BLHELI_BOOTLOADER
+
+/* End of common_pre.h overrides */
+
+#define USE_DSHOT
+#define USE_DSHOT_TELEMETRY
+#define ENABLE_DSHOT_DMAR       DSHOT_DMAR_ON
+#define USE_DMA_SPEC
+//#undef USE_DSHOT_DMAR
 
 #define LED0_PIN                PB4  // Blue (Rev 1 & 2) - PB4
 #define LED1_PIN                PB5  // Green (Rev 1) / Red (Rev 2) - PB5
@@ -46,7 +79,6 @@
 
 #define USE_BARO
 #define USE_BARO_MS5611
-#define USE_BARO_BMP280
 
 #define USE_MAG
 #define USE_MAG_AK8975
@@ -54,18 +86,16 @@
 #define MAG_AK8975_ALIGN        CW180_DEG_FLIP
 
 #define USE_VCP
+#define USE_USB_DETECT
+#define USB_DETECT_PIN          PB3
 #define USE_UART1 // Conn 1 - TX (PB6) RX PB7 (AF7)
 #define USE_UART2 // Input - RX (PA3)
 #define USE_UART3 // Servo out - 10/RX (PB11) 11/TX (PB10)
-#define USE_SOFTSERIAL1
-#define USE_SOFTSERIAL2
 
-#define SERIAL_PORT_COUNT       6
+#define SERIAL_PORT_COUNT       4
 
+// TODO
 #define AVOID_UART2_FOR_PWM_PPM
-
-#define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_PIN  PB15  // (HARDARE=0)
 
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7
@@ -85,8 +115,8 @@
 #define I2C2_SDA                PA10
 
 #define USE_ADC
-#define ADC_INSTANCE            ADC2
-#define VBAT_ADC_PIN            PA4
+#define ADC_INSTANCE            ADC1
+#define VBAT_ADC_PIN            PA0
 #define CURRENT_METER_ADC_PIN   PA7
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
@@ -97,12 +127,9 @@
 //#define RANGEFINDER_HCSR04_TRIGGER_PIN       PA2
 
 // available IO pins (from schematics)
-//#define TARGET_IO_PORTA (BIT(1)|BIT(2)|BIT(3)|BIT(4)|BIT(6)|BIT(7)|BIT(8)|BIT(9)|BIT(10)|BIT(11)|BIT(12)|BIT(13)|BIT(14)|BIT(15))
-//#define TARGET_IO_PORTB (BIT(0)|BIT(1)|BIT(10)|BIT(11)|BIT(14)|BIT(15)|BIT(3)|BIT(4)|BIT(5)|BIT(6)|BIT(7)|BIT(8)|BIT(9))
-// !!TODO - check following lines are correct
-#define TARGET_IO_PORTA         (BIT(1)|BIT(2)|BIT(3)|BIT(4)|BIT(5)|BIT(6)|BIT(7)|BIT(8)|BIT(9)|BIT(10)|BIT(11)|BIT(12)|BIT(13)|BIT(14)|BIT(15))
-#define TARGET_IO_PORTB         (BIT(0)|BIT(1)|BIT(6)|BIT(10)|BIT(11)|BIT(14)|BIT(15)|BIT(3)|BIT(4)|BIT(5)|BIT(6)|BIT(7)|BIT(8)|BIT(9)|BIT(12)|BIT(13))
-#define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
+#define TARGET_IO_PORTA         (0xffff & ~(BIT(5)))
+#define TARGET_IO_PORTB         (0xffff & ~(BIT(2)|BIT(12)|BIT(13)))
+#define TARGET_IO_PORTC         (BIT(13))
 
-#define USABLE_TIMER_CHANNEL_COUNT 11
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(15) | TIM_N(16) | TIM_N(17))
+//#define USABLE_TIMER_CHANNEL_COUNT //4
+//#define USED_TIMERS             (TIM_N(1) | TIM_N(3) | TIM_N(15))
