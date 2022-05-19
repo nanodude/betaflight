@@ -29,6 +29,7 @@ typedef struct brainFpvSystemConfig_s {
     colorId_e status_led_color;
     uint8_t status_led_brightness;
     uint8_t bmi_bwp_norm;
+    uint8_t dji_osd_warnings_lq;
 } brainFpvSystemConfig_t;
 
 PG_DECLARE(brainFpvSystemConfig_t, brainFpvSystemConfig);
@@ -45,3 +46,5 @@ void brainFPVSystemSetReq(BrainFPVSystemReq_t req);
 void brainFPVSystemCheck(void);
 uint16_t brainFPVSystemGetCPULoad(void);
 
+// implemented in osd_elements.c
+void brainFPVRenderCraftNameWarningsDji(char * buffer, int bufferLength);

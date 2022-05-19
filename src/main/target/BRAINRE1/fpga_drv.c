@@ -129,8 +129,6 @@ static IO_t re1FPGAResetPin = IO_NONE;
 
 static int32_t BRAINFPVFPGA_WriteReg(uint8_t reg, uint8_t data, uint8_t mask);
 static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t data);
-static uint8_t BRAINFPVFPGA_ReadReg(uint8_t reg);
-static void update_shadow_regs();
 int32_t BRAINFPVFPGA_SetLEDs(uint8_t * led_data, uint16_t n_leds);
 int32_t BRAINFPVFPGA_SetIRData(uint8_t * ir_data, uint8_t n_bytes);
 
@@ -209,9 +207,6 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_XCFG2, 0x10);
     BRAINFPVFPGA_WriteRegDirect(BRAINFPVFPGA_REG_IRCFG, 0x00);
 
-    // Read all registers into shadow regsiters
-    update_shadow_regs();
-
     fpga_initialized = true;
 
     return 0;
@@ -262,7 +257,6 @@ static int32_t BRAINFPVFPGA_WriteReg(enum re1fpga_register reg, uint8_t data, ui
 
     uint8_t new_data = (*cur_reg & ~mask) | (data & mask);
 
-
     if (new_data == *cur_reg) {
         return 0;
     }
@@ -277,35 +271,38 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
 
     spiWriteReg(&fpga_spi_dev, reg, data);
 
+    switch (reg) {
+    case BRAINFPVFPGA_REG_CFG:
+         shadow_reg.reg_cfg = data;
+        break;
+    case BRAINFPVFPGA_REG_CTL:
+        shadow_reg.reg_ctl = data;
+        break;
+    case BRAINFPVFPGA_REG_BLACK:
+        shadow_reg.reg_black = data;
+        break;
+    case BRAINFPVFPGA_REG_WHITE:
+        shadow_reg.reg_white = data;
+        break;
+    case BRAINFPVFPGA_REG_THR:
+        shadow_reg.reg_thr = data;
+        break;
+    case BRAINFPVFPGA_REG_XCFG:
+        shadow_reg.reg_xcfg = data;
+        break;
+    case BRAINFPVFPGA_REG_XCFG2:
+        shadow_reg.reg_xcfg2 = data;
+        break;
+    case BRAINFPVFPGA_REG_IRCFG:
+        shadow_reg.reg_ircfg = data;
+        break;
+    default:
+        break;
+    }
+
     return 0;
 }
 
-/**
- * @brief Read a register from BRAINFPVFPGA
- * @returns The register value
- * @param reg[in] Register address to be read
- */
-static uint8_t BRAINFPVFPGA_ReadReg(enum re1fpga_register reg)
-{
-    return spiReadReg(&fpga_spi_dev, reg);
-}
-
-
-/**
- * @brief Read all registers and update shadow registers
- */
-static void update_shadow_regs(void)
-{
-    shadow_reg.reg_hwrev = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_HWREV);
-    shadow_reg.reg_cfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_CFG);
-    shadow_reg.reg_ctl = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_CTL);
-    shadow_reg.reg_black = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_BLACK);
-    shadow_reg.reg_white = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_WHITE);
-    shadow_reg.reg_thr = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_THR);
-    shadow_reg.reg_xcfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_XCFG);
-    shadow_reg.reg_xcfg2 = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_XCFG2);
-    shadow_reg.reg_ircfg = BRAINFPVFPGA_ReadReg(BRAINFPVFPGA_REG_IRCFG);
-}
 
 /**
  * @brief Get the Hardware

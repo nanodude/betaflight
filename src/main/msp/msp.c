@@ -148,6 +148,11 @@
 #include "hardware_revision.h"
 #endif
 
+#if defined(BRAINFPV)
+#include "brainfpv/brainfpv_system.h"
+extern bool isUsbMspPort;
+#endif
+
 #include "msp.h"
 
 
@@ -1095,6 +1100,17 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         break;
 
     case MSP_NAME:
+#if defined(BRAINFPV)
+        if (!isUsbMspPort && brainFpvSystemConfig()->dji_osd_warnings_lq) {
+            // Write warnings and LQ instead of name
+            char buffer[MAX_NAME_LENGTH + 1];
+            brainFPVRenderCraftNameWarningsDji(buffer, MAX_NAME_LENGTH);
+            for (uint8_t i = 0; i < strlen(buffer); i++) {
+                sbufWriteU8(dst, buffer[i]);
+            }
+        }
+        else
+#endif
         {
             const int nameLen = strlen(pilotConfig()->name);
             for (int i = 0; i < nameLen; i++) {

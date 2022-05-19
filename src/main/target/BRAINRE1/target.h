@@ -68,6 +68,7 @@
 #define BRAINFPVFPGA_CLOCK_PIN    PA8
 #define BRAINFPVFPGA_RESET_PIN    PB10
 #define USE_BRAINFPV_IR_TRANSPONDER
+#define USE_BRAINFPV_FPGA_BUZZER
 
 #define BRAINFPV
 #define USE_MAX7456
@@ -160,6 +161,9 @@
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
+// Disable DMA for SPI3
+#define SPI3_TX_DMA_OPT         -2
+#define SPI3_RX_DMA_OPT         -2
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1

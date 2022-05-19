@@ -42,6 +42,13 @@
 
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
 
+#if defined(BRAINFPV)
+#include "drivers/serial_usb_vcp.h"
+
+extern vcpPort_t vcpPort;
+bool isUsbMspPort;
+#endif
+
 static void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort, bool sharedWithTelemetry)
 {
     memset(mspPortToReset, 0, sizeof(mspPort_t));
@@ -411,6 +418,10 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
         .result = 0,
         .direction = MSP_DIRECTION_REQUEST,
     };
+
+#if defined(BRAINFPV)
+    isUsbMspPort = (msp->port == (serialPort_t *)&vcpPort);
+#endif
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
     const mspResult_e status = mspProcessCommandFn(msp->descriptor, &command, &reply, &mspPostProcessFn);
